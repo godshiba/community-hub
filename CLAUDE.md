@@ -124,6 +124,33 @@ When working on a phase:
 3. Update the Status column in `docs/plan/ROADMAP.md`
 4. Tag when acceptance criteria are met
 
+### Phase Execution Rules
+
+When working on any phase:
+
+1. **Create TodoWrite tasks** for every step before writing code
+2. **Work step by step** — complete and verify one task before starting the next
+3. **Check after every step** — run the validation commands below
+4. **Update the phase file** — check off tasks (`- [x]`) as they're completed
+5. **Report to user** — before declaring a phase done, run all checks and share results
+
+### Validation Commands
+
+Run these after every meaningful change to keep the codebase clean:
+
+```bash
+npx tsc --noEmit                    # type check (zero errors)
+npm run lint 2>/dev/null || true    # lint if configured
+npm test -- --run 2>/dev/null       # run tests if any exist
+npm run build 2>/dev/null || true   # verify build succeeds
+```
+
+**Phase gate:** A phase is NOT complete until:
+- `npx tsc --noEmit` exits 0
+- `npm run build` exits 0
+- `npm run dev` launches without errors
+- All acceptance criteria from the phase file are met
+
 ### Session Continuity
 
 Each session may only cover part of a phase. To resume:

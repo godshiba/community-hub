@@ -4,7 +4,7 @@
 
 | Phase | Name | Version | Status |
 |-------|------|---------|--------|
-| 0 | [Project Scaffold](phase-0-scaffold.md) | v0.0.x | Not Started |
+| 0 | [Project Scaffold](phase-0-scaffold.md) | v0.0.1 | Complete |
 | 1 | [Shell & Foundation](phase-1-shell.md) | v0.1.x | Not Started |
 | 2 | [Settings & Platforms](phase-2-settings.md) | v0.2.x | Not Started |
 | 3 | [Dashboard](phase-3-dashboard.md) | v0.3.x | Not Started |

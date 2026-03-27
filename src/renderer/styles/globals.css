@@ -1,0 +1,131 @@
+@import 'tailwindcss';
+
+/* --- Dark Obsidian Theme Tokens --- */
+
+@theme {
+  /* Background */
+  --color-obsidian: #0a0a0f;
+  --color-obsidian-light: #12121f;
+
+  /* Accent */
+  --color-accent: #6366f1;
+  --color-accent-hover: #8b5cf6;
+
+  /* Semantic */
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+
+  /* Platform */
+  --color-discord: #5865F2;
+  --color-telegram: #26A5E4;
+
+  /* Text */
+  --color-text-primary: rgba(255, 255, 255, 0.87);
+  --color-text-secondary: rgba(255, 255, 255, 0.50);
+  --color-text-muted: rgba(255, 255, 255, 0.30);
+
+  /* Glass borders */
+  --color-glass-border: rgba(255, 255, 255, 0.06);
+  --color-glass-border-light: rgba(255, 255, 255, 0.08);
+
+  /* Radius */
+  --radius-panel: 12px;
+  --radius-card: 8px;
+  --radius-input: 6px;
+  --radius-badge: 4px;
+}
+
+/* --- Glass Surface Utilities --- */
+
+@utility bg-glass-surface {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(8px) saturate(150%);
+}
+
+@utility bg-glass-raised {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(12px) saturate(150%);
+}
+
+@utility bg-glass-overlay {
+  background: rgba(255, 255, 255, 0.10);
+  backdrop-filter: blur(16px) saturate(150%);
+}
+
+@utility border-glass {
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+@utility shadow-glass {
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+}
+
+/* --- shadcn/ui CSS Variables (dark-only) --- */
+
+@layer base {
+  :root {
+    --background: oklch(0.07 0.01 270);
+    --foreground: oklch(0.95 0 0);
+    --card: oklch(0.12 0.01 270);
+    --card-foreground: oklch(0.95 0 0);
+    --popover: oklch(0.10 0.01 270);
+    --popover-foreground: oklch(0.95 0 0);
+    --primary: oklch(0.55 0.24 275);
+    --primary-foreground: oklch(1 0 0);
+    --secondary: oklch(0.20 0.01 270);
+    --secondary-foreground: oklch(0.95 0 0);
+    --muted: oklch(0.20 0.01 270);
+    --muted-foreground: oklch(0.60 0 0);
+    --accent: oklch(0.55 0.24 275);
+    --accent-foreground: oklch(1 0 0);
+    --destructive: oklch(0.55 0.22 25);
+    --border: oklch(0.20 0 0);
+    --input: oklch(0.20 0 0);
+    --ring: oklch(0.55 0.24 275);
+    --radius: 0.5rem;
+    --sidebar-background: oklch(0.07 0.01 270);
+    --sidebar-foreground: oklch(0.95 0 0);
+    --sidebar-primary: oklch(0.55 0.24 275);
+    --sidebar-primary-foreground: oklch(1 0 0);
+    --sidebar-accent: oklch(0.20 0.01 270);
+    --sidebar-accent-foreground: oklch(0.95 0 0);
+    --sidebar-border: oklch(0.20 0 0);
+    --sidebar-ring: oklch(0.55 0.24 275);
+  }
+}
+
+/* --- Base Styles --- */
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  background: linear-gradient(135deg, #0a0a0f 0%, #12121f 50%, #0a0a0f 100%);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: rgba(255, 255, 255, 0.87);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
