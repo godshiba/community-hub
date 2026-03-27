@@ -1,15 +1,56 @@
-import { Button } from '@/components/ui/button'
+import { useEffect } from 'react'
+import { TitleBar } from '@/components/layout/TitleBar'
+import { IconBar } from '@/components/layout/IconBar'
+import { PanelContainer } from '@/components/layout/PanelContainer'
+import { StatusBar } from '@/components/layout/StatusBar'
+import { usePanelStore } from '@/stores/panel.store'
+import type { PanelId } from '@shared/types'
+
+const PANEL_ORDER: PanelId[] = [
+  'dashboard', 'agent', 'scheduler', 'moderation', 'events', 'reports', 'settings'
+]
 
 export function App(): React.ReactElement {
+  const { setActivePanel, goBack, closeSecondary, secondaryPanel } = usePanelStore()
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent): void => {
+      const mod = e.metaKey || e.ctrlKey
+
+      if (mod && e.key >= '1' && e.key <= '7') {
+        e.preventDefault()
+        const index = parseInt(e.key) - 1
+        setActivePanel(PANEL_ORDER[index])
+      }
+
+      if (mod && e.key === '[') {
+        e.preventDefault()
+        goBack()
+      }
+
+      if (mod && e.key === '\\') {
+        e.preventDefault()
+        // Split toggle will be more useful once panels can request secondary
+      }
+
+      if (e.key === 'Escape' && secondaryPanel) {
+        e.preventDefault()
+        closeSecondary()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [setActivePanel, goBack, closeSecondary, secondaryPanel])
+
   return (
-    <div className="h-screen w-screen bg-[#0a0a0f] text-white/87 flex items-center justify-center">
-      <div className="text-center space-y-4">
-        <h1 className="text-2xl font-bold text-accent">Community Hub</h1>
-        <p className="text-sm text-text-secondary">Phase 0 — Scaffold Ready</p>
-        <Button variant="default" size="sm">
-          Get Started
-        </Button>
+    <div className="h-screen w-screen flex flex-col overflow-hidden">
+      <TitleBar />
+      <div className="flex flex-1 overflow-hidden">
+        <IconBar />
+        <PanelContainer />
       </div>
+      <StatusBar />
     </div>
   )
 }

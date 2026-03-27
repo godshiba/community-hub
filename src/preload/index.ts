@@ -1,7 +1,11 @@
 import { contextBridge, ipcRenderer } from 'electron'
+import type { IpcContract, IpcResult } from '@shared/ipc-types'
 
 const api = {
-  invoke: <T>(channel: string, ...args: unknown[]): Promise<T> => {
+  invoke: <K extends keyof IpcContract>(
+    channel: K,
+    ...args: IpcContract[K]['request'] extends void ? [] : [IpcContract[K]['request']]
+  ): Promise<IpcResult<IpcContract[K]['response']>> => {
     return ipcRenderer.invoke(channel, ...args)
   }
 }
