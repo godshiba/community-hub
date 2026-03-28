@@ -2,6 +2,8 @@ import { app, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { initDatabase, closeDatabase } from './services/database.service'
 import { registerWindowHandlers } from './ipc/window'
+import { registerSettingsHandlers } from './ipc/settings'
+import { initPlatformManager, getPlatformManager } from './services/platform-manager'
 
 function createWindow(): void {
   const win = new BrowserWindow({
@@ -9,7 +11,8 @@ function createWindow(): void {
     height: 800,
     minWidth: 960,
     minHeight: 600,
-    frame: false,
+    titleBarStyle: 'hiddenInset',
+    trafficLightPosition: { x: 12, y: 10 },
     backgroundColor: '#0a0a0f',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -28,11 +31,14 @@ function createWindow(): void {
 
 app.whenReady().then(() => {
   initDatabase()
+  initPlatformManager()
   registerWindowHandlers()
+  registerSettingsHandlers()
   createWindow()
 })
 
 app.on('window-all-closed', () => {
+  try { getPlatformManager().disconnectAll() } catch { /* not initialized */ }
   closeDatabase()
   if (process.platform !== 'darwin') {
     app.quit()

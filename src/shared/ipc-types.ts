@@ -1,9 +1,17 @@
 import type { IpcResult } from './types'
+import type {
+  SaveCredentialPayload,
+  CredentialsState,
+  TestConnectionPayload,
+  ConnectionResult,
+  AiConfig,
+  AppPreferences,
+  PlatformStatus
+} from './settings-types'
 
 /**
  * Master IPC contract. Every channel is typed here.
  * Request/response types will be refined per module in later phases.
- * For now, placeholder types keep the bridge functional.
  */
 export interface IpcContract {
   // Window controls
@@ -49,10 +57,17 @@ export interface IpcContract {
   'reports:exportPDF': { request: { id: number }; response: unknown }
   'reports:deleteReport': { request: { id: number }; response: void }
 
-  // Settings
-  'settings:saveCredentials': { request: unknown; response: void }
-  'settings:loadCredentials': { request: void; response: unknown }
-  'settings:testConnection': { request: unknown; response: unknown }
+  // Settings — typed in Phase 2
+  'settings:saveCredentials': { request: SaveCredentialPayload; response: void }
+  'settings:loadCredentials': { request: void; response: CredentialsState }
+  'settings:testConnection': { request: TestConnectionPayload; response: ConnectionResult }
+  'settings:saveAiConfig': { request: AiConfig; response: void }
+  'settings:loadAiConfig': { request: void; response: AiConfig }
+  'settings:savePreferences': { request: AppPreferences; response: void }
+  'settings:loadPreferences': { request: void; response: AppPreferences }
+  'settings:getPlatformStatus': { request: void; response: PlatformStatus }
+  'settings:connectPlatform': { request: TestConnectionPayload; response: ConnectionResult }
+  'settings:disconnectPlatform': { request: TestConnectionPayload; response: void }
 
   // Agent
   'agent:getActions': { request: unknown; response: readonly unknown[] }

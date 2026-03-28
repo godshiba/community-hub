@@ -4,7 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Community Management Hub — an Electron desktop app for managing Discord and Telegram communities with an optional autonomous AI agent. Dark Obsidian glassmorphism IDE-style interface.
+Community Management Hub — a **macOS-native** Electron desktop app for managing Discord and Telegram communities with an optional autonomous AI agent. Dark Obsidian glassmorphism IDE-style interface.
+
+### macOS Native
+
+This is a macOS app. All UI must match macOS conventions:
+- **Window chrome:** `titleBarStyle: 'hiddenInset'` with native traffic lights (no custom close/minimize/maximize buttons)
+- **Keyboard shortcuts:** Use `Cmd` (not `Ctrl`) — `metaKey` in event handlers
+- **Typography:** Use system font stack (`-apple-system, BlinkMacSystemFont`)
+- **Behaviors:** Respect macOS patterns — app stays alive on window close (`platform !== 'darwin'` check), `activate` event re-creates window
 
 ## Tech Stack
 

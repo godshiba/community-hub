@@ -6,7 +6,7 @@
 |-------|------|---------|--------|
 | 0 | [Project Scaffold](phase-0-scaffold.md) | v0.0.1 | Complete |
 | 1 | [Shell & Foundation](phase-1-shell.md) | v0.1.0 | Complete |
-| 2 | [Settings & Platforms](phase-2-settings.md) | v0.2.x | Not Started |
+| 2 | [Settings & Platforms](phase-2-settings.md) | v0.2.0 | Complete |
 | 3 | [Dashboard](phase-3-dashboard.md) | v0.3.x | Not Started |
 | 4 | [Scheduler](phase-4-scheduler.md) | v0.4.x | Not Started |
 | 5 | [Moderation](phase-5-moderation.md) | v0.5.x | Not Started |
