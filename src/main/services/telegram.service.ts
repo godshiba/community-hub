@@ -218,15 +218,17 @@ export class TelegramService implements PlatformService {
         return ctx.reply('This command only works in groups.')
       }
 
+      // ctx.chat already has title for groups — no need for separate getChat call
+      const title = 'title' in ctx.chat ? ctx.chat.title : 'Unknown'
+
       try {
         const count = await ctx.telegram.getChatMemberCount(chatId)
-        const chat = await ctx.telegram.getChat(chatId)
-        const title = 'title' in chat ? chat.title : 'Unknown'
-
         this.saveChat(chatId, title, count)
-        return ctx.reply(`**${title}** — ${count} members`)
-      } catch {
-        return ctx.reply('Failed to get stats. Make sure I am an admin.')
+        return ctx.reply(`${title} — ${count} members`)
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err)
+        console.error(`[Telegram] /stats failed for chat ${chatId}:`, msg)
+        return ctx.reply(`Failed to get stats: ${msg}`)
       }
     })
 
@@ -317,11 +319,14 @@ export class TelegramService implements PlatformService {
       if (chat.type === 'private') return
       if (this._trackedChats.has(chat.id)) return // already tracked
 
+      const title = 'title' in chat ? chat.title : 'Unknown'
       try {
         const count = await ctx.telegram.getChatMemberCount(chat.id)
-        const title = 'title' in chat ? chat.title : 'Unknown'
         this.saveChat(chat.id, title, count)
-      } catch { /* bot may lack permissions */ }
+      } catch {
+        // Still save with 0 members so it appears in channel list
+        this.saveChat(chat.id, title, 0)
+      }
     })
 
     // Auto-discover from channel posts (channels don't fire 'message')
@@ -329,11 +334,13 @@ export class TelegramService implements PlatformService {
       const chat = ctx.chat
       if (this._trackedChats.has(chat.id)) return
 
+      const title = 'title' in chat ? chat.title : 'Unknown'
       try {
         const count = await ctx.telegram.getChatMemberCount(chat.id)
-        const title = 'title' in chat ? chat.title : 'Unknown'
         this.saveChat(chat.id, title, count)
-      } catch { /* ignore */ }
+      } catch {
+        this.saveChat(chat.id, title, 0)
+      }
     })
 
     // Track when bot is added to a group
