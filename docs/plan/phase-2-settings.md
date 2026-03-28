@@ -57,8 +57,17 @@
 - [x] AI provider config saves to app_settings table
 - [x] App preferences save to app_settings table
 
+### v0.2.1 — Bot Infrastructure Upgrade
+- [x] Tokens read from `.env` instead of SQLite (bot tokens are static, not user-editable in UI)
+- [x] Discord service: full discord.js v14 with all privileged intents, slash commands (/stats, /warn, /ban, /unban, /members), Gateway event handlers, OAuth2 invite URL generation
+- [x] Telegram service: switched from node-telegram-bot-api to Telegraf, commands (/start, /help, /stats, /members, /warn, /ban, /unban), my_chat_member + chat_member tracking
+- [x] Platform manager: auto-connects on app startup if tokens present in .env
+- [x] Settings panel: shows connection status, Connect/Disconnect buttons, env-based flow
+- [x] `.env` + `.env.example` for secure token storage
+
 ## Tag
 
 ```bash
 git tag v0.2.0  # settings panel + credentials + platform services
+git tag v0.2.1  # bot infrastructure, .env tokens, slash commands, auto-connect
 ```

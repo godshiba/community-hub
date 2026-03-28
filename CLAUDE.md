@@ -20,7 +20,7 @@ This is a macOS app. All UI must match macOS conventions:
 - **Frontend:** React 19, TypeScript 5.7 (strict), Zustand
 - **UI:** shadcn/ui + Tailwind CSS v4, custom glassmorphism theme
 - **Database:** better-sqlite3 (local SQLite at `~/.community-hub/data.db`)
-- **Platform SDKs:** discord.js v14, node-telegram-bot-api
+- **Platform SDKs:** discord.js v14, Telegraf (Telegram)
 - **AI (optional):** Grok, Claude, OpenAI, Gemini — all behind a provider-agnostic interface
 - **Charts:** Recharts. **Rich text:** TipTap. **Export:** jsPDF, papaparse
 
@@ -40,7 +40,7 @@ npm test -- --run    # run tests once (no watch)
 
 Two Electron processes communicate via a **type-safe IPC bridge**:
 
-- **Main process** (`src/main/`) — owns SQLite, platform APIs, AI agent, background tasks. All business logic lives here.
+- **Main process** (`src/main/`) — owns SQLite, platform APIs, AI agent, background tasks. All business logic lives here. Platform bot tokens loaded from `.env` via `src/main/env.ts`.
 - **Renderer process** (`src/renderer/`) — React UI only. Never accesses Node.js APIs directly.
 - **Preload** (`src/preload/index.ts`) — exposes a single typed `invoke` function via `contextBridge`.
 - **Shared** (`src/shared/`) — type definitions only (no runtime code). `ipc-types.ts` is the single source of truth for all IPC channel contracts.

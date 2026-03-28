@@ -1,5 +1,6 @@
 import { app, BrowserWindow } from 'electron'
 import { join } from 'path'
+import { loadEnv } from './env'
 import { initDatabase, closeDatabase } from './services/database.service'
 import { registerWindowHandlers } from './ipc/window'
 import { registerSettingsHandlers } from './ipc/settings'
@@ -29,12 +30,17 @@ function createWindow(): void {
   }
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  loadEnv()
   initDatabase()
-  initPlatformManager()
+
+  const manager = initPlatformManager()
   registerWindowHandlers()
   registerSettingsHandlers()
   createWindow()
+
+  // Auto-connect platforms after window is up
+  await manager.autoConnect()
 })
 
 app.on('window-all-closed', () => {

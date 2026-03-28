@@ -1,18 +1,22 @@
 import type { ConnectionResult, Platform, PlatformStatus } from '@shared/settings-types'
-import { loadCredential, updateLastVerified } from './credentials.repository'
 import { DiscordService } from './discord.service'
 import { TelegramService } from './telegram.service'
 import type { PlatformService } from './platform.types'
+import { getEnv } from '../env'
 
 let instance: PlatformManager | null = null
 
 export class PlatformManager {
+  readonly discord: DiscordService
+  readonly telegram: TelegramService
   private readonly services: Record<Platform, PlatformService>
 
   constructor() {
+    this.discord = new DiscordService()
+    this.telegram = new TelegramService()
     this.services = {
-      discord: new DiscordService(),
-      telegram: new TelegramService()
+      discord: this.discord,
+      telegram: this.telegram
     }
   }
 
@@ -24,17 +28,7 @@ export class PlatformManager {
   }
 
   async connect(platform: Platform): Promise<ConnectionResult> {
-    const credential = loadCredential(platform)
-    if (!credential) {
-      return { platform, success: false, error: 'No credentials configured' }
-    }
-
-    const result = await this.services[platform].connect(credential.token)
-
-    if (result.success) {
-      updateLastVerified(platform)
-    }
-
+    const result = await this.services[platform].connect()
     return { platform, ...result }
   }
 
@@ -43,23 +37,45 @@ export class PlatformManager {
   }
 
   async testConnection(platform: Platform): Promise<ConnectionResult> {
-    const credential = loadCredential(platform)
-    if (!credential) {
-      return { platform, success: false, error: 'No credentials configured' }
-    }
-
-    const result = await this.services[platform].testConnection(credential.token)
-
-    if (result.success) {
-      updateLastVerified(platform)
-    }
-
+    const result = await this.services[platform].testConnection()
     return { platform, ...result }
   }
 
   disconnectAll(): void {
-    this.services.discord.disconnect()
-    this.services.telegram.disconnect()
+    this.discord.disconnect()
+    this.telegram.disconnect()
+  }
+
+  /** Auto-connect platforms that have tokens configured in .env */
+  async autoConnect(): Promise<void> {
+    const results: string[] = []
+
+    if (getEnv('DISCORD_BOT_TOKEN')) {
+      const r = await this.discord.connect()
+      if (r.success) {
+        results.push(`Discord: connected as ${r.username}`)
+        // Register slash commands after successful connection
+        await this.discord.registerCommands().catch(() => {
+          /* non-fatal — commands may already be registered */
+        })
+      } else {
+        results.push(`Discord: failed — ${r.error}`)
+      }
+    }
+
+    if (getEnv('TELEGRAM_BOT_TOKEN')) {
+      const r = await this.telegram.connect()
+      if (r.success) {
+        results.push(`Telegram: connected as @${r.username}`)
+      } else {
+        results.push(`Telegram: failed — ${r.error}`)
+      }
+    }
+
+    for (const line of results) {
+      // eslint-disable-next-line no-console
+      console.log(`[Platform] ${line}`)
+    }
   }
 }
 

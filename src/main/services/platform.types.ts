@@ -5,9 +5,11 @@ export interface PlatformService {
   readonly platform: Platform
   readonly status: ConnectionStatus
 
-  connect(token: string): Promise<{ success: boolean; username?: string; error?: string }>
+  /** Connect using token from .env */
+  connect(): Promise<{ success: boolean; username?: string; error?: string }>
   disconnect(): void
-  testConnection(token: string): Promise<{ success: boolean; username?: string; error?: string }>
+  /** Test connection using token from .env */
+  testConnection(): Promise<{ success: boolean; username?: string; error?: string }>
 
   getStats(): Promise<PlatformStats>
 }
