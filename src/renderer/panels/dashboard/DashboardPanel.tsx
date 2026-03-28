@@ -6,9 +6,8 @@ import { useAnalyticsStore } from '@/stores/analytics.store'
 import { StatsCards } from './StatsCards'
 import { GrowthChart } from './GrowthChart'
 import { ActivityHeatmap } from './ActivityHeatmap'
-import { PlatformComparison } from './PlatformComparison'
 import { TopContributors } from './TopContributors'
-import type { AnalyticsPeriod } from '@shared/analytics-types'
+import type { AnalyticsPeriod, PlatformFilter } from '@shared/analytics-types'
 
 const PERIODS: Array<{ value: AnalyticsPeriod; label: string }> = [
   { value: 'day', label: '24h' },
@@ -16,15 +15,21 @@ const PERIODS: Array<{ value: AnalyticsPeriod; label: string }> = [
   { value: 'month', label: '30d' }
 ]
 
+const PLATFORMS: Array<{ value: PlatformFilter; label: string; color: string }> = [
+  { value: 'discord', label: 'Discord', color: 'text-discord' },
+  { value: 'telegram', label: 'Telegram', color: 'text-telegram' }
+]
+
 export function DashboardPanel(): React.ReactElement {
-  const { data, period, loading, error, setPeriod, fetchStats, syncNow } = useAnalyticsStore()
+  const { data, period, platform, loading, error, setPeriod, setPlatform, fetchStats, syncNow } =
+    useAnalyticsStore()
 
   useEffect(() => {
     fetchStats()
   }, [])
 
   async function handleExport(format: 'csv' | 'pdf'): Promise<void> {
-    await window.api.invoke('analytics:exportStats', { format, period })
+    await window.api.invoke('analytics:exportStats', { format, period, platform })
   }
 
   return (
@@ -36,6 +41,23 @@ export function DashboardPanel(): React.ReactElement {
           <p className="text-xs text-text-muted">Community analytics overview</p>
         </div>
         <div className="flex items-center gap-2">
+          {/* Platform selector */}
+          <div className="flex bg-glass-surface rounded-md border border-glass-border">
+            {PLATFORMS.map((p) => (
+              <button
+                key={p.value}
+                onClick={() => setPlatform(p.value)}
+                className={`px-3 py-1 text-xs font-medium transition-colors ${
+                  platform === p.value
+                    ? `bg-accent/20 ${p.color}`
+                    : 'text-text-muted hover:text-text-secondary'
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+
           {/* Period selector */}
           <div className="flex bg-glass-surface rounded-md border border-glass-border">
             {PERIODS.map((p) => (
@@ -91,14 +113,11 @@ export function DashboardPanel(): React.ReactElement {
           <StatsCards stats={data.stats} />
 
           <div className="grid grid-cols-2 gap-3">
-            <GrowthChart data={data.growth} />
-            <PlatformComparison data={data.comparison} />
+            <GrowthChart data={data.growth} platform={platform} />
+            <ActivityHeatmap data={data.heatmap} />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <ActivityHeatmap data={data.heatmap} />
-            <TopContributors data={data.contributors} />
-          </div>
+          <TopContributors data={data.contributors} />
         </>
       )}
     </GlassPanel>

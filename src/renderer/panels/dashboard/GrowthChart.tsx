@@ -1,18 +1,23 @@
-import { GlassCard } from '@/components/glass/GlassCard'
 import { memo } from 'react'
+import { GlassCard } from '@/components/glass/GlassCard'
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts'
-import type { GrowthPoint } from '@shared/analytics-types'
+import type { GrowthPoint, PlatformFilter } from '@shared/analytics-types'
 
 interface GrowthChartProps {
   data: readonly GrowthPoint[]
+  platform: PlatformFilter
 }
 
-const DISCORD_COLOR = '#5865F2'
-const TELEGRAM_COLOR = '#26A5E4'
+const PLATFORM_COLORS: Record<PlatformFilter, string> = {
+  discord: '#5865F2',
+  telegram: '#26A5E4'
+}
 
-export const GrowthChart = memo(function GrowthChart({ data }: GrowthChartProps): React.ReactElement {
+export const GrowthChart = memo(function GrowthChart({ data, platform }: GrowthChartProps): React.ReactElement {
+  const color = PLATFORM_COLORS[platform]
+
   return (
     <GlassCard className="p-4">
       <h3 className="text-sm font-medium text-text-primary mb-4">Member Growth</h3>
@@ -39,23 +44,11 @@ export const GrowthChart = memo(function GrowthChart({ data }: GrowthChartProps)
                 fontSize: 12
               }}
             />
-            <Legend
-              wrapperStyle={{ fontSize: 12 }}
-            />
             <Line
               type="monotone"
-              dataKey="discord"
-              name="Discord"
-              stroke={DISCORD_COLOR}
-              strokeWidth={2}
-              dot={false}
-              activeDot={{ r: 4 }}
-            />
-            <Line
-              type="monotone"
-              dataKey="telegram"
-              name="Telegram"
-              stroke={TELEGRAM_COLOR}
+              dataKey="value"
+              name="Members"
+              stroke={color}
               strokeWidth={2}
               dot={false}
               activeDot={{ r: 4 }}

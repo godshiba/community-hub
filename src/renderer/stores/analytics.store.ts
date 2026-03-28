@@ -1,14 +1,16 @@
 import { create } from 'zustand'
-import type { AnalyticsData, AnalyticsPeriod, PeriodRange } from '@shared/analytics-types'
+import type { AnalyticsData, AnalyticsPeriod, PeriodRange, PlatformFilter } from '@shared/analytics-types'
 
 interface AnalyticsState {
   data: AnalyticsData | null
   period: AnalyticsPeriod
+  platform: PlatformFilter
   customRange: PeriodRange | null
   loading: boolean
   error: string | null
 
   setPeriod: (period: AnalyticsPeriod) => void
+  setPlatform: (platform: PlatformFilter) => void
   setCustomRange: (range: PeriodRange) => void
   fetchStats: () => Promise<void>
   syncNow: () => Promise<void>
@@ -17,6 +19,7 @@ interface AnalyticsState {
 export const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
   data: null,
   period: 'week',
+  platform: 'discord',
   customRange: null,
   loading: false,
   error: null,
@@ -26,18 +29,24 @@ export const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
     get().fetchStats()
   },
 
+  setPlatform: (platform) => {
+    set({ platform })
+    get().fetchStats()
+  },
+
   setCustomRange: (range) => {
     set({ customRange: range, period: 'custom' })
     get().fetchStats()
   },
 
   fetchStats: async () => {
-    const { period, customRange } = get()
+    const { period, platform, customRange } = get()
     set({ loading: true, error: null })
 
     try {
       const result = await window.api.invoke('analytics:getStats', {
         period,
+        platform,
         range: period === 'custom' && customRange ? customRange : undefined
       })
 

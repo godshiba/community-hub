@@ -2,6 +2,9 @@ import type { Platform } from './settings-types'
 
 export type AnalyticsPeriod = 'day' | 'week' | 'month' | 'custom'
 
+/** Which platform's data to show — no "all" since they are separate projects */
+export type PlatformFilter = Platform
+
 export interface PeriodRange {
   readonly start: string   // ISO date
   readonly end: string     // ISO date
@@ -24,20 +27,13 @@ export interface DashboardStats {
 
 export interface GrowthPoint {
   readonly date: string    // ISO date
-  readonly discord: number
-  readonly telegram: number
+  readonly value: number   // member count for selected platform
 }
 
 export interface HeatmapCell {
   readonly day: number     // 0=Sun, 6=Sat
   readonly hour: number    // 0-23
   readonly value: number
-}
-
-export interface PlatformMetric {
-  readonly metric: string
-  readonly discord: number
-  readonly telegram: number
 }
 
 export interface Contributor {
@@ -53,18 +49,19 @@ export interface AnalyticsData {
   readonly stats: DashboardStats
   readonly growth: readonly GrowthPoint[]
   readonly heatmap: readonly HeatmapCell[]
-  readonly comparison: readonly PlatformMetric[]
   readonly contributors: readonly Contributor[]
 }
 
 export interface StatsRequest {
   readonly period: AnalyticsPeriod
+  readonly platform: PlatformFilter
   readonly range?: PeriodRange
 }
 
 export interface ExportRequest {
   readonly format: 'csv' | 'pdf'
   readonly period: AnalyticsPeriod
+  readonly platform: PlatformFilter
   readonly range?: PeriodRange
 }
 

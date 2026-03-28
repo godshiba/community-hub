@@ -2,13 +2,19 @@ import { Telegraf } from 'telegraf'
 import type { ConnectionStatus } from '@shared/settings-types'
 import type { PlatformService, PlatformStats } from './platform.types'
 import { getEnv } from '../env'
+import { getDatabase } from './database.service'
+
+interface TrackedChat {
+  title: string
+  memberCount: number
+}
 
 export class TelegramService implements PlatformService {
   readonly platform = 'telegram' as const
   private bot: Telegraf | null = null
   private _status: ConnectionStatus = 'disconnected'
   private _username = ''
-  private _trackedChats: Map<number, { title: string; memberCount: number }> = new Map()
+  private _trackedChats: Map<number, TrackedChat> = new Map()
 
   get status(): ConnectionStatus {
     return this._status
@@ -40,6 +46,10 @@ export class TelegramService implements PlatformService {
       })
 
       this._status = 'connected'
+
+      // Restore tracked chats from DB and refresh member counts
+      this.restoreTrackedChats().catch(() => {})
+
       return { success: true, username: this._username }
     } catch (err: unknown) {
       this._status = 'error'
@@ -86,6 +96,61 @@ export class TelegramService implements PlatformService {
     return { memberCount, onlineCount: 0, messageCountToday: 0 }
   }
 
+  // ---------------------------------------------------------------------------
+  // DB persistence for tracked chats
+  // ---------------------------------------------------------------------------
+
+  private saveChat(chatId: number, title: string, memberCount: number): void {
+    this._trackedChats.set(chatId, { title, memberCount })
+    try {
+      const db = getDatabase()
+      db.prepare(`
+        INSERT INTO tracked_chats (chat_id, platform, title, member_count, updated_at)
+        VALUES (?, 'telegram', ?, ?, datetime('now'))
+        ON CONFLICT(chat_id) DO UPDATE SET
+          title = excluded.title,
+          member_count = excluded.member_count,
+          updated_at = datetime('now')
+      `).run(chatId, title, memberCount)
+    } catch { /* DB not ready yet */ }
+  }
+
+  private removeChat(chatId: number): void {
+    this._trackedChats.delete(chatId)
+    try {
+      const db = getDatabase()
+      db.prepare('DELETE FROM tracked_chats WHERE chat_id = ?').run(chatId)
+    } catch { /* ignore */ }
+  }
+
+  private async restoreTrackedChats(): Promise<void> {
+    if (!this.bot) return
+
+    try {
+      const db = getDatabase()
+      const rows = db.prepare(
+        "SELECT chat_id, title, member_count FROM tracked_chats WHERE platform = 'telegram'"
+      ).all() as Array<{ chat_id: number; title: string; member_count: number }>
+
+      for (const row of rows) {
+        try {
+          // Refresh member count from Telegram API
+          const count = await this.bot.telegram.getChatMemberCount(row.chat_id)
+          const chat = await this.bot.telegram.getChat(row.chat_id)
+          const title = 'title' in chat ? chat.title : row.title
+          this.saveChat(row.chat_id, title, count)
+        } catch {
+          // Bot may have been removed from this group — keep old data
+          this._trackedChats.set(row.chat_id, { title: row.title, memberCount: row.member_count })
+        }
+      }
+    } catch { /* DB not available */ }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Bot command handlers
+  // ---------------------------------------------------------------------------
+
   private setupHandlers(): void {
     if (!this.bot) return
 
@@ -126,7 +191,7 @@ export class TelegramService implements PlatformService {
         const chat = await ctx.telegram.getChat(chatId)
         const title = 'title' in chat ? chat.title : 'Unknown'
 
-        this._trackedChats.set(chatId, { title, memberCount: count })
+        this.saveChat(chatId, title, count)
         return ctx.reply(`**${title}** — ${count} members`)
       } catch {
         return ctx.reply('Failed to get stats. Make sure I am an admin.')
@@ -224,10 +289,10 @@ export class TelegramService implements PlatformService {
         try {
           const count = await ctx.telegram.getChatMemberCount(chat.id)
           const title = 'title' in chat ? chat.title : 'Unknown'
-          this._trackedChats.set(chat.id, { title, memberCount: count })
+          this.saveChat(chat.id, title, count)
         } catch { /* ignore */ }
       } else if (newStatus === 'left' || newStatus === 'kicked') {
-        this._trackedChats.delete(chat.id)
+        this.removeChat(chat.id)
       }
     })
 
