@@ -1,7 +1,8 @@
-import { Client, GatewayIntentBits, Events, REST, Routes } from 'discord.js'
-import type { Guild, GuildMember } from 'discord.js'
+import { Client, GatewayIntentBits, Events, REST, Routes, ChannelType } from 'discord.js'
+import type { Guild, GuildMember, TextChannel } from 'discord.js'
 import type { ConnectionStatus } from '@shared/settings-types'
 import type { PlatformService, PlatformStats } from './platform.types'
+import type { ChannelInfo } from '@shared/scheduler-types'
 import { getEnv } from '../env'
 
 export class DiscordService implements PlatformService {
@@ -106,6 +107,38 @@ export class DiscordService implements PlatformService {
     }
 
     return { memberCount, onlineCount, messageCountToday: 0 }
+  }
+
+  listChannels(): ChannelInfo[] {
+    const channels: ChannelInfo[] = []
+    for (const guild of this._guilds.values()) {
+      for (const ch of guild.channels.cache.values()) {
+        if (ch.type === ChannelType.GuildText) {
+          channels.push({
+            id: ch.id,
+            name: ch.name,
+            platform: 'discord',
+            guildId: guild.id,
+            guildName: guild.name
+          })
+        }
+      }
+    }
+    return channels
+  }
+
+  async sendMessage(channelId: string, content: string): Promise<{ messageId: string }> {
+    if (!this.client || this._status !== 'connected') {
+      throw new Error('Discord is not connected')
+    }
+
+    const channel = this.client.channels.cache.get(channelId) as TextChannel | undefined
+    if (!channel || channel.type !== ChannelType.GuildText) {
+      throw new Error(`Channel ${channelId} not found or not a text channel`)
+    }
+
+    const msg = await channel.send(content)
+    return { messageId: msg.id }
   }
 
   /** Generate the OAuth2 URL to invite the bot to a server */

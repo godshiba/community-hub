@@ -4,6 +4,7 @@ import { loadEnv } from './env'
 import { initDatabase, closeDatabase } from './services/database.service'
 import { registerWindowHandlers } from './ipc/window'
 import { registerSettingsHandlers } from './ipc/settings'
+import { registerSchedulerHandlers } from './ipc/scheduler'
 import { initPlatformManager } from './services/platform-manager'
 import { getStats } from './services/analytics.repository'
 
@@ -39,13 +40,15 @@ app.whenReady().then(async () => {
   registerWindowHandlers()
   registerSettingsHandlers()
   registerAnalyticsHandlers()
+  registerSchedulerHandlers()
   createWindow()
 
   // Auto-connect platforms after window is up
   await manager.autoConnect()
 
-  // Start background stats sync (lazy import to avoid module-level issues)
+  // Start background tasks
   import('./tasks/stats-sync').then((m) => m.startStatsSync()).catch(() => {})
+  import('./tasks/post-sender').then((m) => m.startPostSender()).catch(() => {})
 })
 
 function registerAnalyticsHandlers(): void {

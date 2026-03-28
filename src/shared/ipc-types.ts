@@ -15,6 +15,13 @@ import type {
   ExportRequest,
   ExportResult
 } from './analytics-types'
+import type {
+  PostPayload,
+  ScheduledPost,
+  SendResult,
+  PostHistoryEntry,
+  ChannelInfo
+} from './scheduler-types'
 
 /**
  * Master IPC contract. Every channel is typed here.
@@ -34,12 +41,14 @@ export interface IpcContract {
   'analytics:syncNow': { request: void; response: StatsSyncResult }
   'analytics:exportStats': { request: ExportRequest; response: ExportResult }
 
-  // Scheduler
-  'scheduler:createPost': { request: unknown; response: { id: number } }
-  'scheduler:getQueue': { request: void; response: readonly unknown[] }
-  'scheduler:editPost': { request: unknown; response: void }
+  // Scheduler — typed in Phase 4
+  'scheduler:createPost': { request: PostPayload; response: ScheduledPost }
+  'scheduler:updatePost': { request: { id: number } & PostPayload; response: ScheduledPost }
+  'scheduler:getQueue': { request: void; response: readonly ScheduledPost[] }
+  'scheduler:getHistory': { request: void; response: readonly PostHistoryEntry[] }
   'scheduler:cancelPost': { request: { id: number }; response: void }
-  'scheduler:sendNow': { request: { id: number }; response: unknown }
+  'scheduler:sendNow': { request: { id: number }; response: SendResult }
+  'scheduler:getChannels': { request: void; response: readonly ChannelInfo[] }
 
   // Moderation
   'moderation:getMembers': { request: unknown; response: readonly unknown[] }

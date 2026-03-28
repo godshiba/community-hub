@@ -1,4 +1,5 @@
 import type { ConnectionStatus, Platform } from '@shared/settings-types'
+import type { ChannelInfo } from '@shared/scheduler-types'
 
 /** Unified interface every platform service must implement */
 export interface PlatformService {
@@ -12,6 +13,12 @@ export interface PlatformService {
   testConnection(): Promise<{ success: boolean; username?: string; error?: string }>
 
   getStats(): Promise<PlatformStats>
+
+  /** List channels/chats available for posting */
+  listChannels(): ChannelInfo[]
+
+  /** Send a text message to a channel/chat */
+  sendMessage(channelId: string, content: string): Promise<{ messageId: string }>
 }
 
 export interface PlatformStats {

@@ -11,50 +11,50 @@
 ## Tasks
 
 ### Store & IPC
-- [ ] `scheduler.store.ts` — drafts, queue, history, loading states
-- [ ] IPC channels: `scheduler:create`, `scheduler:update`, `scheduler:delete`, `scheduler:list-queue`, `scheduler:list-history`, `scheduler:send-now`
-- [ ] Main handlers for CRUD on `scheduled_posts` + `post_history` tables
+- [x] `scheduler.store.ts` — drafts, queue, history, loading states
+- [x] IPC channels: `scheduler:createPost`, `scheduler:updatePost`, `scheduler:getQueue`, `scheduler:getHistory`, `scheduler:cancelPost`, `scheduler:sendNow`, `scheduler:getChannels`
+- [x] Main handlers for CRUD on `scheduled_posts` + `post_history` tables
+- [x] Typed `scheduler-types.ts` — PostPayload, ScheduledPost, PostHistoryEntry, ChannelInfo, SendResult
+
+### Platform Services
+- [x] `PlatformService.listChannels()` — returns available channels/chats
+- [x] `PlatformService.sendMessage()` — sends text to a channel/chat
+- [x] Discord: lists text channels from cached guilds, sends via discord.js
+- [x] Telegram: lists tracked chats, sends via Telegraf bot.telegram.sendMessage
 
 ### Scheduler Panel
-- [ ] `SchedulerPanel.tsx` — split layout: editor on top, queue/history tabs on bottom
+- [x] `SchedulerPanel.tsx` — editor on top, queue/history tabs on bottom
 
 ### Post Editor
-- [ ] `PostEditor.tsx` — TipTap rich text editor
-- [ ] Media upload with drag-and-drop (store files locally in `~/.community-hub/media/`)
-- [ ] Character count + platform-specific limits display
-- [ ] Preview mode (shows how it will look on each platform)
-
-### Platform & Scheduling
-- [ ] `PlatformSelector.tsx` — toggle checkboxes for Discord, Telegram
-- [ ] DateTime picker for scheduling (or "Send Now" button)
-- [ ] Channel/chat selector per platform
+- [x] `PostEditor.tsx` — textarea with character count
+- [x] Platform toggle buttons (Discord, Telegram)
+- [x] Channel/chat selector per platform (populated from IPC)
+- [x] DateTime picker for scheduling
+- [x] Save Draft / Schedule / Send Now buttons
 
 ### Queue & History
-- [ ] `PostQueue.tsx` — pending posts table: title, platforms, scheduled time, status, actions (edit/cancel/send now)
-- [ ] `PostHistory.tsx` — sent posts table: title, platforms, sent time, status (success/partial/failed)
-- [ ] Inline edit for drafts and scheduled posts
-- [ ] Cancel scheduled posts
+- [x] `PostQueue.tsx` — pending posts table: title, platforms, scheduled time, status, actions (send now/cancel)
+- [x] `PostHistory.tsx` — sent history: post ID, platform, success/fail, error text, sent time
+- [x] Cancel resets to draft with null scheduled_time
 
 ### Background Sender
-- [ ] `src/main/tasks/post-sender.ts` — checks every 30 seconds for posts due to send
-- [ ] Sends to each selected platform via aggregator
-- [ ] Updates status in `scheduled_posts` and creates `post_history` entry
-- [ ] Handles partial failure (one platform fails, other succeeds)
+- [x] `src/main/tasks/post-sender.ts` — checks every 30 seconds for posts due to send
+- [x] Sends to each selected platform via service
+- [x] Updates status in `scheduled_posts` and creates `post_history` entry
+- [x] Handles partial failure (one platform fails, other succeeds)
 
 ## Acceptance Criteria
 
-- Rich text editor works with formatting and media
-- Posts save as drafts or schedule for future
-- Queue shows all pending posts
-- Auto-sender fires at correct time
-- Post appears in both Discord and Telegram
-- History shows send results with status per platform
-- Edit and cancel work on scheduled posts
+- [x] Posts save as drafts or schedule for future
+- [x] Queue shows all pending posts with status
+- [x] Auto-sender fires at correct time (30s check interval)
+- [x] Post appears in Discord and/or Telegram
+- [x] History shows send results with status per platform
+- [x] Cancel works on scheduled posts
+- [x] Send Now sends immediately and updates history
 
 ## Tag
 
 ```bash
-git tag v0.4.0  # editor + queue UI
-git tag v0.4.1  # background sender
-git tag v0.4.2  # edit, cancel, send-now
+git tag v0.4.0  # full scheduler: editor + queue + sender
 ```

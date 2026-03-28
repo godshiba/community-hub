@@ -1,6 +1,7 @@
 import { Telegraf } from 'telegraf'
 import type { ConnectionStatus } from '@shared/settings-types'
 import type { PlatformService, PlatformStats } from './platform.types'
+import type { ChannelInfo } from '@shared/scheduler-types'
 import { getEnv } from '../env'
 import { getDatabase } from './database.service'
 
@@ -94,6 +95,32 @@ export class TelegramService implements PlatformService {
     }
 
     return { memberCount, onlineCount: 0, messageCountToday: 0 }
+  }
+
+  listChannels(): ChannelInfo[] {
+    const channels: ChannelInfo[] = []
+    for (const [chatId, chat] of this._trackedChats.entries()) {
+      channels.push({
+        id: String(chatId),
+        name: chat.title,
+        platform: 'telegram'
+      })
+    }
+    return channels
+  }
+
+  async sendMessage(channelId: string, content: string): Promise<{ messageId: string }> {
+    if (!this.bot || this._status !== 'connected') {
+      throw new Error('Telegram is not connected')
+    }
+
+    const chatId = Number(channelId)
+    if (isNaN(chatId)) {
+      throw new Error(`Invalid Telegram chat ID: ${channelId}`)
+    }
+
+    const msg = await this.bot.telegram.sendMessage(chatId, content)
+    return { messageId: String(msg.message_id) }
   }
 
   // ---------------------------------------------------------------------------
