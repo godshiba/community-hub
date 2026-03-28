@@ -41,8 +41,13 @@ export class TelegramService implements PlatformService {
       const me = await this.bot.telegram.getMe()
       this._username = me.username ?? me.first_name
 
-      // Launch polling in background (non-blocking)
-      this.bot.launch().catch(() => {
+      // Launch polling with explicit allowed_updates so my_chat_member fires
+      this.bot.launch({
+        allowedUpdates: [
+          'message', 'channel_post', 'my_chat_member', 'chat_member',
+          'callback_query', 'inline_query'
+        ]
+      }).catch(() => {
         this._status = 'error'
       })
 
@@ -304,6 +309,31 @@ export class TelegramService implements PlatformService {
       } catch {
         return ctx.reply('Failed to unban. Check the user ID.')
       }
+    })
+
+    // Auto-discover groups and channels from ANY incoming message
+    this.bot.on('message', async (ctx) => {
+      const chat = ctx.chat
+      if (chat.type === 'private') return
+      if (this._trackedChats.has(chat.id)) return // already tracked
+
+      try {
+        const count = await ctx.telegram.getChatMemberCount(chat.id)
+        const title = 'title' in chat ? chat.title : 'Unknown'
+        this.saveChat(chat.id, title, count)
+      } catch { /* bot may lack permissions */ }
+    })
+
+    // Auto-discover from channel posts (channels don't fire 'message')
+    this.bot.on('channel_post', async (ctx) => {
+      const chat = ctx.chat
+      if (this._trackedChats.has(chat.id)) return
+
+      try {
+        const count = await ctx.telegram.getChatMemberCount(chat.id)
+        const title = 'title' in chat ? chat.title : 'Unknown'
+        this.saveChat(chat.id, title, count)
+      } catch { /* ignore */ }
     })
 
     // Track when bot is added to a group
