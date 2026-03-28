@@ -45,7 +45,9 @@ export function closeDatabase(): void {
 }
 
 function runMigrations(database: Database.Database): void {
-  const migrationsDir = join(__dirname, '../migrations')
+  const migrationsDir = app.isPackaged
+    ? join(__dirname, '../migrations')
+    : join(process.cwd(), 'src/main/migrations')
   if (!existsSync(migrationsDir)) return
 
   const applied = new Set(

@@ -5,6 +5,7 @@ export function registerHandler<K extends keyof IpcContract>(
   channel: K,
   handler: (payload: IpcContract[K]['request']) => Promise<IpcContract[K]['response']> | IpcContract[K]['response']
 ): void {
+  ipcMain.removeHandler(channel)
   ipcMain.handle(channel, async (_event, payload): Promise<IpcResult<IpcContract[K]['response']>> => {
     try {
       const data = await handler(payload)

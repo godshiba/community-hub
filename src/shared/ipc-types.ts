@@ -8,6 +8,13 @@ import type {
   AppPreferences,
   PlatformStatus
 } from './settings-types'
+import type {
+  StatsRequest,
+  AnalyticsData,
+  StatsSyncResult,
+  ExportRequest,
+  ExportResult
+} from './analytics-types'
 
 /**
  * Master IPC contract. Every channel is typed here.
@@ -22,10 +29,10 @@ export interface IpcContract {
   // Health check (used to verify IPC bridge)
   'app:ping': { request: void; response: { pong: true; timestamp: number } }
 
-  // Analytics
-  'analytics:getStats': { request: unknown; response: unknown }
-  'analytics:syncNow': { request: void; response: unknown }
-  'analytics:exportStats': { request: unknown; response: unknown }
+  // Analytics — typed in Phase 3
+  'analytics:getStats': { request: StatsRequest; response: AnalyticsData }
+  'analytics:syncNow': { request: void; response: StatsSyncResult }
+  'analytics:exportStats': { request: ExportRequest; response: ExportResult }
 
   // Scheduler
   'scheduler:createPost': { request: unknown; response: { id: number } }
