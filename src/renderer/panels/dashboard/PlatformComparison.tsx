@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { GlassCard } from '@/components/glass/GlassCard'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
@@ -11,7 +12,7 @@ interface PlatformComparisonProps {
 const DISCORD_COLOR = '#5865F2'
 const TELEGRAM_COLOR = '#26A5E4'
 
-export function PlatformComparison({ data }: PlatformComparisonProps): React.ReactElement {
+export const PlatformComparison = memo(function PlatformComparison({ data }: PlatformComparisonProps): React.ReactElement {
   return (
     <GlassCard className="p-4">
       <h3 className="text-sm font-medium text-text-primary mb-4">Platform Comparison</h3>
@@ -45,4 +46,4 @@ export function PlatformComparison({ data }: PlatformComparisonProps): React.Rea
       </div>
     </GlassCard>
   )
-}
+})

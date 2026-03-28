@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { GlassCard } from '@/components/glass/GlassCard'
 import type { HeatmapCell } from '@shared/analytics-types'
 
@@ -17,7 +18,7 @@ function getIntensity(value: number, max: number): string {
   return 'bg-accent/10'
 }
 
-export function ActivityHeatmap({ data }: ActivityHeatmapProps): React.ReactElement {
+export const ActivityHeatmap = memo(function ActivityHeatmap({ data }: ActivityHeatmapProps): React.ReactElement {
   const cellMap = new Map<string, number>()
   let maxValue = 0
 
@@ -62,4 +63,4 @@ export function ActivityHeatmap({ data }: ActivityHeatmapProps): React.ReactElem
       </div>
     </GlassCard>
   )
-}
+})

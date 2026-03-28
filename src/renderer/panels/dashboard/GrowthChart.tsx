@@ -1,4 +1,5 @@
 import { GlassCard } from '@/components/glass/GlassCard'
+import { memo } from 'react'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts'
@@ -11,7 +12,7 @@ interface GrowthChartProps {
 const DISCORD_COLOR = '#5865F2'
 const TELEGRAM_COLOR = '#26A5E4'
 
-export function GrowthChart({ data }: GrowthChartProps): React.ReactElement {
+export const GrowthChart = memo(function GrowthChart({ data }: GrowthChartProps): React.ReactElement {
   return (
     <GlassCard className="p-4">
       <h3 className="text-sm font-medium text-text-primary mb-4">Member Growth</h3>
@@ -64,4 +65,4 @@ export function GrowthChart({ data }: GrowthChartProps): React.ReactElement {
       </div>
     </GlassCard>
   )
-}
+})

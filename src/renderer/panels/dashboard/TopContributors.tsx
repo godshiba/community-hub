@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { GlassCard } from '@/components/glass/GlassCard'
 import { Users } from 'lucide-react'
 import type { Contributor } from '@shared/analytics-types'
@@ -6,7 +7,7 @@ interface TopContributorsProps {
   data: readonly Contributor[]
 }
 
-export function TopContributors({ data }: TopContributorsProps): React.ReactElement {
+export const TopContributors = memo(function TopContributors({ data }: TopContributorsProps): React.ReactElement {
   if (data.length === 0) {
     return (
       <GlassCard className="p-4">
@@ -52,4 +53,4 @@ export function TopContributors({ data }: TopContributorsProps): React.ReactElem
       </div>
     </GlassCard>
   )
-}
+})

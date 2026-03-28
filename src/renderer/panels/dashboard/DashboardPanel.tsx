@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { GlassPanel } from '@/components/glass/GlassPanel'
 import { Button } from '@/components/ui/button'
 import { RefreshCw, Download, Loader2 } from 'lucide-react'
@@ -16,24 +16,12 @@ const PERIODS: Array<{ value: AnalyticsPeriod; label: string }> = [
   { value: 'month', label: '30d' }
 ]
 
-const AUTO_REFRESH_MS = 30_000
-
 export function DashboardPanel(): React.ReactElement {
-  const { data, period, loading, error, autoRefresh, setPeriod, fetchStats, syncNow } = useAnalyticsStore()
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const { data, period, loading, error, setPeriod, fetchStats, syncNow } = useAnalyticsStore()
 
   useEffect(() => {
     fetchStats()
   }, [])
-
-  useEffect(() => {
-    if (autoRefresh) {
-      intervalRef.current = setInterval(fetchStats, AUTO_REFRESH_MS)
-    }
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current)
-    }
-  }, [autoRefresh, fetchStats])
 
   async function handleExport(format: 'csv' | 'pdf'): Promise<void> {
     await window.api.invoke('analytics:exportStats', { format, period })

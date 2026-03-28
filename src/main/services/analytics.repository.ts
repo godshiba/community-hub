@@ -39,10 +39,50 @@ function buildStatsCard(
   return { label, value: current, previousValue: previous, trend: Math.round(trend * 10) / 10, unit }
 }
 
-function sumMetric(rows: readonly StatsRow[], metric: string): number {
-  return rows
-    .filter((r) => r.metric_name === metric)
-    .reduce((sum, r) => sum + r.metric_value, 0)
+/**
+ * For snapshot metrics (member_count, online_count): returns the sum of the
+ * latest value per platform within the range. Avoids double-counting when
+ * multiple syncs have written rows in the same period.
+ */
+function latestSnapshotSum(
+  metric: string,
+  rangeStart: string,
+  rangeEnd: string
+): number {
+  const db = getDatabase()
+  const rows = db.prepare(`
+    SELECT ps.platform, ps.metric_value
+    FROM platform_stats ps
+    INNER JOIN (
+      SELECT platform, MAX(timestamp) as max_ts
+      FROM platform_stats
+      WHERE metric_name = ? AND timestamp BETWEEN ? AND ?
+      GROUP BY platform
+    ) latest ON ps.platform = latest.platform
+             AND ps.timestamp = latest.max_ts
+             AND ps.metric_name = ?
+    WHERE ps.metric_name = ?
+  `).all(metric, rangeStart, rangeEnd, metric, metric) as Array<{ platform: string; metric_value: number }>
+  return rows.reduce((sum, r) => sum + r.metric_value, 0)
+}
+
+/**
+ * For cumulative metrics (message_count): MAX per platform prevents
+ * over-counting when the same daily total is written multiple times.
+ */
+function maxMetricSum(
+  metric: string,
+  rangeStart: string,
+  rangeEnd: string
+): number {
+  const db = getDatabase()
+  const rows = db.prepare(`
+    SELECT platform, MAX(metric_value) as value
+    FROM platform_stats
+    WHERE metric_name = ? AND timestamp BETWEEN ? AND ?
+    GROUP BY platform
+  `).all(metric, rangeStart, rangeEnd) as Array<{ platform: string; value: number }>
+  return rows.reduce((sum, r) => sum + r.value, 0)
 }
 
 export function getStats(req: StatsRequest): AnalyticsData {
@@ -50,47 +90,46 @@ export function getStats(req: StatsRequest): AnalyticsData {
   const growth = getGrowthData(req)
   const heatmap = getHeatmapData(req)
   const comparison = getPlatformComparison(req)
-  const contributors = getTopContributors(req)
+  const contributors = getTopContributors()
   return { stats, growth, heatmap, comparison, contributors }
 }
 
 export function getDashboardStats(req: StatsRequest): DashboardStats {
-  const db = getDatabase()
   const { start, end } = resolveRange(req)
-
-  // Current period stats
-  const current = db.prepare(`
-    SELECT platform, metric_name, metric_value, timestamp
-    FROM platform_stats
-    WHERE timestamp BETWEEN ? AND ?
-    ORDER BY timestamp DESC
-  `).all(start, end) as StatsRow[]
-
-  // Previous period (same duration, shifted back)
   const duration = new Date(end).getTime() - new Date(start).getTime()
   const prevStart = new Date(new Date(start).getTime() - duration).toISOString()
-  const previous = db.prepare(`
-    SELECT platform, metric_name, metric_value, timestamp
-    FROM platform_stats
-    WHERE timestamp BETWEEN ? AND ?
-    ORDER BY timestamp DESC
-  `).all(prevStart, start) as StatsRow[]
 
-  const currentMembers = sumMetric(current, 'member_count')
-  const prevMembers = sumMetric(previous, 'member_count')
-  const currentOnline = sumMetric(current, 'online_count')
-  const prevOnline = sumMetric(previous, 'online_count')
-  const currentMessages = sumMetric(current, 'message_count')
-  const prevMessages = sumMetric(previous, 'message_count')
+  const currentMembers = latestSnapshotSum('member_count', start, end)
+  const prevMembers = latestSnapshotSum('member_count', prevStart, start)
+  const currentOnline = latestSnapshotSum('online_count', start, end)
+  const prevOnline = latestSnapshotSum('online_count', prevStart, start)
+  const currentMessages = maxMetricSum('message_count', start, end)
+  const prevMessages = maxMetricSum('message_count', prevStart, start)
 
   const engagement = currentMembers > 0 ? (currentMessages / currentMembers) * 100 : 0
   const prevEngagement = prevMembers > 0 ? (prevMessages / prevMembers) * 100 : 0
 
+  const growthRateValue =
+    prevMembers > 0
+      ? Math.round(((currentMembers - prevMembers) / prevMembers) * 1000) / 10
+      : 0
+
   return {
     totalMembers: buildStatsCard('Total Members', currentMembers, prevMembers),
-    growthRate: buildStatsCard('Growth Rate', currentMembers - prevMembers, 0, '%'),
+    growthRate: {
+      label: 'Growth Rate',
+      value: growthRateValue,
+      previousValue: 0,
+      trend: growthRateValue,
+      unit: '%'
+    },
     activeUsers: buildStatsCard('Active Users', currentOnline, prevOnline),
-    engagementRate: buildStatsCard('Engagement Rate', Math.round(engagement * 10) / 10, Math.round(prevEngagement * 10) / 10, '%')
+    engagementRate: buildStatsCard(
+      'Engagement Rate',
+      Math.round(engagement * 10) / 10,
+      Math.round(prevEngagement * 10) / 10,
+      '%'
+    )
   }
 }
 
@@ -144,30 +183,47 @@ export function getPlatformComparison(req: StatsRequest): readonly PlatformMetri
   const db = getDatabase()
   const { start, end } = resolveRange(req)
 
-  const rows = db.prepare(`
-    SELECT platform, metric_name, MAX(metric_value) as value
-    FROM platform_stats
-    WHERE timestamp BETWEEN ? AND ?
-    GROUP BY platform, metric_name
+  // Use latest snapshot per platform for member/online, max for messages
+  const snapshotRows = db.prepare(`
+    SELECT ps.platform, ps.metric_name, ps.metric_value as value
+    FROM platform_stats ps
+    INNER JOIN (
+      SELECT platform, metric_name, MAX(timestamp) as max_ts
+      FROM platform_stats
+      WHERE metric_name IN ('member_count', 'online_count')
+        AND timestamp BETWEEN ? AND ?
+      GROUP BY platform, metric_name
+    ) latest ON ps.platform = latest.platform
+             AND ps.metric_name = latest.metric_name
+             AND ps.timestamp = latest.max_ts
+    WHERE ps.metric_name IN ('member_count', 'online_count')
   `).all(start, end) as Array<{ platform: string; metric_name: string; value: number }>
 
-  const metrics = ['member_count', 'online_count', 'message_count']
+  const msgRows = db.prepare(`
+    SELECT platform, MAX(metric_value) as value
+    FROM platform_stats
+    WHERE metric_name = 'message_count' AND timestamp BETWEEN ? AND ?
+    GROUP BY platform
+  `).all(start, end) as Array<{ platform: string; value: number }>
+
   const labels: Record<string, string> = {
     member_count: 'Members',
     online_count: 'Online',
     message_count: 'Messages'
   }
 
-  return metrics.map((m) => ({
-    metric: labels[m] ?? m,
-    discord: rows.find((r) => r.platform === 'discord' && r.metric_name === m)?.value ?? 0,
-    telegram: rows.find((r) => r.platform === 'telegram' && r.metric_name === m)?.value ?? 0
-  }))
+  const find = (rows: Array<{ platform: string; metric_name?: string; value: number }>, platform: string, metric?: string) =>
+    rows.find((r) => r.platform === platform && (!metric || r.metric_name === metric))?.value ?? 0
+
+  return [
+    { metric: labels.member_count, discord: find(snapshotRows, 'discord', 'member_count'), telegram: find(snapshotRows, 'telegram', 'member_count') },
+    { metric: labels.online_count, discord: find(snapshotRows, 'discord', 'online_count'), telegram: find(snapshotRows, 'telegram', 'online_count') },
+    { metric: labels.message_count, discord: find(msgRows, 'discord'), telegram: find(msgRows, 'telegram') }
+  ]
 }
 
-export function getTopContributors(_req: StatsRequest): readonly Contributor[] {
+export function getTopContributors(): readonly Contributor[] {
   // Contributor tracking requires message-level data from Phase 5
-  // Return empty for now — will be populated when moderation module tracks per-user activity
   return []
 }
 
@@ -188,3 +244,6 @@ export function insertStats(
   })
   tx()
 }
+
+// Keep for backwards compat — unused but exported to avoid breaking imports
+export { StatsRow }

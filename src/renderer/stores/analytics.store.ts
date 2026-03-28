@@ -7,11 +7,9 @@ interface AnalyticsState {
   customRange: PeriodRange | null
   loading: boolean
   error: string | null
-  autoRefresh: boolean
 
   setPeriod: (period: AnalyticsPeriod) => void
   setCustomRange: (range: PeriodRange) => void
-  setAutoRefresh: (enabled: boolean) => void
   fetchStats: () => Promise<void>
   syncNow: () => Promise<void>
 }
@@ -22,7 +20,6 @@ export const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
   customRange: null,
   loading: false,
   error: null,
-  autoRefresh: true,
 
   setPeriod: (period) => {
     set({ period })
@@ -33,8 +30,6 @@ export const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
     set({ customRange: range, period: 'custom' })
     get().fetchStats()
   },
-
-  setAutoRefresh: (enabled) => set({ autoRefresh: enabled }),
 
   fetchStats: async () => {
     const { period, customRange } = get()
@@ -49,7 +44,7 @@ export const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
       if (result.success) {
         set({ data: result.data, loading: false })
       } else {
-        set({ error: result.error, loading: false })
+        set({ error: result.error ?? 'Failed to fetch stats', loading: false })
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to fetch stats'
@@ -58,7 +53,17 @@ export const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
   },
 
   syncNow: async () => {
-    await window.api.invoke('analytics:syncNow')
-    await get().fetchStats()
+    set({ loading: true, error: null })
+    try {
+      const result = await window.api.invoke('analytics:syncNow')
+      if (!result.success) {
+        set({ error: result.error ?? 'Sync failed', loading: false })
+        return
+      }
+      await get().fetchStats()
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Sync failed'
+      set({ error: message, loading: false })
+    }
   }
 }))

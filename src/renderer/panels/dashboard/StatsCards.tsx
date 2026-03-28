@@ -1,5 +1,6 @@
+import { memo } from 'react'
 import { GlassCard } from '@/components/glass/GlassCard'
-import { TrendingUp, TrendingDown, Users, Activity, BarChart3, Zap } from 'lucide-react'
+import { TrendingUp, TrendingDown, Users, Activity, Zap } from 'lucide-react'
 import type { DashboardStats } from '@shared/analytics-types'
 
 interface StatsCardsProps {
@@ -13,7 +14,7 @@ const CARD_CONFIG = [
   { key: 'engagementRate' as const, icon: Zap, color: 'text-discord' }
 ]
 
-export function StatsCards({ stats }: StatsCardsProps): React.ReactElement {
+export const StatsCards = memo(function StatsCards({ stats }: StatsCardsProps): React.ReactElement {
   return (
     <div className="grid grid-cols-4 gap-3">
       {CARD_CONFIG.map(({ key, icon: Icon, color }) => {
@@ -41,4 +42,4 @@ export function StatsCards({ stats }: StatsCardsProps): React.ReactElement {
       })}
     </div>
   )
-}
+})
