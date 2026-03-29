@@ -218,18 +218,20 @@ export class TelegramService implements PlatformService {
         return ctx.reply('This command only works in groups.')
       }
 
-      // ctx.chat already has title for groups — no need for separate getChat call
       const title = 'title' in ctx.chat ? ctx.chat.title : 'Unknown'
+      console.log(`[Telegram] /stats requested in chat ${chatId} (${title}), type: ${ctx.chat.type}`)
 
+      let count = 0
       try {
-        const count = await ctx.telegram.getChatMemberCount(chatId)
-        this.saveChat(chatId, title, count)
-        return ctx.reply(`${title} — ${count} members`)
+        count = await ctx.telegram.getChatMemberCount(chatId)
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err)
-        console.error(`[Telegram] /stats failed for chat ${chatId}:`, msg)
-        return ctx.reply(`Failed to get stats: ${msg}`)
+        console.error(`[Telegram] getChatMemberCount failed for ${chatId}: ${msg}`)
+        // Still track the chat even if we can't get member count
       }
+
+      this.saveChat(chatId, title, count)
+      return ctx.reply(`${title} — ${count} members`)
     })
 
     // /members command
@@ -240,8 +242,10 @@ export class TelegramService implements PlatformService {
       try {
         const count = await ctx.telegram.getChatMemberCount(ctx.chat.id)
         return ctx.reply(`This group has ${count} members.`)
-      } catch {
-        return ctx.reply('Failed to get member count.')
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err)
+        console.error(`[Telegram] /members failed for ${ctx.chat.id}: ${msg}`)
+        return ctx.reply(`Failed to get member count: ${msg}`)
       }
     })
 
