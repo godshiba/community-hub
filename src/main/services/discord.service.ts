@@ -1,9 +1,10 @@
 import { Client, GatewayIntentBits, Events, REST, Routes, ChannelType } from 'discord.js'
 import type { Guild, GuildMember, TextChannel } from 'discord.js'
 import type { ConnectionStatus } from '@shared/settings-types'
-import type { PlatformService, PlatformStats } from './platform.types'
+import type { PlatformService, PlatformStats, PlatformMember } from './platform.types'
 import type { ChannelInfo } from '@shared/scheduler-types'
 import { getEnv } from '../env'
+import * as modRepo from './moderation.repository'
 
 export class DiscordService implements PlatformService {
   readonly platform = 'discord' as const
@@ -141,6 +142,56 @@ export class DiscordService implements PlatformService {
     return { messageId: msg.id }
   }
 
+  async fetchMembers(): Promise<PlatformMember[]> {
+    if (!this.client || this._status !== 'connected') return []
+
+    const members: PlatformMember[] = []
+    for (const guild of this._guilds.values()) {
+      try {
+        const fetched = await guild.members.fetch()
+        for (const member of fetched.values()) {
+          if (member.user.bot) continue
+          members.push({
+            platformUserId: member.user.id,
+            username: member.user.username,
+            platform: 'discord',
+            joinDate: member.joinedAt?.toISOString() ?? null,
+            status: 'active'
+          })
+        }
+      } catch { /* may lack GUILD_MEMBERS intent */ }
+    }
+    return members
+  }
+
+  async banUser(platformUserId: string, reason?: string): Promise<void> {
+    if (!this.client || this._status !== 'connected') {
+      throw new Error('Discord is not connected')
+    }
+
+    for (const guild of this._guilds.values()) {
+      try {
+        await guild.members.ban(platformUserId, { reason: reason ?? 'Banned via Community Hub' })
+        return
+      } catch { /* user may not be in this guild */ }
+    }
+    throw new Error(`Could not ban user ${platformUserId} — not found in any guild`)
+  }
+
+  async unbanUser(platformUserId: string): Promise<void> {
+    if (!this.client || this._status !== 'connected') {
+      throw new Error('Discord is not connected')
+    }
+
+    for (const guild of this._guilds.values()) {
+      try {
+        await guild.members.unban(platformUserId)
+        return
+      } catch { /* user may not be banned in this guild */ }
+    }
+    throw new Error(`Could not unban user ${platformUserId}`)
+  }
+
   /** Generate the OAuth2 URL to invite the bot to a server */
   getInviteUrl(): string | null {
     const clientId = getEnv('DISCORD_CLIENT_ID')
@@ -214,17 +265,31 @@ export class DiscordService implements PlatformService {
     })
 
     // Member tracking — these events require GUILD_MEMBERS privileged intent
-    this.client.on(Events.GuildMemberAdd, (_member: GuildMember) => {
-      // Will be wired to database in Phase 5 (Moderation)
+    this.client.on(Events.GuildMemberAdd, (member: GuildMember) => {
+      if (member.user.bot) return
+      try {
+        modRepo.upsertMember('discord', member.user.id, member.user.username, member.joinedAt?.toISOString() ?? null)
+      } catch { /* DB may not be ready */ }
     })
 
-    this.client.on(Events.GuildMemberRemove, (_member) => {
-      // Will be wired to database in Phase 5 (Moderation)
+    this.client.on(Events.GuildMemberRemove, (member) => {
+      if (!member.user || member.user.bot) return
+      try {
+        const existing = modRepo.getMemberByPlatformId('discord', member.user.id)
+        if (existing) {
+          modRepo.upsertMember('discord', member.user.id, member.user.username, null, 'left')
+        }
+      } catch { /* ignore */ }
     })
 
     // Moderation events — requires GUILD_MODERATION intent
-    this.client.on(Events.GuildBanAdd, (_ban) => {
-      // Will be wired to database in Phase 5 (Moderation)
+    this.client.on(Events.GuildBanAdd, (ban) => {
+      try {
+        const existing = modRepo.getMemberByPlatformId('discord', ban.user.id)
+        if (existing) {
+          modRepo.banMember(existing.id, ban.reason ?? 'Banned via Discord')
+        }
+      } catch { /* ignore */ }
     })
 
     // Interaction handler for slash commands

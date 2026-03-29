@@ -19,6 +19,23 @@ export interface PlatformService {
 
   /** Send a text message to a channel/chat */
   sendMessage(channelId: string, content: string): Promise<{ messageId: string }>
+
+  /** Fetch members from the platform for syncing to local DB */
+  fetchMembers(): Promise<PlatformMember[]>
+
+  /** Ban a user on the platform */
+  banUser(platformUserId: string, reason?: string): Promise<void>
+
+  /** Unban a user on the platform */
+  unbanUser(platformUserId: string): Promise<void>
+}
+
+export interface PlatformMember {
+  platformUserId: string
+  username: string
+  platform: 'discord' | 'telegram'
+  joinDate: string | null
+  status: 'active' | 'banned'
 }
 
 export interface PlatformStats {

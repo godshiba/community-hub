@@ -22,6 +22,15 @@ import type {
   PostHistoryEntry,
   ChannelInfo
 } from './scheduler-types'
+import type {
+  MembersFilter,
+  MembersPage,
+  MemberDetail,
+  WarnPayload,
+  BanPayload,
+  NotePayload,
+  ExportResult as ModerationExportResult
+} from './moderation-types'
 
 /**
  * Master IPC contract. Every channel is typed here.
@@ -50,13 +59,15 @@ export interface IpcContract {
   'scheduler:sendNow': { request: { id: number }; response: SendResult }
   'scheduler:getChannels': { request: void; response: readonly ChannelInfo[] }
 
-  // Moderation
-  'moderation:getMembers': { request: unknown; response: readonly unknown[] }
-  'moderation:getMemberDetail': { request: { id: number }; response: unknown }
-  'moderation:warnUser': { request: unknown; response: void }
-  'moderation:banUser': { request: unknown; response: void }
+  // Moderation — typed in Phase 5
+  'moderation:getMembers': { request: MembersFilter; response: MembersPage }
+  'moderation:getMemberDetail': { request: { id: number }; response: MemberDetail }
+  'moderation:warnUser': { request: WarnPayload; response: void }
+  'moderation:banUser': { request: BanPayload; response: void }
   'moderation:unbanUser': { request: { id: number }; response: void }
-  'moderation:exportMembers': { request: unknown; response: unknown }
+  'moderation:updateNotes': { request: NotePayload; response: void }
+  'moderation:syncMembers': { request: void; response: { synced: number } }
+  'moderation:exportMembers': { request: MembersFilter; response: ModerationExportResult }
 
   // Events
   'events:create': { request: unknown; response: { id: number } }

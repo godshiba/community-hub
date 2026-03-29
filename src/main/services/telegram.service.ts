@@ -1,9 +1,10 @@
 import { Telegraf } from 'telegraf'
 import type { ConnectionStatus } from '@shared/settings-types'
-import type { PlatformService, PlatformStats } from './platform.types'
+import type { PlatformService, PlatformStats, PlatformMember } from './platform.types'
 import type { ChannelInfo } from '@shared/scheduler-types'
 import { getEnv } from '../env'
 import { getDatabase } from './database.service'
+import * as modRepo from './moderation.repository'
 
 interface TrackedChat {
   title: string
@@ -126,6 +127,62 @@ export class TelegramService implements PlatformService {
 
     const msg = await this.bot.telegram.sendMessage(chatId, content)
     return { messageId: String(msg.message_id) }
+  }
+
+  async fetchMembers(): Promise<PlatformMember[]> {
+    if (!this.bot || this._status !== 'connected') return []
+
+    const members: PlatformMember[] = []
+    for (const [chatId] of this._trackedChats.entries()) {
+      try {
+        const admins = await this.bot.telegram.getChatAdministrators(chatId)
+        for (const admin of admins) {
+          if (admin.user.is_bot) continue
+          members.push({
+            platformUserId: String(admin.user.id),
+            username: admin.user.username ?? admin.user.first_name,
+            platform: 'telegram',
+            joinDate: null,
+            status: 'active'
+          })
+        }
+      } catch { /* may not have admin access */ }
+    }
+    return members
+  }
+
+  async banUser(platformUserId: string, reason?: string): Promise<void> {
+    if (!this.bot || this._status !== 'connected') {
+      throw new Error('Telegram is not connected')
+    }
+
+    const userId = Number(platformUserId)
+    if (isNaN(userId)) throw new Error(`Invalid Telegram user ID: ${platformUserId}`)
+
+    for (const [chatId] of this._trackedChats.entries()) {
+      try {
+        await this.bot.telegram.banChatMember(chatId, userId)
+        return
+      } catch { /* user may not be in this chat */ }
+    }
+    throw new Error(`Could not ban user ${platformUserId} — not found in any tracked chat`)
+  }
+
+  async unbanUser(platformUserId: string): Promise<void> {
+    if (!this.bot || this._status !== 'connected') {
+      throw new Error('Telegram is not connected')
+    }
+
+    const userId = Number(platformUserId)
+    if (isNaN(userId)) throw new Error(`Invalid Telegram user ID: ${platformUserId}`)
+
+    for (const [chatId] of this._trackedChats.entries()) {
+      try {
+        await this.bot.telegram.unbanChatMember(chatId, userId)
+        return
+      } catch { /* user may not be banned in this chat */ }
+    }
+    throw new Error(`Could not unban user ${platformUserId}`)
   }
 
   // ---------------------------------------------------------------------------
@@ -373,12 +430,24 @@ export class TelegramService implements PlatformService {
       const newStatus = ctx.chatMember.new_chat_member.status
       const oldStatus = ctx.chatMember.old_chat_member.status
 
+      const user = ctx.chatMember.new_chat_member.user
+      if (user.is_bot) return
+
       if (oldStatus === 'left' && (newStatus === 'member' || newStatus === 'administrator')) {
         tracked.memberCount += 1
+        try {
+          modRepo.upsertMember('telegram', String(user.id), user.username ?? user.first_name, null)
+        } catch { /* DB may not be ready */ }
       } else if ((oldStatus === 'member' || oldStatus === 'administrator') && (newStatus === 'left' || newStatus === 'kicked')) {
         tracked.memberCount = Math.max(0, tracked.memberCount - 1)
+        try {
+          const existing = modRepo.getMemberByPlatformId('telegram', String(user.id))
+          if (existing) {
+            const memberStatus = newStatus === 'kicked' ? 'banned' as const : 'left' as const
+            modRepo.upsertMember('telegram', String(user.id), user.username ?? user.first_name, null, memberStatus)
+          }
+        } catch { /* ignore */ }
       }
-      // Full member DB tracking will be wired in Phase 5
     })
   }
 }
