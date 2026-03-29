@@ -167,7 +167,7 @@ export class TelegramService implements PlatformService {
       for (const row of rows) {
         try {
           // Refresh member count from Telegram API
-          const count = await this.bot.telegram.getChatMemberCount(row.chat_id)
+          const count = await this.bot.telegram.getChatMembersCount(row.chat_id)
           const chat = await this.bot.telegram.getChat(row.chat_id)
           const title = 'title' in chat ? chat.title : row.title
           this.saveChat(row.chat_id, title, count)
@@ -223,10 +223,10 @@ export class TelegramService implements PlatformService {
 
       let count = 0
       try {
-        count = await ctx.telegram.getChatMemberCount(chatId)
+        count = await ctx.telegram.getChatMembersCount(chatId)
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err)
-        console.error(`[Telegram] getChatMemberCount failed for ${chatId}: ${msg}`)
+        console.error(`[Telegram] getChatMembersCount failed for ${chatId}: ${msg}`)
         // Still track the chat even if we can't get member count
       }
 
@@ -240,7 +240,7 @@ export class TelegramService implements PlatformService {
         return ctx.reply('This command only works in groups.')
       }
       try {
-        const count = await ctx.telegram.getChatMemberCount(ctx.chat.id)
+        const count = await ctx.telegram.getChatMembersCount(ctx.chat.id)
         return ctx.reply(`This group has ${count} members.`)
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err)
@@ -325,7 +325,7 @@ export class TelegramService implements PlatformService {
 
       const title = 'title' in chat ? chat.title : 'Unknown'
       try {
-        const count = await ctx.telegram.getChatMemberCount(chat.id)
+        const count = await ctx.telegram.getChatMembersCount(chat.id)
         this.saveChat(chat.id, title, count)
       } catch {
         // Still save with 0 members so it appears in channel list
@@ -340,7 +340,7 @@ export class TelegramService implements PlatformService {
 
       const title = 'title' in chat ? chat.title : 'Unknown'
       try {
-        const count = await ctx.telegram.getChatMemberCount(chat.id)
+        const count = await ctx.telegram.getChatMembersCount(chat.id)
         this.saveChat(chat.id, title, count)
       } catch {
         this.saveChat(chat.id, title, 0)
@@ -355,7 +355,7 @@ export class TelegramService implements PlatformService {
       const newStatus = ctx.myChatMember.new_chat_member.status
       if (newStatus === 'administrator' || newStatus === 'member') {
         try {
-          const count = await ctx.telegram.getChatMemberCount(chat.id)
+          const count = await ctx.telegram.getChatMembersCount(chat.id)
           const title = 'title' in chat ? chat.title : 'Unknown'
           this.saveChat(chat.id, title, count)
         } catch { /* ignore */ }
