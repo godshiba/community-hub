@@ -1,7 +1,7 @@
 import type { ConnectionResult, Platform, PlatformStatus } from '@shared/settings-types'
 import { DiscordService } from './discord.service'
 import { TelegramService } from './telegram.service'
-import type { PlatformService } from './platform.types'
+import type { PlatformService, MessageCallback, NewMemberCallback } from './platform.types'
 import { getEnv } from '../env'
 
 let instance: PlatformManager | null = null
@@ -39,6 +39,18 @@ export class PlatformManager {
   async testConnection(platform: Platform): Promise<ConnectionResult> {
     const result = await this.services[platform].testConnection()
     return { platform, ...result }
+  }
+
+  /** Register a callback for incoming messages from all platforms */
+  onMessage(callback: MessageCallback): void {
+    this.discord.onMessage(callback)
+    this.telegram.onMessage(callback)
+  }
+
+  /** Register a callback for new member events from all platforms */
+  onNewMember(callback: NewMemberCallback): void {
+    this.discord.onNewMember(callback)
+    this.telegram.onNewMember(callback)
   }
 
   disconnectAll(): void {

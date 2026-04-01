@@ -4,6 +4,7 @@ import { IconBar } from '@/components/layout/IconBar'
 import { PanelContainer } from '@/components/layout/PanelContainer'
 import { StatusBar } from '@/components/layout/StatusBar'
 import { usePanelStore } from '@/stores/panel.store'
+import { useAgentStore } from '@/stores/agent.store'
 import type { PanelId } from '@shared/types'
 
 const PANEL_ORDER: PanelId[] = [
@@ -12,6 +13,9 @@ const PANEL_ORDER: PanelId[] = [
 
 export function App(): React.ReactElement {
   const { setActivePanel, goBack, closeSecondary, secondaryPanel } = usePanelStore()
+  const fetchAgentStatus = useAgentStore((s) => s.fetchStatus)
+
+  useEffect(() => { fetchAgentStatus() }, [])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent): void => {

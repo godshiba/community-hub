@@ -1,7 +1,7 @@
 import { Client, GatewayIntentBits, Events, REST, Routes, ChannelType } from 'discord.js'
 import type { Guild, GuildMember, TextChannel } from 'discord.js'
 import type { ConnectionStatus } from '@shared/settings-types'
-import type { PlatformService, PlatformStats, PlatformMember } from './platform.types'
+import type { PlatformService, PlatformStats, PlatformMember, MessageCallback, NewMemberCallback } from './platform.types'
 import type { ChannelInfo } from '@shared/scheduler-types'
 import { getEnv } from '../env'
 import * as modRepo from './moderation.repository'
@@ -12,6 +12,8 @@ export class DiscordService implements PlatformService {
   private _status: ConnectionStatus = 'disconnected'
   private _username = ''
   private _guilds: Map<string, Guild> = new Map()
+  private _messageCallbacks: MessageCallback[] = []
+  private _newMemberCallbacks: NewMemberCallback[] = []
 
   get status(): ConnectionStatus {
     return this._status
@@ -63,6 +65,14 @@ export class DiscordService implements PlatformService {
       this.client = null
       return { success: false, error: err instanceof Error ? err.message : 'Failed to connect' }
     }
+  }
+
+  onMessage(callback: MessageCallback): void {
+    this._messageCallbacks.push(callback)
+  }
+
+  onNewMember(callback: NewMemberCallback): void {
+    this._newMemberCallbacks.push(callback)
   }
 
   disconnect(): void {
@@ -299,6 +309,38 @@ export class DiscordService implements PlatformService {
           modRepo.banMember(existing.id, ban.reason ?? 'Banned via Discord')
         }
       } catch { /* ignore */ }
+    })
+
+    // Forward messages to agent callbacks
+    this.client.on(Events.MessageCreate, (message) => {
+      if (message.author.bot) return
+      if (!message.content) return
+      for (const cb of this._messageCallbacks) {
+        try {
+          cb({
+            platform: 'discord',
+            channelId: message.channelId,
+            userId: message.author.id,
+            username: message.author.username,
+            content: message.content
+          })
+        } catch { /* callback error should not break event loop */ }
+      }
+    })
+
+    // Forward new member events to agent callbacks
+    this.client.on(Events.GuildMemberAdd, (member: GuildMember) => {
+      if (member.user.bot) return
+      for (const cb of this._newMemberCallbacks) {
+        try {
+          cb({
+            platform: 'discord',
+            channelId: member.guild.systemChannelId ?? '',
+            userId: member.user.id,
+            username: member.user.username
+          })
+        } catch { /* callback error should not break event loop */ }
+      }
     })
 
     // Interaction handler for slash commands

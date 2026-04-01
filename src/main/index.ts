@@ -7,7 +7,9 @@ import { registerSettingsHandlers } from './ipc/settings'
 import { registerSchedulerHandlers } from './ipc/scheduler'
 import { registerModerationHandlers } from './ipc/moderation'
 import { registerEventHandlers } from './ipc/events'
-import { initPlatformManager } from './services/platform-manager'
+import { registerAgentHandlers } from './ipc/agent'
+import { initPlatformManager, getPlatformManager } from './services/platform-manager'
+import { initAgentService, getAgentService } from './services/ai/agent.service'
 import { getStats } from './services/analytics.repository'
 
 function createWindow(): void {
@@ -45,10 +47,56 @@ app.whenReady().then(async () => {
   registerSchedulerHandlers()
   registerModerationHandlers()
   registerEventHandlers()
+  registerAgentHandlers()
+  initAgentService()
   createWindow()
 
   // Auto-connect platforms after window is up
   await manager.autoConnect()
+
+  // Wire platform messages to AI agent
+  const agent = getAgentService()
+  manager.onMessage((msg) => {
+    agent.handleMessage({
+      platform: msg.platform,
+      channelId: msg.channelId,
+      userId: msg.userId,
+      username: msg.username,
+      message: msg.content
+    }).then(async (result) => {
+      // Auto-send high-confidence responses
+      if (result.conversationResult && result.conversationResult.action.status === 'completed') {
+        try {
+          const service = msg.platform === 'discord' ? manager.discord : manager.telegram
+          if (service.status === 'connected') {
+            await service.sendMessage(msg.channelId, result.conversationResult.response)
+          }
+        } catch { /* non-fatal */ }
+      }
+
+      // Execute automation actions
+      for (const match of result.automationMatches) {
+        if (match.automation.action.type === 'reply' && msg.channelId) {
+          try {
+            const service = msg.platform === 'discord' ? manager.discord : manager.telegram
+            if (service.status === 'connected') {
+              const template = match.automation.action.payload?.template
+              await service.sendMessage(msg.channelId, typeof template === 'string' ? template : `Automation: ${match.automation.name}`)
+            }
+          } catch { /* non-fatal */ }
+        }
+      }
+    }).catch(() => { /* agent error should not crash platform listener */ })
+  })
+
+  manager.onNewMember((member) => {
+    agent.handleNewMember({
+      platform: member.platform,
+      channelId: member.channelId,
+      userId: member.userId,
+      username: member.username
+    })
+  })
 
   // Start background tasks
   import('./tasks/stats-sync').then((m) => m.startStatsSync()).catch(() => {})

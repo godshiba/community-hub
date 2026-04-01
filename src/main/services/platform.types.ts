@@ -43,3 +43,23 @@ export interface PlatformStats {
   onlineCount: number
   messageCountToday: number
 }
+
+/** Callback for incoming platform messages */
+export interface PlatformMessage {
+  platform: 'discord' | 'telegram'
+  channelId: string
+  userId: string
+  username: string
+  content: string
+}
+
+/** Callback for new member events */
+export interface PlatformNewMember {
+  platform: 'discord' | 'telegram'
+  channelId: string
+  userId: string
+  username: string
+}
+
+export type MessageCallback = (msg: PlatformMessage) => void
+export type NewMemberCallback = (member: PlatformNewMember) => void

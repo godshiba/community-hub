@@ -8,10 +8,10 @@ An autonomous agent that runs communities on the user's behalf. It has a persist
 
 | Provider | SDK | Models |
 |----------|-----|--------|
-| xAI Grok | openai SDK (compatible) | grok-3, grok-3-mini |
-| Anthropic Claude | @anthropic-ai/sdk | claude-sonnet, claude-haiku |
-| OpenAI | openai SDK | gpt-4o, gpt-4o-mini |
-| Google Gemini | @google/generative-ai | gemini-2.5-pro, gemini-2.5-flash |
+| xAI Grok | openai SDK (compatible) | grok-4.20, grok-4.20-mini |
+| Anthropic Claude | @anthropic-ai/sdk | claude-sonnet-4.6, claude-haiku-4.5 |
+| OpenAI | openai SDK | gpt-5.4, gpt-5.4-mini |
+| Google Gemini | @google/generative-ai | gemini-3.1-pro, gemini-3.1-flash |
 
 All providers normalize to one interface:
 

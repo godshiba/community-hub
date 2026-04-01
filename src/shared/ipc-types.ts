@@ -39,6 +39,18 @@ import type {
   EventRSVP,
   ExportAttendeesResult
 } from './events-types'
+import type {
+  AgentStatus,
+  AgentProfile,
+  AgentProfilePayload,
+  AgentPattern,
+  AgentPatternPayload,
+  AgentAutomation,
+  AgentAutomationPayload,
+  AgentAction,
+  AgentActionsFilter,
+  AgentEditActionPayload
+} from './agent-types'
 
 /**
  * Master IPC contract. Every channel is typed here.
@@ -104,18 +116,24 @@ export interface IpcContract {
   'settings:connectPlatform': { request: TestConnectionPayload; response: ConnectionResult }
   'settings:disconnectPlatform': { request: TestConnectionPayload; response: void }
 
-  // Agent
-  'agent:getActions': { request: unknown; response: readonly unknown[] }
+  // Agent — typed in Phase 7
+  'agent:getStatus': { request: void; response: AgentStatus }
+  'agent:getActions': { request: AgentActionsFilter; response: readonly AgentAction[] }
   'agent:approve': { request: { id: number }; response: void }
   'agent:reject': { request: { id: number }; response: void }
+  'agent:editAction': { request: AgentEditActionPayload; response: void }
   'agent:pause': { request: void; response: void }
   'agent:resume': { request: void; response: void }
-  'agent:updateProfile': { request: unknown; response: void }
-  'agent:getProfile': { request: void; response: unknown }
-  'agent:getPatterns': { request: void; response: readonly unknown[] }
-  'agent:savePattern': { request: unknown; response: { id: number } }
-  'agent:getAutomations': { request: void; response: readonly unknown[] }
-  'agent:saveAutomation': { request: unknown; response: { id: number } }
+  'agent:getProfile': { request: void; response: AgentProfile | null }
+  'agent:updateProfile': { request: AgentProfilePayload; response: AgentProfile }
+  'agent:getPatterns': { request: void; response: readonly AgentPattern[] }
+  'agent:savePattern': { request: AgentPatternPayload; response: AgentPattern }
+  'agent:deletePattern': { request: { id: number }; response: void }
+  'agent:getAutomations': { request: void; response: readonly AgentAutomation[] }
+  'agent:saveAutomation': { request: AgentAutomationPayload; response: AgentAutomation }
+  'agent:deleteAutomation': { request: { id: number }; response: void }
+  'agent:toggleAutomation': { request: { id: number; enabled: boolean }; response: void }
+  'agent:testProvider': { request: void; response: { success: boolean; error?: string } }
 }
 
 export type IpcChannel = keyof IpcContract

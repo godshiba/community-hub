@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import type { PanelId } from '@shared/types'
 import { usePanelStore } from '@/stores/panel.store'
+import { useAgentStore } from '@/stores/agent.store'
 import { cn } from '@/lib/utils'
 
 interface NavItem {
@@ -30,9 +31,16 @@ const NAV_ITEMS: NavItem[] = [
 
 export function IconBar(): React.ReactElement {
   const { activePanel, setActivePanel } = usePanelStore()
+  const agentStatus = useAgentStore((s) => s.status)
 
-  const topItems = NAV_ITEMS.filter((item) => !item.bottom)
-  const bottomItems = NAV_ITEMS.filter((item) => item.bottom)
+  // Hide agent icon when no AI provider is configured
+  const visibleItems = NAV_ITEMS.filter((item) => {
+    if (item.id === 'agent' && agentStatus?.state === 'unavailable') return false
+    return true
+  })
+
+  const topItems = visibleItems.filter((item) => !item.bottom)
+  const bottomItems = visibleItems.filter((item) => item.bottom)
 
   return (
     <div className="w-12 bg-glass-surface border-r border-glass-border flex flex-col items-center py-2 shrink-0">

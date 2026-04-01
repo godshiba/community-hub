@@ -1,6 +1,6 @@
 import { Telegraf } from 'telegraf'
 import type { ConnectionStatus } from '@shared/settings-types'
-import type { PlatformService, PlatformStats, PlatformMember } from './platform.types'
+import type { PlatformService, PlatformStats, PlatformMember, MessageCallback, NewMemberCallback } from './platform.types'
 import type { ChannelInfo } from '@shared/scheduler-types'
 import { getEnv } from '../env'
 import { getDatabase } from './database.service'
@@ -17,6 +17,8 @@ export class TelegramService implements PlatformService {
   private _status: ConnectionStatus = 'disconnected'
   private _username = ''
   private _trackedChats: Map<number, TrackedChat> = new Map()
+  private _messageCallbacks: MessageCallback[] = []
+  private _newMemberCallbacks: NewMemberCallback[] = []
 
   get status(): ConnectionStatus {
     return this._status
@@ -64,6 +66,14 @@ export class TelegramService implements PlatformService {
       this.bot = null
       return { success: false, error: err instanceof Error ? err.message : 'Failed to connect' }
     }
+  }
+
+  onMessage(callback: MessageCallback): void {
+    this._messageCallbacks.push(callback)
+  }
+
+  onNewMember(callback: NewMemberCallback): void {
+    this._newMemberCallbacks.push(callback)
   }
 
   disconnect(): void {
@@ -390,6 +400,41 @@ export class TelegramService implements PlatformService {
       } catch {
         // Still save with 0 members so it appears in channel list
         this.saveChat(chat.id, title, 0)
+      }
+    })
+
+    // Forward text messages to agent callbacks
+    this.bot.on('text', (ctx) => {
+      if (ctx.chat.type === 'private') return
+      const from = ctx.message.from
+      if (from.is_bot) return
+      for (const cb of this._messageCallbacks) {
+        try {
+          cb({
+            platform: 'telegram',
+            channelId: String(ctx.chat.id),
+            userId: String(from.id),
+            username: from.username ?? from.first_name,
+            content: ctx.message.text
+          })
+        } catch { /* callback error should not break event loop */ }
+      }
+    })
+
+    // Forward new member joins to agent callbacks
+    this.bot.on('new_chat_members', (ctx) => {
+      for (const member of ctx.message.new_chat_members) {
+        if (member.is_bot) continue
+        for (const cb of this._newMemberCallbacks) {
+          try {
+            cb({
+              platform: 'telegram',
+              channelId: String(ctx.chat.id),
+              userId: String(member.id),
+              username: member.username ?? member.first_name
+            })
+          } catch { /* callback error should not break event loop */ }
+        }
       }
     })
 
