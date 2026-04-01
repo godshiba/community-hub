@@ -256,8 +256,8 @@ export class TelegramService implements PlatformService {
   /** Check if a Telegram user is the bot owner */
   private isOwner(userId: number): boolean {
     const ownerId = getEnv('OWNER_TELEGRAM_ID')
-    if (!ownerId) return true // no owner configured = allow all (backwards compat)
-    return String(userId) === ownerId
+    if (!ownerId) return true // no owner configured = allow all
+    return String(userId) === ownerId.trim()
   }
 
   private setupHandlers(): void {

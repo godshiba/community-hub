@@ -351,7 +351,7 @@ export class DiscordService implements PlatformService {
     this.client.on(Events.InteractionCreate, async (interaction) => {
       if (!interaction.isChatInputCommand()) return
 
-      const ownerId = getEnv('OWNER_DISCORD_ID')
+      const ownerId = getEnv('OWNER_DISCORD_ID')?.trim()
       if (ownerId && interaction.user.id !== ownerId) {
         await interaction.reply({ content: 'Only the bot owner can use commands.', ephemeral: true })
         return
