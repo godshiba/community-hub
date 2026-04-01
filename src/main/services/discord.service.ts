@@ -23,6 +23,10 @@ export class DiscordService implements PlatformService {
     return this._username
   }
 
+  get botUserId(): string {
+    return this.client?.user?.id ?? ''
+  }
+
   get guilds(): Guild[] {
     return [...this._guilds.values()]
   }

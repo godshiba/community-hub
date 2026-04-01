@@ -387,6 +387,45 @@ export class TelegramService implements PlatformService {
       }
     })
 
+    // Forward text messages to agent callbacks (MUST be before catch-all 'message' handler)
+    this.bot.on('text', (ctx, next) => {
+      if (ctx.chat.type !== 'private') {
+        const from = ctx.message.from
+        if (!from.is_bot) {
+          for (const cb of this._messageCallbacks) {
+            try {
+              cb({
+                platform: 'telegram',
+                channelId: String(ctx.chat.id),
+                userId: String(from.id),
+                username: from.username ?? from.first_name,
+                content: ctx.message.text
+              })
+            } catch { /* callback error should not break event loop */ }
+          }
+        }
+      }
+      return next()
+    })
+
+    // Forward new member joins to agent callbacks
+    this.bot.on('new_chat_members', (ctx, next) => {
+      for (const member of ctx.message.new_chat_members) {
+        if (member.is_bot) continue
+        for (const cb of this._newMemberCallbacks) {
+          try {
+            cb({
+              platform: 'telegram',
+              channelId: String(ctx.chat.id),
+              userId: String(member.id),
+              username: member.username ?? member.first_name
+            })
+          } catch { /* callback error should not break event loop */ }
+        }
+      }
+      return next()
+    })
+
     // Auto-discover groups and channels from ANY incoming message
     this.bot.on('message', async (ctx) => {
       const chat = ctx.chat
@@ -400,41 +439,6 @@ export class TelegramService implements PlatformService {
       } catch {
         // Still save with 0 members so it appears in channel list
         this.saveChat(chat.id, title, 0)
-      }
-    })
-
-    // Forward text messages to agent callbacks
-    this.bot.on('text', (ctx) => {
-      if (ctx.chat.type === 'private') return
-      const from = ctx.message.from
-      if (from.is_bot) return
-      for (const cb of this._messageCallbacks) {
-        try {
-          cb({
-            platform: 'telegram',
-            channelId: String(ctx.chat.id),
-            userId: String(from.id),
-            username: from.username ?? from.first_name,
-            content: ctx.message.text
-          })
-        } catch { /* callback error should not break event loop */ }
-      }
-    })
-
-    // Forward new member joins to agent callbacks
-    this.bot.on('new_chat_members', (ctx) => {
-      for (const member of ctx.message.new_chat_members) {
-        if (member.is_bot) continue
-        for (const cb of this._newMemberCallbacks) {
-          try {
-            cb({
-              platform: 'telegram',
-              channelId: String(ctx.chat.id),
-              userId: String(member.id),
-              username: member.username ?? member.first_name
-            })
-          } catch { /* callback error should not break event loop */ }
-        }
       }
     })
 

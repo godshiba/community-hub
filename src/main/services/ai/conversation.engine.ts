@@ -52,10 +52,8 @@ export class ConversationEngine {
     this.patterns = repo.getPatterns()
   }
 
-  async respond(ctx: ConversationContext): Promise<ConversationResult | null> {
-    if (!this.provider || !this.profile) return null
-
-    // Check patterns first — use template directly if matched (no LLM call)
+  /** Check if a message matches any pattern — returns result or null. No LLM call. */
+  matchPattern(ctx: ConversationContext): ConversationResult | null {
     for (const pattern of this.patterns) {
       if (!pattern.enabled) continue
       if (pattern.platform && pattern.platform !== ctx.platform) continue
@@ -80,8 +78,13 @@ export class ConversationEngine {
         return { response, confidence: 1.0, action }
       }
     }
+    return null
+  }
 
-    // No pattern matched — call LLM
+  /** Call the LLM to generate a response. */
+  async respondWithLlm(ctx: ConversationContext): Promise<ConversationResult | null> {
+    if (!this.provider || !this.profile) return null
+
     const systemPrompt = buildSystemPrompt(this.profile, this.patterns)
     const userPrompt = `[${ctx.platform}] ${ctx.username}: ${ctx.message}`
 

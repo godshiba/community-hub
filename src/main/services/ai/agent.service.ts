@@ -80,7 +80,7 @@ export class AgentService {
     return this._state === 'running' && this.provider !== null
   }
 
-  /** Process an incoming message through automation + conversation engines */
+  /** Process an incoming message through automation, patterns, and conversation engines */
   async handleMessage(ctx: ConversationContext & { botMentioned: boolean }): Promise<{
     automationMatches: readonly AutomationMatch[]
     conversationResult: ConversationResult | null
@@ -89,7 +89,7 @@ export class AgentService {
       return { automationMatches: [], conversationResult: null }
     }
 
-    // Automation rules ALWAYS run regardless of mention
+    // 1. Automation rules ALWAYS run regardless of mention
     const automationEvent: AutomationEvent = {
       type: 'message',
       platform: ctx.platform,
@@ -99,13 +99,17 @@ export class AgentService {
       content: ctx.message
     }
     const automationMatches = this.automation.evaluate(automationEvent)
-
-    // If automation handled it, skip conversation engine
     if (automationMatches.length > 0) {
       return { automationMatches, conversationResult: null }
     }
 
-    // Conversation engine respects respondMode
+    // 2. Pattern matching ALWAYS runs regardless of mention
+    const patternResult = this.conversation.matchPattern(ctx)
+    if (patternResult) {
+      return { automationMatches, conversationResult: patternResult }
+    }
+
+    // 3. LLM conversation respects respondMode
     const mode = this.getRespondMode()
     if (mode === 'never') {
       return { automationMatches, conversationResult: null }
@@ -114,7 +118,7 @@ export class AgentService {
       return { automationMatches, conversationResult: null }
     }
 
-    const conversationResult = await this.conversation.respond(ctx)
+    const conversationResult = await this.conversation.respondWithLlm(ctx)
     return { automationMatches, conversationResult }
   }
 

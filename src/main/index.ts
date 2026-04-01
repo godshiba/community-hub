@@ -57,16 +57,16 @@ app.whenReady().then(async () => {
   // Wire platform messages to AI agent
   const agent = getAgentService()
   manager.onMessage((msg) => {
-    // Detect if the bot was mentioned by name or @username
+    // Detect if the bot was mentioned by name, @username, or Discord <@ID>
     const profile = agent.conversation.getProfile()
     const botName = profile?.name?.toLowerCase() ?? ''
-    const discordBotUser = manager.discord.botUsername?.toLowerCase() ?? ''
+    const discordBotId = manager.discord.botUserId
     const telegramBotUser = manager.telegram.botUsername?.toLowerCase() ?? ''
     const lower = msg.content.toLowerCase()
     const botMentioned =
       (botName && lower.includes(botName)) ||
-      (discordBotUser && lower.includes(`@${discordBotUser}`)) ||
-      (telegramBotUser && lower.includes(`@${telegramBotUser}`))
+      (msg.platform === 'discord' && discordBotId && msg.content.includes(`<@${discordBotId}>`)) ||
+      (msg.platform === 'telegram' && telegramBotUser && lower.includes(`@${telegramBotUser}`))
 
     agent.handleMessage({
       platform: msg.platform,
