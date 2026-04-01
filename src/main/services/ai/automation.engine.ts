@@ -14,6 +14,8 @@ export interface AutomationEvent {
 export interface AutomationMatch {
   automation: AgentAutomation
   action: AgentAction
+  /** The resolved response text to send (if applicable) */
+  responseText: string | null
 }
 
 export class AutomationEngine {
@@ -34,6 +36,13 @@ export class AutomationEngine {
       if (this.triggerMatches(rule, event)) {
         repo.markAutomationTriggered(rule.id)
 
+        // Extract the actual response text from the action payload
+        const template = typeof rule.action.payload?.template === 'string'
+          ? rule.action.payload.template : null
+        const responseText = template
+          ? interpolateTemplate(template, event)
+          : `[${rule.action.type}] ${rule.name}`
+
         const action = repo.createAction({
           actionType: mapActionType(rule.action.type),
           platform: event.platform,
@@ -45,11 +54,11 @@ export class AutomationEngine {
             username: event.username
           }),
           input: event.content ?? null,
-          output: JSON.stringify(rule.action),
+          output: responseText,
           status: 'completed'
         })
 
-        matches.push({ automation: rule, action })
+        matches.push({ automation: rule, action, responseText: template ? responseText : null })
       }
     }
 
@@ -98,4 +107,11 @@ function mapActionType(type: string): AgentAction['actionType'] {
     case 'escalate': return 'escalated'
     default: return 'replied'
   }
+}
+
+function interpolateTemplate(template: string, event: AutomationEvent): string {
+  return template
+    .replace(/\{username\}/g, event.username)
+    .replace(/\{platform\}/g, event.platform)
+    .replace(/\{message\}/g, event.content ?? '')
 }

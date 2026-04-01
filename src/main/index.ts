@@ -57,12 +57,24 @@ app.whenReady().then(async () => {
   // Wire platform messages to AI agent
   const agent = getAgentService()
   manager.onMessage((msg) => {
+    // Detect if the bot was mentioned by name or @username
+    const profile = agent.conversation.getProfile()
+    const botName = profile?.name?.toLowerCase() ?? ''
+    const discordBotUser = manager.discord.botUsername?.toLowerCase() ?? ''
+    const telegramBotUser = manager.telegram.botUsername?.toLowerCase() ?? ''
+    const lower = msg.content.toLowerCase()
+    const botMentioned =
+      (botName && lower.includes(botName)) ||
+      (discordBotUser && lower.includes(`@${discordBotUser}`)) ||
+      (telegramBotUser && lower.includes(`@${telegramBotUser}`))
+
     agent.handleMessage({
       platform: msg.platform,
       channelId: msg.channelId,
       userId: msg.userId,
       username: msg.username,
-      message: msg.content
+      message: msg.content,
+      botMentioned
     }).then(async (result) => {
       // Auto-send high-confidence responses
       if (result.conversationResult && result.conversationResult.action.status === 'completed') {
@@ -74,14 +86,13 @@ app.whenReady().then(async () => {
         } catch { /* non-fatal */ }
       }
 
-      // Execute automation actions
+      // Execute automation actions — send response if the rule produced one
       for (const match of result.automationMatches) {
-        if (match.automation.action.type === 'reply' && msg.channelId) {
+        if (match.responseText && msg.channelId) {
           try {
             const service = msg.platform === 'discord' ? manager.discord : manager.telegram
             if (service.status === 'connected') {
-              const template = match.automation.action.payload?.template
-              await service.sendMessage(msg.channelId, typeof template === 'string' ? template : `Automation: ${match.automation.name}`)
+              await service.sendMessage(msg.channelId, match.responseText)
             }
           } catch { /* non-fatal */ }
         }

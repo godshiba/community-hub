@@ -25,6 +25,7 @@ interface ProfileRow {
   knowledge: string | null
   boundaries: string | null
   language: string
+  respond_mode: string
   updated_at: string
 }
 
@@ -76,6 +77,7 @@ function rowToProfile(row: ProfileRow): AgentProfile {
     knowledge: row.knowledge,
     boundaries: row.boundaries,
     language: row.language,
+    respondMode: (row.respond_mode as AgentProfile['respondMode']) ?? 'mentioned',
     updatedAt: row.updated_at
   }
 }
@@ -138,7 +140,7 @@ export function upsertProfile(payload: AgentProfilePayload): AgentProfile {
   if (existing) {
     db.prepare(`
       UPDATE agent_profile
-      SET name = ?, role = ?, tone = ?, knowledge = ?, boundaries = ?, language = ?, updated_at = CURRENT_TIMESTAMP
+      SET name = ?, role = ?, tone = ?, knowledge = ?, boundaries = ?, language = ?, respond_mode = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `).run(
       payload.name,
@@ -147,19 +149,21 @@ export function upsertProfile(payload: AgentProfilePayload): AgentProfile {
       payload.knowledge ?? null,
       payload.boundaries ?? null,
       payload.language ?? 'en',
+      payload.respondMode ?? 'mentioned',
       existing.id
     )
   } else {
     db.prepare(`
-      INSERT INTO agent_profile (name, role, tone, knowledge, boundaries, language)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO agent_profile (name, role, tone, knowledge, boundaries, language, respond_mode)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `).run(
       payload.name,
       payload.role ?? null,
       payload.tone ?? null,
       payload.knowledge ?? null,
       payload.boundaries ?? null,
-      payload.language ?? 'en'
+      payload.language ?? 'en',
+      payload.respondMode ?? 'mentioned'
     )
   }
 

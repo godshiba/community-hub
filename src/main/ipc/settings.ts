@@ -8,6 +8,7 @@ import {
   loadPreferences
 } from '../services/credentials.repository'
 import { getPlatformManager } from '../services/platform-manager'
+import { getAgentService } from '../services/ai/agent.service'
 import { getEnv } from '../env'
 
 export function registerSettingsHandlers(): void {
@@ -37,6 +38,10 @@ export function registerSettingsHandlers(): void {
 
   registerHandler('settings:saveAiConfig', (payload) => {
     saveAiConfig(payload)
+    // Reconfigure the running agent with the new AI config
+    try {
+      getAgentService().configure(payload)
+    } catch { /* agent not initialized yet */ }
   })
 
   registerHandler('settings:loadAiConfig', () => {

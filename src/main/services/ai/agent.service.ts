@@ -7,6 +7,7 @@ import type { ConversationContext, ConversationResult } from './conversation.eng
 import { AutomationEngine } from './automation.engine'
 import type { AutomationEvent, AutomationMatch } from './automation.engine'
 import * as repo from './agent.repository'
+import { getOrCreateDefault } from './profile.service'
 import { loadAiConfig } from '../credentials.repository'
 
 let instance: AgentService | null = null
@@ -29,6 +30,8 @@ export class AgentService {
     this.conversation.setProvider(this.provider)
 
     if (this.provider) {
+      // Ensure a default profile exists so the conversation engine works
+      getOrCreateDefault()
       this._state = 'running'
       this.refreshAll()
     } else {
@@ -46,10 +49,16 @@ export class AgentService {
     return this._state
   }
 
+  getRespondMode(): 'mentioned' | 'always' | 'never' {
+    const profile = repo.getProfile()
+    return profile?.respondMode ?? 'mentioned'
+  }
+
   getStatus(): AgentStatus {
     return {
       state: this._state,
       provider: this.provider?.name ?? null,
+      respondMode: this.getRespondMode(),
       actionsToday: repo.countTodayActions(),
       pendingApproval: repo.countPendingActions()
     }
@@ -72,7 +81,7 @@ export class AgentService {
   }
 
   /** Process an incoming message through automation + conversation engines */
-  async handleMessage(ctx: ConversationContext): Promise<{
+  async handleMessage(ctx: ConversationContext & { botMentioned: boolean }): Promise<{
     automationMatches: readonly AutomationMatch[]
     conversationResult: ConversationResult | null
   }> {
@@ -80,7 +89,7 @@ export class AgentService {
       return { automationMatches: [], conversationResult: null }
     }
 
-    // Check automation rules first
+    // Automation rules ALWAYS run regardless of mention
     const automationEvent: AutomationEvent = {
       type: 'message',
       platform: ctx.platform,
@@ -96,7 +105,15 @@ export class AgentService {
       return { automationMatches, conversationResult: null }
     }
 
-    // Otherwise, use conversation engine
+    // Conversation engine respects respondMode
+    const mode = this.getRespondMode()
+    if (mode === 'never') {
+      return { automationMatches, conversationResult: null }
+    }
+    if (mode === 'mentioned' && !ctx.botMentioned) {
+      return { automationMatches, conversationResult: null }
+    }
+
     const conversationResult = await this.conversation.respond(ctx)
     return { automationMatches, conversationResult }
   }

@@ -3,10 +3,14 @@ import type { Platform } from './settings-types'
 /** Agent running state */
 export type AgentRunState = 'running' | 'paused' | 'unavailable'
 
+/** When the agent should respond to messages */
+export type AgentRespondMode = 'mentioned' | 'always' | 'never'
+
 /** Agent status returned to renderer */
 export interface AgentStatus {
   state: AgentRunState
   provider: string | null
+  respondMode: AgentRespondMode
   actionsToday: number
   pendingApproval: number
 }
@@ -20,6 +24,7 @@ export interface AgentProfile {
   knowledge: string | null
   boundaries: string | null
   language: string
+  respondMode: AgentRespondMode
   updatedAt: string
 }
 
@@ -31,6 +36,7 @@ export interface AgentProfilePayload {
   knowledge?: string
   boundaries?: string
   language?: string
+  respondMode?: AgentRespondMode
 }
 
 /** Trigger types for automation rules */

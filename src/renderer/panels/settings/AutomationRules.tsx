@@ -55,13 +55,20 @@ export function AutomationRules(): React.ReactElement {
                 {rule.enabled ? <ToggleRight className="size-4" /> : <ToggleLeft className="size-4" />}
               </button>
               <div className="flex-1 min-w-0">
-                <span className="text-text-primary font-medium">{rule.name}</span>
-                <span className="text-text-muted ml-2">
-                  {rule.trigger.type}: {rule.trigger.value || '(any)'}
-                </span>
-                <span className="text-text-muted ml-2">
-                  {' -> '}{rule.action.type}
-                </span>
+                <div>
+                  <span className="text-text-primary font-medium">{rule.name}</span>
+                  <span className="text-text-muted ml-2">
+                    {rule.trigger.type}: {rule.trigger.value || '(any)'}
+                  </span>
+                  <span className="text-text-muted ml-2">
+                    {' -> '}{rule.action.type}
+                  </span>
+                </div>
+                {rule.action.payload?.template && (
+                  <p className="text-[11px] text-text-secondary mt-0.5 truncate">
+                    {String(rule.action.payload.template)}
+                  </p>
+                )}
               </div>
               {rule.platform && (
                 <span className="text-[10px] text-text-muted">{rule.platform}</span>
@@ -85,18 +92,27 @@ interface NewRuleFormProps {
   onCancel: () => void
 }
 
+const ACTIONS_WITH_TEMPLATE: AutomationActionType[] = ['reply', 'dm', 'post']
+
 function NewRuleForm({ onSave, onCancel }: NewRuleFormProps): React.ReactElement {
   const [name, setName] = useState('')
   const [triggerType, setTriggerType] = useState<TriggerType>('keyword')
   const [triggerValue, setTriggerValue] = useState('')
   const [actionType, setActionType] = useState<AutomationActionType>('reply')
+  const [responseTemplate, setResponseTemplate] = useState('')
+
+  const needsTemplate = ACTIONS_WITH_TEMPLATE.includes(actionType)
 
   const handleSubmit = (): void => {
     if (!name) return
+    if (needsTemplate && !responseTemplate) return
     onSave({
       name,
       trigger: { type: triggerType, value: triggerValue },
-      action: { type: actionType }
+      action: {
+        type: actionType,
+        ...(needsTemplate ? { payload: { template: responseTemplate } } : {})
+      }
     })
   }
 
@@ -136,10 +152,20 @@ function NewRuleForm({ onSave, onCancel }: NewRuleFormProps): React.ReactElement
         {ACTION_TYPES.map((a) => <option key={a} value={a}>{a}</option>)}
       </select>
 
+      {needsTemplate && (
+        <textarea
+          value={responseTemplate}
+          onChange={(e) => setResponseTemplate(e.target.value)}
+          placeholder="Response message (use {username} for the user's name)"
+          className="w-full bg-glass-surface border border-glass-border rounded px-2.5 py-1.5 text-xs text-text-primary resize-none focus:outline-none focus:border-accent/50"
+          rows={2}
+        />
+      )}
+
       <div className="flex gap-1">
         <button
           onClick={handleSubmit}
-          disabled={!name}
+          disabled={!name || (needsTemplate && !responseTemplate)}
           className="px-2.5 py-1 text-[11px] font-medium bg-accent/20 text-accent rounded hover:bg-accent/30 transition-colors disabled:opacity-50"
         >
           Save Rule

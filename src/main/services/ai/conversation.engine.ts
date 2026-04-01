@@ -43,6 +43,10 @@ export class ConversationEngine {
     this.provider = provider
   }
 
+  getProfile(): AgentProfile | null {
+    return this.profile
+  }
+
   refreshContext(): void {
     this.profile = repo.getProfile()
     this.patterns = repo.getPatterns()
@@ -51,6 +55,33 @@ export class ConversationEngine {
   async respond(ctx: ConversationContext): Promise<ConversationResult | null> {
     if (!this.provider || !this.profile) return null
 
+    // Check patterns first — use template directly if matched (no LLM call)
+    for (const pattern of this.patterns) {
+      if (!pattern.enabled) continue
+      if (pattern.platform && pattern.platform !== ctx.platform) continue
+      if (matchesPattern(pattern, ctx.message)) {
+        const response = interpolateTemplate(pattern.responseTemplate, ctx)
+        repo.incrementPatternUsage(pattern.id)
+
+        const action = repo.createAction({
+          actionType: 'replied',
+          platform: ctx.platform,
+          context: JSON.stringify({
+            channelId: ctx.channelId,
+            userId: ctx.userId,
+            username: ctx.username,
+            patternId: pattern.id
+          }),
+          input: ctx.message,
+          output: response,
+          status: 'completed'
+        })
+
+        return { response, confidence: 1.0, action }
+      }
+    }
+
+    // No pattern matched — call LLM
     const systemPrompt = buildSystemPrompt(this.profile, this.patterns)
     const userPrompt = `[${ctx.platform}] ${ctx.username}: ${ctx.message}`
 
@@ -71,15 +102,6 @@ export class ConversationEngine {
       status
     })
 
-    // Check if any pattern matched and bump usage
-    for (const pattern of this.patterns) {
-      if (!pattern.enabled) continue
-      if (matchesPattern(pattern, ctx.message)) {
-        repo.incrementPatternUsage(pattern.id)
-        break
-      }
-    }
-
     return { response, confidence, action }
   }
 }
@@ -98,6 +120,13 @@ function estimateConfidence(response: string): number {
   if (response.length < 20) penalty += 0.1
 
   return Math.max(0, 1 - penalty)
+}
+
+function interpolateTemplate(template: string, ctx: ConversationContext): string {
+  return template
+    .replace(/\{username\}/g, ctx.username)
+    .replace(/\{platform\}/g, ctx.platform)
+    .replace(/\{message\}/g, ctx.message)
 }
 
 function matchesPattern(pattern: AgentPattern, message: string): boolean {

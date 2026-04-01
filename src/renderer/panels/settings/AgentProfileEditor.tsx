@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { GlassCard } from '@/components/glass/GlassCard'
 import { useAgentStore } from '@/stores/agent.store'
-import type { AgentProfilePayload } from '@shared/agent-types'
+import type { AgentProfilePayload, AgentRespondMode } from '@shared/agent-types'
 
 export function AgentProfileEditor(): React.ReactElement {
   const { profile, fetchProfile, updateProfile } = useAgentStore()
@@ -11,7 +11,8 @@ export function AgentProfileEditor(): React.ReactElement {
     tone: '',
     knowledge: '',
     boundaries: '',
-    language: 'en'
+    language: 'en',
+    respondMode: 'mentioned'
   })
   const [saving, setSaving] = useState(false)
 
@@ -25,7 +26,8 @@ export function AgentProfileEditor(): React.ReactElement {
         tone: profile.tone ?? '',
         knowledge: profile.knowledge ?? '',
         boundaries: profile.boundaries ?? '',
-        language: profile.language
+        language: profile.language,
+        respondMode: profile.respondMode ?? 'mentioned'
       })
     }
   }, [profile])
@@ -48,6 +50,22 @@ export function AgentProfileEditor(): React.ReactElement {
         <Field label="Role" value={form.role ?? ''} onChange={(v) => setForm({ ...form, role: v })} placeholder="Community Manager" />
         <Field label="Tone" value={form.tone ?? ''} onChange={(v) => setForm({ ...form, tone: v })} placeholder="friendly, professional" />
         <Field label="Language" value={form.language ?? 'en'} onChange={(v) => setForm({ ...form, language: v })} placeholder="en" />
+
+        <div className="space-y-1">
+          <label className="text-xs text-text-secondary">Respond Mode</label>
+          <select
+            value={form.respondMode ?? 'mentioned'}
+            onChange={(e) => setForm({ ...form, respondMode: e.target.value as AgentRespondMode })}
+            className="w-full bg-glass-surface border border-glass-border rounded px-2.5 py-1.5 text-xs text-text-primary focus:outline-none focus:border-accent/50"
+          >
+            <option value="mentioned">When mentioned (by name or @bot)</option>
+            <option value="always">Always respond to all messages</option>
+            <option value="never">Never (automation rules only)</option>
+          </select>
+          <p className="text-[10px] text-text-muted">
+            Controls when the AI responds via the conversation engine. Automation rules always run regardless.
+          </p>
+        </div>
 
         <div className="space-y-1">
           <label className="text-xs text-text-secondary">Knowledge Base</label>
