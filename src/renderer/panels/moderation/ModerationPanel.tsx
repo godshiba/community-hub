@@ -7,7 +7,7 @@ import { WarningDialog } from './WarningDialog'
 import { BanDialog } from './BanDialog'
 
 export function ModerationPanel(): React.ReactElement {
-  const { selectedMember, fetchMembers, syncMembers, loading } = useModerationStore()
+  const { selectedMember, fetchMembers, syncMembers, loading, error } = useModerationStore()
   const [warnTarget, setWarnTarget] = useState<number | null>(null)
   const [banTarget, setBanTarget] = useState<number | null>(null)
 
@@ -28,6 +28,12 @@ export function ModerationPanel(): React.ReactElement {
           {loading ? 'Syncing...' : 'Sync Members'}
         </button>
       </div>
+
+      {error && (
+        <div className="px-3 py-2 text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded">
+          {error}
+        </div>
+      )}
 
       <div className="flex gap-4 h-[calc(100%-5rem)]">
         <div className={selectedMember ? 'w-1/2' : 'w-full'}>

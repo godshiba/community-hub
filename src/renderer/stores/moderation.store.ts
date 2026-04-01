@@ -149,12 +149,13 @@ export const useModerationStore = create<ModerationState>((set, get) => ({
       const result = await window.api.invoke('moderation:syncMembers', undefined)
       if (result.success) {
         await get().fetchMembers()
+        set({ loading: false })
         return result.data.synced
       }
       set({ error: result.error ?? 'Sync failed', loading: false })
       return 0
-    } catch {
-      set({ loading: false })
+    } catch (err: unknown) {
+      set({ error: err instanceof Error ? err.message : 'Sync failed', loading: false })
       return 0
     }
   },

@@ -159,7 +159,10 @@ export class DiscordService implements PlatformService {
             status: 'active'
           })
         }
-      } catch { /* may lack GUILD_MEMBERS intent */ }
+      } catch (err: unknown) {
+        console.error(`[Discord] fetchMembers failed for guild ${guild.name}:`, err instanceof Error ? err.message : err)
+        throw err
+      }
     }
     return members
   }
@@ -169,13 +172,16 @@ export class DiscordService implements PlatformService {
       throw new Error('Discord is not connected')
     }
 
+    let lastError: string | null = null
     for (const guild of this._guilds.values()) {
       try {
-        await guild.members.ban(platformUserId, { reason: reason ?? 'Banned via Community Hub' })
+        await guild.bans.create(platformUserId, { reason: reason ?? 'Banned via Community Hub' })
         return
-      } catch { /* user may not be in this guild */ }
+      } catch (err: unknown) {
+        lastError = err instanceof Error ? err.message : String(err)
+      }
     }
-    throw new Error(`Could not ban user ${platformUserId} — not found in any guild`)
+    throw new Error(`Could not ban user ${platformUserId}: ${lastError ?? 'not found in any guild'}`)
   }
 
   async unbanUser(platformUserId: string): Promise<void> {
@@ -183,13 +189,16 @@ export class DiscordService implements PlatformService {
       throw new Error('Discord is not connected')
     }
 
+    let lastError: string | null = null
     for (const guild of this._guilds.values()) {
       try {
-        await guild.members.unban(platformUserId)
+        await guild.bans.remove(platformUserId)
         return
-      } catch { /* user may not be banned in this guild */ }
+      } catch (err: unknown) {
+        lastError = err instanceof Error ? err.message : String(err)
+      }
     }
-    throw new Error(`Could not unban user ${platformUserId}`)
+    throw new Error(`Could not unban user ${platformUserId}: ${lastError ?? 'not found in any guild'}`)
   }
 
   /** Generate the OAuth2 URL to invite the bot to a server */

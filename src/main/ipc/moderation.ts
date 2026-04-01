@@ -60,6 +60,7 @@ export function registerModerationHandlers(): void {
 export async function syncMembers(): Promise<{ synced: number }> {
   const mgr = getPlatformManager()
   let synced = 0
+  const errors: string[] = []
 
   for (const service of [mgr.discord, mgr.telegram]) {
     if (service.status !== 'connected') continue
@@ -67,10 +68,22 @@ export async function syncMembers(): Promise<{ synced: number }> {
     try {
       const members = await service.fetchMembers()
       for (const m of members) {
-        repo.upsertMember(m.platform, m.platformUserId, m.username, m.joinDate, m.status)
-        synced++
+        try {
+          repo.upsertMember(m.platform, m.platformUserId, m.username, m.joinDate, m.status)
+          synced++
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err)
+          errors.push(`upsert ${m.username}: ${msg}`)
+        }
       }
-    } catch { /* platform may not support member listing */ }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err)
+      errors.push(`${service.platform} fetchMembers: ${msg}`)
+    }
+  }
+
+  if (synced === 0 && errors.length > 0) {
+    throw new Error(`Sync failed: ${errors.join('; ')}`)
   }
 
   return { synced }

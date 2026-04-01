@@ -146,7 +146,10 @@ export class TelegramService implements PlatformService {
             status: 'active'
           })
         }
-      } catch { /* may not have admin access */ }
+      } catch (err: unknown) {
+        console.error(`[Telegram] fetchMembers failed for chat ${chatId}:`, err instanceof Error ? err.message : err)
+        throw err
+      }
     }
     return members
   }
