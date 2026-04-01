@@ -253,11 +253,19 @@ export class TelegramService implements PlatformService {
   // Bot command handlers
   // ---------------------------------------------------------------------------
 
+  /** Check if a Telegram user is the bot owner */
+  private isOwner(userId: number): boolean {
+    const ownerId = getEnv('OWNER_TELEGRAM_ID')
+    if (!ownerId) return true // no owner configured = allow all (backwards compat)
+    return String(userId) === ownerId
+  }
+
   private setupHandlers(): void {
     if (!this.bot) return
 
     // /start command
     this.bot.start((ctx) => {
+      if (!this.isOwner(ctx.from.id)) return
       ctx.reply(
         `Hello! I'm your Community Hub bot.\n\n` +
         `Add me as an admin to your group so I can help manage your community.\n\n` +
@@ -271,6 +279,7 @@ export class TelegramService implements PlatformService {
 
     // /help command
     this.bot.help((ctx) => {
+      if (!this.isOwner(ctx.from.id)) return
       ctx.reply(
         `Available commands:\n` +
         `/stats — group statistics\n` +
@@ -283,20 +292,18 @@ export class TelegramService implements PlatformService {
 
     // /stats command
     this.bot.command('stats', async (ctx) => {
+      if (!this.isOwner(ctx.from.id)) return
       const chatId = ctx.chat.id
       if (ctx.chat.type === 'private') {
         return ctx.reply('This command only works in groups.')
       }
 
       const title = 'title' in ctx.chat ? ctx.chat.title : 'Unknown'
-      console.log(`[Telegram] /stats requested in chat ${chatId} (${title}), type: ${ctx.chat.type}`)
 
       let count = 0
       try {
         count = await ctx.telegram.getChatMembersCount(chatId)
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : String(err)
-        console.error(`[Telegram] getChatMembersCount failed for ${chatId}: ${msg}`)
+      } catch {
         // Still track the chat even if we can't get member count
       }
 
@@ -306,6 +313,7 @@ export class TelegramService implements PlatformService {
 
     // /members command
     this.bot.command('members', async (ctx) => {
+      if (!this.isOwner(ctx.from.id)) return
       if (ctx.chat.type === 'private') {
         return ctx.reply('This command only works in groups.')
       }
@@ -314,28 +322,21 @@ export class TelegramService implements PlatformService {
         return ctx.reply(`This group has ${count} members.`)
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err)
-        console.error(`[Telegram] /members failed for ${ctx.chat.id}: ${msg}`)
         return ctx.reply(`Failed to get member count: ${msg}`)
       }
     })
 
     // /warn command (reply to a message)
     this.bot.command('warn', async (ctx) => {
+      if (!this.isOwner(ctx.from.id)) return
       if (ctx.chat.type === 'private') return
       const replyMsg = ctx.message.reply_to_message
       if (!replyMsg) {
         return ctx.reply('Reply to a message to warn that user.')
       }
 
-      const admins = await ctx.telegram.getChatAdministrators(ctx.chat.id)
-      const isAdmin = admins.some((a) => a.user.id === ctx.from.id)
-      if (!isAdmin) {
-        return ctx.reply('Only admins can warn members.')
-      }
-
       const reason = ctx.message.text.split(' ').slice(1).join(' ') || 'No reason provided'
       const warnedUser = replyMsg.from
-      // Actual warning storage will be in Phase 5
       return ctx.reply(
         `Warned ${warnedUser?.first_name ?? 'user'}: ${reason}`
       )
@@ -343,16 +344,11 @@ export class TelegramService implements PlatformService {
 
     // /ban command (reply to a message)
     this.bot.command('ban', async (ctx) => {
+      if (!this.isOwner(ctx.from.id)) return
       if (ctx.chat.type === 'private') return
       const replyMsg = ctx.message.reply_to_message
       if (!replyMsg || !replyMsg.from) {
         return ctx.reply('Reply to a message to ban that user.')
-      }
-
-      const admins = await ctx.telegram.getChatAdministrators(ctx.chat.id)
-      const isAdmin = admins.some((a) => a.user.id === ctx.from.id)
-      if (!isAdmin) {
-        return ctx.reply('Only admins can ban members.')
       }
 
       try {
@@ -366,13 +362,8 @@ export class TelegramService implements PlatformService {
 
     // /unban command
     this.bot.command('unban', async (ctx) => {
+      if (!this.isOwner(ctx.from.id)) return
       if (ctx.chat.type === 'private') return
-
-      const admins = await ctx.telegram.getChatAdministrators(ctx.chat.id)
-      const isAdmin = admins.some((a) => a.user.id === ctx.from.id)
-      if (!isAdmin) {
-        return ctx.reply('Only admins can unban members.')
-      }
 
       const userId = parseInt(ctx.message.text.split(' ')[1], 10)
       if (isNaN(userId)) {

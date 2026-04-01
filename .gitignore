@@ -1,10 +1,22 @@
 node_modules/
 out/
-out/tsc-node/
-out/tsc-web/
 dist/
 *.log
 .DS_Store
+
+# Secrets — never commit tokens, keys, or credentials
 .env
 .env.*
 !.env.example
+
+# Local database (stored in ~/.community-hub/ but just in case)
+*.db
+*.db-journal
+*.db-wal
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+*.swo
+Thumbs.db

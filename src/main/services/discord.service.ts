@@ -347,9 +347,15 @@ export class DiscordService implements PlatformService {
       }
     })
 
-    // Interaction handler for slash commands
+    // Interaction handler for slash commands — owner-only
     this.client.on(Events.InteractionCreate, async (interaction) => {
       if (!interaction.isChatInputCommand()) return
+
+      const ownerId = getEnv('OWNER_DISCORD_ID')
+      if (ownerId && interaction.user.id !== ownerId) {
+        await interaction.reply({ content: 'Only the bot owner can use commands.', ephemeral: true })
+        return
+      }
 
       switch (interaction.commandName) {
         case 'stats': {
@@ -376,13 +382,8 @@ export class DiscordService implements PlatformService {
         }
 
         case 'warn': {
-          if (!interaction.memberPermissions?.has('ModerateMembers')) {
-            await interaction.reply({ content: 'You need Moderate Members permission.', ephemeral: true })
-            return
-          }
           const user = interaction.options.getUser('user', true)
           const reason = interaction.options.getString('reason', true)
-          // Actual warning logic will be in Phase 5
           await interaction.reply({
             content: `Warned **${user.username}**: ${reason}`,
             ephemeral: true
@@ -391,10 +392,6 @@ export class DiscordService implements PlatformService {
         }
 
         case 'ban': {
-          if (!interaction.memberPermissions?.has('BanMembers')) {
-            await interaction.reply({ content: 'You need Ban Members permission.', ephemeral: true })
-            return
-          }
           const user = interaction.options.getUser('user', true)
           const reason = interaction.options.getString('reason') ?? 'No reason provided'
           try {
@@ -407,10 +404,6 @@ export class DiscordService implements PlatformService {
         }
 
         case 'unban': {
-          if (!interaction.memberPermissions?.has('BanMembers')) {
-            await interaction.reply({ content: 'You need Ban Members permission.', ephemeral: true })
-            return
-          }
           const userId = interaction.options.getString('user_id', true)
           try {
             await interaction.guild?.members.unban(userId)
