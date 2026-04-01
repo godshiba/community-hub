@@ -31,6 +31,14 @@ import type {
   NotePayload,
   ExportResult as ModerationExportResult
 } from './moderation-types'
+import type {
+  EventPayload,
+  CommunityEvent,
+  EventDetail,
+  EventsFilter,
+  EventRSVP,
+  ExportAttendeesResult
+} from './events-types'
 
 /**
  * Master IPC contract. Every channel is typed here.
@@ -69,14 +77,14 @@ export interface IpcContract {
   'moderation:syncMembers': { request: void; response: { synced: number } }
   'moderation:exportMembers': { request: MembersFilter; response: ModerationExportResult }
 
-  // Events
-  'events:create': { request: unknown; response: { id: number } }
-  'events:getAll': { request: unknown; response: readonly unknown[] }
-  'events:getDetail': { request: { id: number }; response: unknown }
-  'events:updateEvent': { request: unknown; response: void }
+  // Events — typed in Phase 6
+  'events:create': { request: EventPayload; response: CommunityEvent }
+  'events:getAll': { request: EventsFilter; response: readonly CommunityEvent[] }
+  'events:getDetail': { request: { id: number }; response: EventDetail }
+  'events:updateEvent': { request: { id: number } & EventPayload; response: CommunityEvent }
   'events:deleteEvent': { request: { id: number }; response: void }
-  'events:getRSVPs': { request: { eventId: number }; response: readonly unknown[] }
-  'events:exportAttendees': { request: unknown; response: unknown }
+  'events:getRSVPs': { request: { eventId: number }; response: readonly EventRSVP[] }
+  'events:exportAttendees': { request: { eventId: number }; response: ExportAttendeesResult }
 
   // Reports
   'reports:generate': { request: unknown; response: unknown }

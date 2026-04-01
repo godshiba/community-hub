@@ -6,6 +6,7 @@ import { registerWindowHandlers } from './ipc/window'
 import { registerSettingsHandlers } from './ipc/settings'
 import { registerSchedulerHandlers } from './ipc/scheduler'
 import { registerModerationHandlers } from './ipc/moderation'
+import { registerEventHandlers } from './ipc/events'
 import { initPlatformManager } from './services/platform-manager'
 import { getStats } from './services/analytics.repository'
 
@@ -43,6 +44,7 @@ app.whenReady().then(async () => {
   registerAnalyticsHandlers()
   registerSchedulerHandlers()
   registerModerationHandlers()
+  registerEventHandlers()
   createWindow()
 
   // Auto-connect platforms after window is up
@@ -52,6 +54,7 @@ app.whenReady().then(async () => {
   import('./tasks/stats-sync').then((m) => m.startStatsSync()).catch(() => {})
   import('./tasks/post-sender').then((m) => m.startPostSender()).catch(() => {})
   import('./tasks/member-sync').then((m) => m.startMemberSync()).catch(() => {})
+  import('./tasks/event-reminders').then((m) => m.startEventReminders()).catch(() => {})
 })
 
 function registerAnalyticsHandlers(): void {

@@ -10,7 +10,7 @@
 | 3 | [Dashboard](phase-3-dashboard.md) | v0.3.0 | Complete |
 | 4 | [Scheduler](phase-4-scheduler.md) | v0.4.0 | Complete |
 | 5 | [Moderation](phase-5-moderation.md) | v0.5.x | Complete |
-| 6 | [Events](phase-6-events.md) | v0.6.x | Not Started |
+| 6 | [Events](phase-6-events.md) | v0.6.x | Complete |
 | 7 | [AI Agent](phase-7-agent.md) | v0.7.x | Not Started |
 | 8 | [Reports](phase-8-reports.md) | v0.8.x | Not Started |
 | 9 | [Polish & Release](phase-9-release.md) | v0.9.x → v1.0.0 | Not Started |
