@@ -8,6 +8,7 @@ import { registerSchedulerHandlers } from './ipc/scheduler'
 import { registerModerationHandlers } from './ipc/moderation'
 import { registerEventHandlers } from './ipc/events'
 import { registerAgentHandlers } from './ipc/agent'
+import { registerReportsHandlers } from './ipc/reports'
 import { initPlatformManager, getPlatformManager } from './services/platform-manager'
 import { initAgentService, getAgentService } from './services/ai/agent.service'
 import { getStats } from './services/analytics.repository'
@@ -48,6 +49,7 @@ app.whenReady().then(async () => {
   registerModerationHandlers()
   registerEventHandlers()
   registerAgentHandlers()
+  registerReportsHandlers()
   initAgentService()
   createWindow()
 

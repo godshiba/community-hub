@@ -51,6 +51,12 @@ import type {
   AgentActionsFilter,
   AgentEditActionPayload
 } from './agent-types'
+import type {
+  ReportConfig,
+  ReportData,
+  SavedReport,
+  ReportExportResult
+} from './reports-types'
 
 /**
  * Master IPC contract. Every channel is typed here.
@@ -98,11 +104,12 @@ export interface IpcContract {
   'events:getRSVPs': { request: { eventId: number }; response: readonly EventRSVP[] }
   'events:exportAttendees': { request: { eventId: number }; response: ExportAttendeesResult }
 
-  // Reports
-  'reports:generate': { request: unknown; response: unknown }
-  'reports:getHistory': { request: void; response: readonly unknown[] }
-  'reports:exportPDF': { request: { id: number }; response: unknown }
-  'reports:deleteReport': { request: { id: number }; response: void }
+  // Reports — typed in Phase 8
+  'reports:generate': { request: ReportConfig; response: SavedReport }
+  'reports:list': { request: void; response: readonly SavedReport[] }
+  'reports:get': { request: { id: number }; response: SavedReport }
+  'reports:delete': { request: { id: number }; response: void }
+  'reports:exportPDF': { request: { id: number }; response: ReportExportResult }
 
   // Settings — typed in Phase 2
   'settings:saveCredentials': { request: SaveCredentialPayload; response: void }
