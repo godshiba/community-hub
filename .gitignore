@@ -14,6 +14,10 @@ dist/
 *.db-journal
 *.db-wal
 
+# Project docs & Claude config (local only)
+docs/
+CLAUDE.md
+
 # IDE / OS
 .idea/
 .vscode/
