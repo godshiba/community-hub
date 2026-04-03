@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+
+    <!-- All gradients use userSpaceOnUse with explicit pixel coords -->
+
+    <radialGradient id="bg" cx="512" cy="450" r="580" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#1c0c40"/>
+      <stop offset="100%" stop-color="#03020b"/>
+    </radialGradient>
+
+    <radialGradient id="ambientGlow" cx="512" cy="512" r="370" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#7028d8" stop-opacity="0.80"/>
+      <stop offset="45%"  stop-color="#30107c" stop-opacity="0.40"/>
+      <stop offset="100%" stop-color="#080418" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Hex body: purple top-left → dark navy bottom-right -->
+    <linearGradient id="hexFill"
+      x1="200" y1="152" x2="824" y2="872"
+      gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#44247a"/>
+      <stop offset="50%"  stop-color="#182060"/>
+      <stop offset="100%" stop-color="#080e2a"/>
+    </linearGradient>
+
+    <!-- Gloss: white top-left → transparent -->
+    <linearGradient id="glossGrad"
+      x1="200" y1="152" x2="560" y2="580"
+      gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="white" stop-opacity="0.20"/>
+      <stop offset="55%"  stop-color="white" stop-opacity="0.04"/>
+      <stop offset="100%" stop-color="white" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- Outer node -->
+    <radialGradient id="onGrad" cx="490" cy="305" r="30" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#ddf0ff"/>
+      <stop offset="100%" stop-color="#3888c8"/>
+    </radialGradient>
+
+    <!-- Centre core -->
+    <radialGradient id="coreGrad" cx="505" cy="498" r="95" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#ffffff"/>
+      <stop offset="20%"  stop-color="#d8b8ff"/>
+      <stop offset="55%"  stop-color="#8840f8"/>
+      <stop offset="100%" stop-color="#4010a0" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Hex clip -->
+    <clipPath id="hexClip">
+      <polygon points="512,152 824,332 824,692 512,872 200,692 200,332"/>
+    </clipPath>
+
+    <!-- Filters -->
+    <filter id="borderGlow" x="-14%" y="-14%" width="128%" height="128%">
+      <feGaussianBlur stdDeviation="11"/>
+    </filter>
+    <filter id="outerAtmos" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="32"/>
+    </filter>
+    <filter id="nodeHalo"   x="-150%" y="-150%" width="400%" height="400%">
+      <feGaussianBlur stdDeviation="18"/>
+    </filter>
+    <filter id="centreBlur" x="-180%" y="-180%" width="460%" height="460%">
+      <feGaussianBlur stdDeviation="32"/>
+    </filter>
+    <filter id="lineGlow"   x="-6%" y="-6%" width="112%" height="112%">
+      <feGaussianBlur stdDeviation="3" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+
+  </defs>
+
+  <!-- 1. Background -->
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+
+  <!-- 2. Ambient glow -->
+  <ellipse cx="512" cy="512" rx="390" ry="370" fill="url(#ambientGlow)"/>
+
+  <!-- 3. Outer atmospheric halo on hex edge -->
+  <polygon points="512,152 824,332 824,692 512,872 200,692 200,332"
+    fill="none" stroke="#7030c0" stroke-width="28" stroke-opacity="0.16"
+    filter="url(#outerAtmos)"/>
+
+  <!-- 4. Hex border glow -->
+  <polygon points="512,152 824,332 824,692 512,872 200,692 200,332"
+    fill="none" stroke="#9850e8" stroke-width="6" opacity="0.72"
+    filter="url(#borderGlow)"/>
+
+  <!-- 5. Hex body — solid base so ImageMagick renders it -->
+  <polygon points="512,152 824,332 824,692 512,872 200,692 200,332"
+    fill="#1a1050"/>
+
+  <!-- 6. Gradient overlay on hex body (rect + clip, works in ImageMagick) -->
+  <rect width="1024" height="1024" fill="url(#hexFill)"   clip-path="url(#hexClip)" opacity="0.85"/>
+  <rect width="1024" height="1024" fill="url(#glossGrad)" clip-path="url(#hexClip)"/>
+
+  <!-- 7. Hex border crisp -->
+  <polygon points="512,152 824,332 824,692 512,872 200,692 200,332"
+    fill="none" stroke="#c080ff" stroke-width="2.2" stroke-opacity="0.85"/>
+
+  <!-- Top edges catch the light -->
+  <line x1="200" y1="332" x2="512" y2="152" stroke="white" stroke-opacity="0.35" stroke-width="3"/>
+  <line x1="512" y1="152" x2="824" y2="332" stroke="white" stroke-opacity="0.18" stroke-width="3"/>
+
+  <!-- 8. Network lines
+       Ring (r=185): N(512,327) NE(672,420) SE(672,604) S(512,697) SW(352,604) NW(352,420) -->
+
+  <g stroke="white" stroke-width="1.5" filter="url(#lineGlow)">
+    <!-- Ring -->
+    <line x1="512" y1="327" x2="672" y2="420" stroke-opacity="0.25"/>
+    <line x1="672" y1="420" x2="672" y2="604" stroke-opacity="0.25"/>
+    <line x1="672" y1="604" x2="512" y2="697" stroke-opacity="0.25"/>
+    <line x1="512" y1="697" x2="352" y2="604" stroke-opacity="0.25"/>
+    <line x1="352" y1="604" x2="352" y2="420" stroke-opacity="0.25"/>
+    <line x1="352" y1="420" x2="512" y2="327" stroke-opacity="0.25"/>
+  </g>
+  <g stroke="white" stroke-width="2" filter="url(#lineGlow)">
+    <!-- Spokes -->
+    <line x1="512" y1="512" x2="512" y2="327" stroke-opacity="0.38"/>
+    <line x1="512" y1="512" x2="672" y2="420" stroke-opacity="0.38"/>
+    <line x1="512" y1="512" x2="672" y2="604" stroke-opacity="0.38"/>
+    <line x1="512" y1="512" x2="512" y2="697" stroke-opacity="0.38"/>
+    <line x1="512" y1="512" x2="352" y2="604" stroke-opacity="0.38"/>
+    <line x1="512" y1="512" x2="352" y2="420" stroke-opacity="0.38"/>
+  </g>
+
+  <!-- 9. Outer node halos -->
+  <g fill="#50a8f8" fill-opacity="0.32" filter="url(#nodeHalo)">
+    <circle cx="512" cy="327" r="26"/>
+    <circle cx="672" cy="420" r="26"/>
+    <circle cx="672" cy="604" r="26"/>
+    <circle cx="512" cy="697" r="26"/>
+    <circle cx="352" cy="604" r="26"/>
+    <circle cx="352" cy="420" r="26"/>
+  </g>
+
+  <!-- 10. Outer nodes -->
+  <g fill="#88ccff">
+    <circle cx="512" cy="327" r="12"/>
+    <circle cx="672" cy="420" r="12"/>
+    <circle cx="672" cy="604" r="12"/>
+    <circle cx="512" cy="697" r="12"/>
+    <circle cx="352" cy="604" r="12"/>
+    <circle cx="352" cy="420" r="12"/>
+  </g>
+  <!-- Node specular -->
+  <g fill="white" fill-opacity="0.65">
+    <circle cx="508" cy="323" r="5"/>
+    <circle cx="668" cy="416" r="5"/>
+    <circle cx="668" cy="600" r="5"/>
+    <circle cx="508" cy="693" r="5"/>
+    <circle cx="348" cy="600" r="5"/>
+    <circle cx="348" cy="416" r="5"/>
+  </g>
+
+  <!-- 11. Centre node glow stack -->
+  <!-- Wide corona -->
+  <circle cx="512" cy="512" r="100" fill="#6020e0" fill-opacity="0.60"
+          filter="url(#centreBlur)"/>
+  <!-- Mid ring -->
+  <circle cx="512" cy="512" r="58" fill="#9850f8" fill-opacity="0.60"/>
+  <!-- Bright inner -->
+  <circle cx="512" cy="512" r="35" fill="#d0b0ff" fill-opacity="0.75"/>
+  <!-- Core gradient (rect+clip → works in ImageMagick) -->
+  <rect x="417" y="417" width="190" height="190"
+    fill="url(#coreGrad)"
+    clip-path="url(#hexClip)"/>
+  <!-- Crisp core -->
+  <circle cx="512" cy="512" r="19" fill="white"/>
+  <!-- Specular -->
+  <circle cx="504" cy="504" r="7.5" fill="white" fill-opacity="0.60"/>
+
+</svg>
