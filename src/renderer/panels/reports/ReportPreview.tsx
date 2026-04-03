@@ -8,7 +8,13 @@ import { MetricCard } from './MetricCard'
 export function ReportPreview(): React.ReactElement {
   const { currentReport, exporting, setView, exportPdf } = useReportsStore()
 
-  if (!currentReport) return <></>
+  if (!currentReport) {
+    return (
+      <GlassCard className="flex items-center justify-center h-full">
+        <p className="text-sm text-text-muted">No report selected. Generate a report first.</p>
+      </GlassCard>
+    )
+  }
 
   const { data } = currentReport
 

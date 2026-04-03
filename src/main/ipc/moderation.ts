@@ -20,10 +20,11 @@ export function registerModerationHandlers(): void {
     if (!member) throw new Error(`Member ${payload.memberId} not found`)
 
     const mgr = getPlatformManager()
-    const service = member.platform === 'discord' ? mgr.discord : mgr.telegram
-
-    if (service.status === 'connected') {
-      await service.banUser(member.platformUserId, payload.reason)
+    if (member.platform === 'discord' || member.platform === 'telegram') {
+      const service = member.platform === 'discord' ? mgr.discord : mgr.telegram
+      if (service.status === 'connected') {
+        await service.banUser(member.platformUserId, payload.reason)
+      }
     }
 
     repo.banMember(payload.memberId, payload.reason)
@@ -34,10 +35,11 @@ export function registerModerationHandlers(): void {
     if (!member) throw new Error(`Member ${payload.id} not found`)
 
     const mgr = getPlatformManager()
-    const service = member.platform === 'discord' ? mgr.discord : mgr.telegram
-
-    if (service.status === 'connected') {
-      await service.unbanUser(member.platformUserId)
+    if (member.platform === 'discord' || member.platform === 'telegram') {
+      const service = member.platform === 'discord' ? mgr.discord : mgr.telegram
+      if (service.status === 'connected') {
+        await service.unbanUser(member.platformUserId)
+      }
     }
 
     repo.unbanMember(payload.id)

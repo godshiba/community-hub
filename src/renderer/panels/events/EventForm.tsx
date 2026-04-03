@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { GlassModal } from '@/components/glass/GlassModal'
 import { useEventsStore } from '@/stores/events.store'
 import type { EventPayload, EventStatus, ReminderConfig, ReminderOffset } from '@shared/events-types'
@@ -24,6 +24,20 @@ export function EventForm(): React.ReactElement | null {
   const [announce, setAnnounce] = useState(false)
   const [reminders, setReminders] = useState<ReminderOffset[]>([])
   const [submitting, setSubmitting] = useState(false)
+
+  // Sync form state when editingEvent changes (e.g. opening form with different event)
+  useEffect(() => {
+    setTitle(editingEvent?.title ?? '')
+    setDescription(editingEvent?.description ?? '')
+    setEventDate(editingEvent?.eventDate?.slice(0, 10) ?? '')
+    setEventTime(editingEvent?.eventTime ?? '')
+    setLocation(editingEvent?.location ?? '')
+    setPlatform(editingEvent?.platform ?? '')
+    setCapacity(editingEvent?.capacity?.toString() ?? '')
+    setStatus(editingEvent?.status ?? 'scheduled')
+    setAnnounce(false)
+    setReminders([])
+  }, [editingEvent])
 
   function resetAndClose(): void {
     setTitle('')

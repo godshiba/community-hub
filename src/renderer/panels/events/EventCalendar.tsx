@@ -35,7 +35,9 @@ function buildCalendar(month: string, events: readonly CommunityEvent[]): readon
   const prevLast = new Date(year, mon - 1, 0)
   for (let i = startOffset - 1; i >= 0; i--) {
     const d = prevLast.getDate() - i
-    const date = `${year}-${String(mon - 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+    const prevMonth = prevLast.getMonth() + 1
+    const prevYear = prevLast.getFullYear()
+    const date = `${prevYear}-${String(prevMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`
     cells.push({ day: d, date, inMonth: false, events: [] })
   }
 
@@ -48,8 +50,11 @@ function buildCalendar(month: string, events: readonly CommunityEvent[]): readon
   // Next month padding
   const remaining = 7 - (cells.length % 7)
   if (remaining < 7) {
+    const nextMonth = new Date(year, mon, 1)
+    const nextMon = nextMonth.getMonth() + 1
+    const nextYear = nextMonth.getFullYear()
     for (let d = 1; d <= remaining; d++) {
-      const date = `${year}-${String(mon + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+      const date = `${nextYear}-${String(nextMon).padStart(2, '0')}-${String(d).padStart(2, '0')}`
       cells.push({ day: d, date, inMonth: false, events: [] })
     }
   }

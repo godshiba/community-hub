@@ -127,29 +127,34 @@ export const useAgentStore = create<AgentState>((set, get) => ({
   },
 
   approveAction: async (id) => {
-    await window.api.invoke('agent:approve', { id })
+    const result = await window.api.invoke('agent:approve', { id })
+    if (!result.success) set({ error: result.error ?? 'Failed to approve action' })
     get().fetchActions()
     get().fetchStatus()
   },
 
   rejectAction: async (id) => {
-    await window.api.invoke('agent:reject', { id })
+    const result = await window.api.invoke('agent:reject', { id })
+    if (!result.success) set({ error: result.error ?? 'Failed to reject action' })
     get().fetchActions()
     get().fetchStatus()
   },
 
   editAction: async (id, output) => {
-    await window.api.invoke('agent:editAction', { id, output })
+    const result = await window.api.invoke('agent:editAction', { id, output })
+    if (!result.success) set({ error: result.error ?? 'Failed to edit action' })
     get().fetchActions()
   },
 
   pause: async () => {
-    await window.api.invoke('agent:pause')
+    const result = await window.api.invoke('agent:pause')
+    if (!result.success) set({ error: result.error ?? 'Failed to pause agent' })
     get().fetchStatus()
   },
 
   resume: async () => {
-    await window.api.invoke('agent:resume')
+    const result = await window.api.invoke('agent:resume')
+    if (!result.success) set({ error: result.error ?? 'Failed to resume agent' })
     get().fetchStatus()
   },
 

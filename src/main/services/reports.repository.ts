@@ -187,7 +187,7 @@ function computeRetention(
   // Members at start of period
   const startRow = db.prepare(`
     SELECT COUNT(*) as count FROM community_members
-    WHERE join_date <= ? ${clause.replace('AND platform', 'AND platform')}
+    WHERE join_date <= ? ${clause}
   `).get(start, ...params) as Row<{ count: number }>
 
   // Members at end of period
@@ -276,7 +276,7 @@ function computeEvents(start: string, end: string): EventMetrics {
   const attendedRow = db.prepare(`
     SELECT COUNT(*) as count FROM event_rsvps r
     JOIN events e ON r.event_id = e.id
-    WHERE e.event_date BETWEEN ? AND ? AND r.response = 'attending'
+    WHERE e.event_date BETWEEN ? AND ? AND r.response = 'yes'
   `).get(start, end) as Row<{ count: number }>
 
   const totalRSVPs = rsvpRow?.count ?? 0

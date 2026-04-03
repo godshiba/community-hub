@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { GlassPanel } from '@/components/glass/GlassPanel'
 import { Button } from '@/components/ui/button'
 import { RefreshCw, Download, Loader2 } from 'lucide-react'
@@ -28,8 +28,14 @@ export function DashboardPanel(): React.ReactElement {
     fetchStats()
   }, [])
 
+  const [exportError, setExportError] = useState<string | null>(null)
+
   async function handleExport(format: 'csv' | 'pdf'): Promise<void> {
-    await window.api.invoke('analytics:exportStats', { format, period, platform })
+    setExportError(null)
+    const result = await window.api.invoke('analytics:exportStats', { format, period, platform })
+    if (!result.success && result.error !== 'Export cancelled') {
+      setExportError(result.error ?? 'Export failed')
+    }
   }
 
   return (
@@ -93,6 +99,13 @@ export function DashboardPanel(): React.ReactElement {
       {loading && !data && !error && (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="size-6 animate-spin text-accent" />
+        </div>
+      )}
+
+      {/* Export error */}
+      {exportError && (
+        <div className="px-3 py-2 text-xs text-error bg-error/10 rounded">
+          Export failed: {exportError}
         </div>
       )}
 

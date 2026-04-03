@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { loadEnv } from './env'
 import { initDatabase, closeDatabase } from './services/database.service'
@@ -9,9 +9,9 @@ import { registerModerationHandlers } from './ipc/moderation'
 import { registerEventHandlers } from './ipc/events'
 import { registerAgentHandlers } from './ipc/agent'
 import { registerReportsHandlers } from './ipc/reports'
+import { registerAnalyticsHandlers } from './ipc/analytics'
 import { initPlatformManager, getPlatformManager } from './services/platform-manager'
 import { initAgentService, getAgentService } from './services/ai/agent.service'
-import { getStats } from './services/analytics.repository'
 
 function createWindow(): void {
   const win = new BrowserWindow({
@@ -66,9 +66,9 @@ app.whenReady().then(async () => {
     const telegramBotUser = manager.telegram.botUsername?.toLowerCase() ?? ''
     const lower = msg.content.toLowerCase()
     const botMentioned =
-      (botName && lower.includes(botName)) ||
-      (msg.platform === 'discord' && discordBotId && msg.content.includes(`<@${discordBotId}>`)) ||
-      (msg.platform === 'telegram' && telegramBotUser && lower.includes(`@${telegramBotUser}`))
+      (botName !== '' && lower.includes(botName)) ||
+      (msg.platform === 'discord' && discordBotId != null && msg.content.includes(`<@${discordBotId}>`)) ||
+      (msg.platform === 'telegram' && telegramBotUser !== '' && lower.includes(`@${telegramBotUser}`))
 
     agent.handleMessage({
       platform: msg.platform,
@@ -117,33 +117,6 @@ app.whenReady().then(async () => {
   import('./tasks/member-sync').then((m) => m.startMemberSync()).catch(() => {})
   import('./tasks/event-reminders').then((m) => m.startEventReminders()).catch(() => {})
 })
-
-function registerAnalyticsHandlers(): void {
-  ipcMain.removeHandler('analytics:getStats')
-  ipcMain.handle('analytics:getStats', async (_event, payload) => {
-    try {
-      return { success: true, data: getStats(payload) }
-    } catch (err: unknown) {
-      return { success: false, error: err instanceof Error ? err.message : 'Unknown error' }
-    }
-  })
-
-  ipcMain.removeHandler('analytics:syncNow')
-  ipcMain.handle('analytics:syncNow', async () => {
-    try {
-      const { syncStats } = await import('./tasks/stats-sync')
-      const result = await syncStats()
-      return { success: true, data: result }
-    } catch (err: unknown) {
-      return { success: false, error: err instanceof Error ? err.message : 'Unknown error' }
-    }
-  })
-
-  ipcMain.removeHandler('analytics:exportStats')
-  ipcMain.handle('analytics:exportStats', async () => {
-    return { success: false, error: 'Export not yet available' }
-  })
-}
 
 app.on('window-all-closed', () => {
   try { getPlatformManager().disconnectAll() } catch { /* not initialized */ }

@@ -116,8 +116,14 @@ export function getMembers(filter: MembersFilter): MembersPage {
 
   const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
 
-  const sortBy = filter.sortBy ?? 'username'
-  const sortDir = filter.sortDir ?? 'asc'
+  const allowedColumns = ['username', 'platform', 'status', 'join_date', 'message_count', 'warning_count'] as const
+  const allowedDirs = ['asc', 'desc'] as const
+  const sortBy = allowedColumns.includes(filter.sortBy as typeof allowedColumns[number])
+    ? filter.sortBy!
+    : 'username'
+  const sortDir = allowedDirs.includes(filter.sortDir as typeof allowedDirs[number])
+    ? filter.sortDir!
+    : 'asc'
   const orderBy = `ORDER BY ${sortBy} ${sortDir}`
 
   const page = filter.page ?? 1

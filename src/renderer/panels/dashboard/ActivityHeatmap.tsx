@@ -1,4 +1,4 @@
-import { memo } from 'react'
+import { Fragment, memo } from 'react'
 import { GlassCard } from '@/components/glass/GlassCard'
 import type { HeatmapCell } from '@shared/analytics-types'
 
@@ -43,8 +43,8 @@ export const ActivityHeatmap = memo(function ActivityHeatmap({ data }: ActivityH
 
           {/* Day rows */}
           {DAYS.map((dayLabel, dayIdx) => (
-            <>
-              <div key={`label-${dayIdx}`} className="text-xs text-text-muted flex items-center">
+            <Fragment key={dayIdx}>
+              <div className="text-xs text-text-muted flex items-center">
                 {dayLabel}
               </div>
               {HOURS.map((hour) => {
@@ -57,7 +57,7 @@ export const ActivityHeatmap = memo(function ActivityHeatmap({ data }: ActivityH
                   />
                 )
               })}
-            </>
+            </Fragment>
           ))}
         </div>
       </div>

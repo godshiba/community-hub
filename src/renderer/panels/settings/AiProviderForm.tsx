@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { GlassCard } from '@/components/glass/GlassCard'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -25,9 +25,11 @@ export function AiProviderForm(): React.ReactElement {
   const [keyVisible, setKeyVisible] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     loadConfig()
+    return () => { if (savedTimerRef.current) clearTimeout(savedTimerRef.current) }
   }, [])
 
   async function loadConfig(): Promise<void> {
@@ -53,7 +55,8 @@ export function AiProviderForm(): React.ReactElement {
     const result = await window.api.invoke('settings:saveAiConfig', config)
     if (result.success) {
       setSaved(true)
-      setTimeout(() => setSaved(false), 2000)
+      if (savedTimerRef.current) clearTimeout(savedTimerRef.current)
+      savedTimerRef.current = setTimeout(() => setSaved(false), 2000)
     }
     setSaving(false)
   }

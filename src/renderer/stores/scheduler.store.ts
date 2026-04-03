@@ -96,9 +96,14 @@ export const useSchedulerStore = create<SchedulerState>((set, get) => ({
 
   cancelPost: async (id) => {
     try {
-      await window.api.invoke('scheduler:cancelPost', { id })
+      const result = await window.api.invoke('scheduler:cancelPost', { id })
+      if (!result.success) {
+        set({ error: result.error ?? 'Failed to cancel post' })
+      }
       await get().fetchQueue()
-    } catch { /* ignore */ }
+    } catch (err: unknown) {
+      set({ error: err instanceof Error ? err.message : 'Failed to cancel post' })
+    }
   },
 
   sendNow: async (id) => {

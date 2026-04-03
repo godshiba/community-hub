@@ -45,8 +45,8 @@ export async function sendPost(postId: number): Promise<SendResult> {
   const post = repo.getPost(postId)
   if (!post) throw new Error(`Post ${postId} not found`)
 
-  // Prevent double-send for scheduled posts
-  if (post.status === 'scheduled') {
+  // Prevent double-send for scheduled and draft posts
+  if (post.status === 'scheduled' || post.status === 'draft') {
     const locked = repo.markSending(postId)
     if (!locked) throw new Error(`Post ${postId} is already being sent`)
   }

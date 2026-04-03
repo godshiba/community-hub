@@ -145,7 +145,9 @@ export function updateEvent(id: number, payload: EventPayload): CommunityEvent {
     insertReminders(id, payload.eventDate, payload.reminders)
   }
 
-  return getEventById(id)!
+  const updated = getEventById(id)
+  if (!updated) throw new Error(`Event ${id} not found after update`)
+  return updated
 }
 
 export function deleteEvent(id: number): void {
