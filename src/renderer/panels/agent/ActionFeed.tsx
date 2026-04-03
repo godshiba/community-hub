@@ -1,6 +1,8 @@
+import { memo } from 'react'
 import { MessageSquare, Flag, UserPlus, Clock, Shield, AlertTriangle } from 'lucide-react'
 import type { AgentAction, AgentActionType, AgentActionStatus } from '@shared/agent-types'
 import { cn } from '@/lib/utils'
+import { SkeletonCard } from '@/components/Skeleton'
 
 interface ActionFeedProps {
   actions: readonly AgentAction[]
@@ -35,19 +37,20 @@ const STATUS_DOTS: Record<AgentActionStatus, string> = {
   edited: 'bg-purple-400'
 }
 
-export function ActionFeed({ actions, loading, selectedId, onSelect }: ActionFeedProps): React.ReactElement {
+export const ActionFeed = memo(function ActionFeed({ actions, loading, selectedId, onSelect }: ActionFeedProps): React.ReactElement {
   if (loading && actions.length === 0) {
     return (
-      <div className="flex items-center justify-center h-32 text-xs text-text-muted">
-        Loading actions...
+      <div className="space-y-1">
+        {Array.from({ length: 4 }, (_, i) => <SkeletonCard key={i} />)}
       </div>
     )
   }
 
   if (actions.length === 0) {
     return (
-      <div className="flex items-center justify-center h-32 text-xs text-text-muted">
-        No agent actions yet
+      <div className="flex flex-col items-center justify-center h-32 text-text-muted">
+        <Shield className="size-6 mb-2 opacity-40" />
+        <p className="text-xs">No agent actions yet</p>
       </div>
     )
   }
@@ -98,7 +101,7 @@ export function ActionFeed({ actions, loading, selectedId, onSelect }: ActionFee
       })}
     </div>
   )
-}
+})
 
 function formatTime(iso: string): string {
   const date = new Date(iso)

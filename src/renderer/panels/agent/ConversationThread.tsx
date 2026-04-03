@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { User, Bot } from 'lucide-react'
 import type { AgentAction } from '@shared/agent-types'
 
@@ -5,7 +6,7 @@ interface ConversationThreadProps {
   action: AgentAction | null
 }
 
-export function ConversationThread({ action }: ConversationThreadProps): React.ReactElement {
+export const ConversationThread = memo(function ConversationThread({ action }: ConversationThreadProps): React.ReactElement {
   if (!action) {
     return (
       <div className="flex items-center justify-center h-full text-xs text-text-muted">
@@ -65,7 +66,7 @@ export function ConversationThread({ action }: ConversationThreadProps): React.R
       </div>
     </div>
   )
-}
+})
 
 function StatusBadge({ status }: { status: string }): React.ReactElement {
   const colors: Record<string, string> = {

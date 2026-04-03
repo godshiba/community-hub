@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import type { AgentActionType, AgentActionStatus } from '@shared/agent-types'
 import type { Platform } from '@shared/settings-types'
 import { cn } from '@/lib/utils'
@@ -15,7 +16,7 @@ const ACTION_TYPES: AgentActionType[] = ['replied', 'flagged', 'welcomed', 'sche
 const STATUSES: AgentActionStatus[] = ['completed', 'pending', 'approved', 'rejected', 'edited']
 const PLATFORMS: Platform[] = ['discord', 'telegram']
 
-export function ActionFilters({
+export const ActionFilters = memo(function ActionFilters({
   filterType,
   filterPlatform,
   filterStatus,
@@ -45,7 +46,7 @@ export function ActionFilters({
       />
     </div>
   )
-}
+})
 
 interface FilterGroupProps<T extends string> {
   label: string

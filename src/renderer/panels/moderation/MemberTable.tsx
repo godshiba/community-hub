@@ -1,5 +1,8 @@
+import { useState, useEffect, memo } from 'react'
 import { useModerationStore } from '@/stores/moderation.store'
 import { GlassCard } from '@/components/glass/GlassCard'
+import { SkeletonRow } from '@/components/Skeleton'
+import { useDebounce } from '@/hooks/useDebounce'
 import type { MemberStatus } from '@shared/moderation-types'
 import type { Platform } from '@shared/settings-types'
 
@@ -15,13 +18,22 @@ const statusColors: Record<MemberStatus, string> = {
   left: 'text-text-muted'
 }
 
-export function MemberTable({ onWarn, onBan }: MemberTableProps): React.ReactElement {
+export const MemberTable = memo(function MemberTable({ onWarn, onBan }: MemberTableProps): React.ReactElement {
   const {
     members, total, page, pageSize, loading,
     platform, status, search,
     setPlatform, setStatus, setSearch, setPage,
     fetchMemberDetail, sortBy, sortDir, setSort
   } = useModerationStore()
+
+  const [localSearch, setLocalSearch] = useState(search)
+  const debouncedSearch = useDebounce(localSearch, 300)
+
+  useEffect(() => {
+    if (debouncedSearch !== search) {
+      setSearch(debouncedSearch)
+    }
+  }, [debouncedSearch])
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
 
@@ -45,8 +57,8 @@ export function MemberTable({ onWarn, onBan }: MemberTableProps): React.ReactEle
         <input
           type="text"
           placeholder="Search username..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          value={localSearch}
+          onChange={(e) => setLocalSearch(e.target.value)}
           className="px-2 py-1 text-xs bg-glass-surface border border-glass-border rounded text-text-primary placeholder:text-text-muted w-48"
         />
 
@@ -96,7 +108,7 @@ export function MemberTable({ onWarn, onBan }: MemberTableProps): React.ReactEle
           </thead>
           <tbody>
             {loading && members.length === 0 ? (
-              <tr><td colSpan={6} className="text-center py-8 text-text-muted">Loading...</td></tr>
+              <>{Array.from({ length: 6 }, (_, i) => <SkeletonRow key={i} />)}</>
             ) : members.length === 0 ? (
               <tr><td colSpan={6} className="text-center py-8 text-text-muted">No members found. Click "Sync Members" to import from platforms.</td></tr>
             ) : (
@@ -162,4 +174,4 @@ export function MemberTable({ onWarn, onBan }: MemberTableProps): React.ReactEle
       )}
     </GlassCard>
   )
-}
+})

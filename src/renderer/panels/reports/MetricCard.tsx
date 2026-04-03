@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { cn } from '@/lib/utils'
 
 interface MetricCardProps {
@@ -7,7 +8,7 @@ interface MetricCardProps {
   negative?: boolean
 }
 
-export function MetricCard({ label, value, positive, negative }: MetricCardProps): React.ReactElement {
+export const MetricCard = memo(function MetricCard({ label, value, positive, negative }: MetricCardProps): React.ReactElement {
   return (
     <div className="bg-glass-surface rounded p-3">
       <p className="text-xs text-text-muted">{label}</p>
@@ -21,4 +22,4 @@ export function MetricCard({ label, value, positive, negative }: MetricCardProps
       </p>
     </div>
   )
-}
+})

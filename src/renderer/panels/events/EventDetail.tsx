@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { GlassCard } from '@/components/glass/GlassCard'
 import { useEventsStore } from '@/stores/events.store'
 
@@ -10,7 +11,7 @@ function formatDate(iso: string): string {
   })
 }
 
-export function EventDetail(): React.ReactElement | null {
+export const EventDetail = memo(function EventDetail(): React.ReactElement | null {
   const { selectedEvent, detailLoading, clearDetail, openForm, deleteEvent, exportAttendees } = useEventsStore()
 
   if (detailLoading) {
@@ -172,4 +173,4 @@ export function EventDetail(): React.ReactElement | null {
       )}
     </GlassCard>
   )
-}
+})

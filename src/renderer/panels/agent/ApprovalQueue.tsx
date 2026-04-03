@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Check, X, Pencil } from 'lucide-react'
+import { useState, memo } from 'react'
+import { Check, X, Pencil, Inbox } from 'lucide-react'
 import type { AgentAction } from '@shared/agent-types'
 
 interface ApprovalQueueProps {
@@ -9,13 +9,14 @@ interface ApprovalQueueProps {
   onEdit: (id: number, output: string) => void
 }
 
-export function ApprovalQueue({ actions, onApprove, onReject, onEdit }: ApprovalQueueProps): React.ReactElement {
+export const ApprovalQueue = memo(function ApprovalQueue({ actions, onApprove, onReject, onEdit }: ApprovalQueueProps): React.ReactElement {
   const pending = actions.filter((a) => a.status === 'pending')
 
   if (pending.length === 0) {
     return (
-      <div className="text-xs text-text-muted text-center py-4">
-        No items pending approval
+      <div className="flex flex-col items-center justify-center py-6 text-text-muted">
+        <Inbox className="size-6 mb-2 opacity-40" />
+        <p className="text-xs">No items pending approval</p>
       </div>
     )
   }
@@ -36,7 +37,7 @@ export function ApprovalQueue({ actions, onApprove, onReject, onEdit }: Approval
       ))}
     </div>
   )
-}
+})
 
 interface ApprovalItemProps {
   action: AgentAction

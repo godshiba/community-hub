@@ -1,6 +1,9 @@
-import { memo } from 'react'
+import { memo, useState, useEffect } from 'react'
 import { GlassCard } from '@/components/glass/GlassCard'
 import { useEventsStore } from '@/stores/events.store'
+import { useDebounce } from '@/hooks/useDebounce'
+import { SkeletonCard } from '@/components/Skeleton'
+import { Calendar } from 'lucide-react'
 import type { CommunityEvent, EventStatus } from '@shared/events-types'
 
 const STATUS_STYLES: Record<EventStatus, string> = {
@@ -54,6 +57,15 @@ function EventRow({ event, onSelect }: { event: CommunityEvent; onSelect: (id: n
 export const EventList = memo(function EventList(): React.ReactElement {
   const { events, loading, listFilter, setListFilter, search, setSearch, fetchEventDetail } = useEventsStore()
 
+  const [localSearch, setLocalSearch] = useState(search)
+  const debouncedSearch = useDebounce(localSearch, 300)
+
+  useEffect(() => {
+    if (debouncedSearch !== search) {
+      setSearch(debouncedSearch)
+    }
+  }, [debouncedSearch])
+
   const filters = [
     { value: 'upcoming' as const, label: 'Upcoming' },
     { value: 'past' as const, label: 'Past' },
@@ -82,8 +94,8 @@ export const EventList = memo(function EventList(): React.ReactElement {
         </div>
         <input
           type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          value={localSearch}
+          onChange={(e) => setLocalSearch(e.target.value)}
           placeholder="Search events..."
           className="w-full px-2 py-1.5 text-xs bg-glass-surface border border-glass-border rounded text-text-primary placeholder:text-text-muted"
         />
@@ -92,9 +104,14 @@ export const EventList = memo(function EventList(): React.ReactElement {
       {/* Event list */}
       <div className="flex-1 overflow-y-auto">
         {loading ? (
-          <div className="p-4 text-center text-xs text-text-muted">Loading...</div>
+          <div className="space-y-1">
+            {Array.from({ length: 4 }, (_, i) => <SkeletonCard key={i} />)}
+          </div>
         ) : events.length === 0 ? (
-          <div className="p-4 text-center text-xs text-text-muted">No events found</div>
+          <div className="flex flex-col items-center justify-center py-12 text-text-muted">
+            <Calendar className="size-8 mb-2 opacity-40" />
+            <p className="text-xs">No events found</p>
+          </div>
         ) : (
           <div className="divide-y divide-glass-border/50">
             {events.map((event) => (

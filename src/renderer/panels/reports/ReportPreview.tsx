@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { GlassCard } from '@/components/glass/GlassCard'
 import { useReportsStore } from '@/stores/reports.store'
 import { ArrowLeft, Download, Loader2, Sparkles } from 'lucide-react'
@@ -5,7 +6,7 @@ import { GrowthReportChart } from './charts/GrowthReportChart'
 import { EngagementChart } from './charts/EngagementChart'
 import { MetricCard } from './MetricCard'
 
-export function ReportPreview(): React.ReactElement {
+export const ReportPreview = memo(function ReportPreview(): React.ReactElement {
   const { currentReport, exporting, setView, exportPdf } = useReportsStore()
 
   if (!currentReport) {
@@ -150,4 +151,4 @@ export function ReportPreview(): React.ReactElement {
       )}
     </div>
   )
-}
+})

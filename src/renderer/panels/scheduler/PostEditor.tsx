@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, memo } from 'react'
 import { GlassCard } from '@/components/glass/GlassCard'
 import { Button } from '@/components/ui/button'
 import { Send, Clock, Save } from 'lucide-react'
@@ -11,7 +11,7 @@ const PLATFORM_OPTIONS: Array<{ value: Platform; label: string; color: string }>
   { value: 'telegram', label: 'Telegram', color: 'text-telegram' }
 ]
 
-export function PostEditor(): React.ReactElement {
+export const PostEditor = memo(function PostEditor(): React.ReactElement {
   const { channels, fetchChannels, createPost, loading } = useSchedulerStore()
 
   const [title, setTitle] = useState('')
@@ -169,4 +169,4 @@ export function PostEditor(): React.ReactElement {
       </div>
     </GlassCard>
   )
-}
+})

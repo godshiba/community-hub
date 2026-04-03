@@ -1,9 +1,9 @@
-import { useEffect } from 'react'
+import { useEffect, memo } from 'react'
 import { GlassCard } from '@/components/glass/GlassCard'
 import { useReportsStore } from '@/stores/reports.store'
 import { FileText, Trash2, Loader2 } from 'lucide-react'
 
-export function ReportHistory(): React.ReactElement {
+export const ReportHistory = memo(function ReportHistory(): React.ReactElement {
   const { reports, historyLoading, fetchHistory, viewReport, deleteReport } = useReportsStore()
 
   useEffect(() => { fetchHistory() }, [])
@@ -66,4 +66,4 @@ export function ReportHistory(): React.ReactElement {
       ))}
     </div>
   )
-}
+})

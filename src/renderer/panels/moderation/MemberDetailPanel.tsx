@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, memo } from 'react'
 import { GlassCard } from '@/components/glass/GlassCard'
 import { useModerationStore } from '@/stores/moderation.store'
 
@@ -7,7 +7,7 @@ interface MemberDetailPanelProps {
   onBan: (id: number) => void
 }
 
-export function MemberDetailPanel({ onWarn, onBan }: MemberDetailPanelProps): React.ReactElement | null {
+export const MemberDetailPanel = memo(function MemberDetailPanel({ onWarn, onBan }: MemberDetailPanelProps): React.ReactElement | null {
   const { selectedMember, detailLoading, clearDetail, unbanMember, updateNotes } = useModerationStore()
   const [editingNotes, setEditingNotes] = useState(false)
   const [notesValue, setNotesValue] = useState('')
@@ -181,4 +181,4 @@ export function MemberDetailPanel({ onWarn, onBan }: MemberDetailPanelProps): Re
       </div>
     </GlassCard>
   )
-}
+})

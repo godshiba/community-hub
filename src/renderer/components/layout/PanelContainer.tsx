@@ -1,6 +1,7 @@
 import { useCallback, useRef } from 'react'
 import { usePanelStore } from '@/stores/panel.store'
 import { PANEL_REGISTRY } from '@/panels/registry'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 
 export function PanelContainer(): React.ReactElement {
   const { activePanel, secondaryPanel, splitRatio, setSplitRatio } = usePanelStore()
@@ -32,16 +33,20 @@ export function PanelContainer(): React.ReactElement {
 
   if (!SecondaryPanel) {
     return (
-      <div className="flex-1 p-2 overflow-hidden">
-        <PrimaryPanel />
+      <div key={activePanel} className="flex-1 p-2 overflow-hidden animate-panel-in">
+        <ErrorBoundary panelName={activePanel}>
+          <PrimaryPanel />
+        </ErrorBoundary>
       </div>
     )
   }
 
   return (
     <div ref={containerRef} className="flex-1 flex p-2 gap-0 overflow-hidden">
-      <div style={{ width: `${splitRatio * 100}%` }} className="overflow-hidden">
-        <PrimaryPanel />
+      <div key={activePanel} style={{ width: `${splitRatio * 100}%` }} className="overflow-hidden animate-panel-in">
+        <ErrorBoundary panelName={activePanel}>
+          <PrimaryPanel />
+        </ErrorBoundary>
       </div>
 
       <div
@@ -49,8 +54,10 @@ export function PanelContainer(): React.ReactElement {
         onMouseDown={handleMouseDown}
       />
 
-      <div style={{ width: `${(1 - splitRatio) * 100}%` }} className="overflow-hidden">
-        <SecondaryPanel />
+      <div key={secondaryPanel} style={{ width: `${(1 - splitRatio) * 100}%` }} className="overflow-hidden animate-panel-in">
+        <ErrorBoundary panelName={secondaryPanel ?? undefined}>
+          <SecondaryPanel />
+        </ErrorBoundary>
       </div>
     </div>
   )
