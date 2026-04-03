@@ -4,11 +4,12 @@
   "description": "Desktop application for managing communities across Discord and Telegram with an optional AI agent.",
   "main": "./out/main/index.js",
   "scripts": {
-    "dev": "unset ELECTRON_RUN_AS_NODE && electron-vite dev",
-    "build": "electron-vite build",
+    "dev": "electron-rebuild -f -w better-sqlite3 && unset ELECTRON_RUN_AS_NODE && electron-vite dev",
+    "build": "electron-rebuild -f -w better-sqlite3 && electron-vite build",
     "preview": "unset ELECTRON_RUN_AS_NODE && electron-vite preview",
+    "pretest": "npm rebuild better-sqlite3",
     "test": "vitest --run --passWithNoTests",
-    "test:watch": "vitest",
+    "test:watch": "npm rebuild better-sqlite3 && vitest",
     "lint": "eslint src/",
     "typecheck": "tsc --build"
   },
@@ -40,6 +41,7 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "@electron/rebuild": "^4.0.3",
     "@tailwindcss/vite": "^4.2.2",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^22.0.0",
