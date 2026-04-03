@@ -1,0 +1,58 @@
+appId: com.godshiba.community-hub
+productName: Community Hub
+copyright: Copyright © 2026
+
+# Directories
+directories:
+  buildResources: build
+  output: dist
+
+# Files to include in the app bundle
+files:
+  - out/**/*
+  - package.json
+  - node_modules/**/*
+
+# macOS target
+mac:
+  category: public.app-category.productivity
+  target:
+    - target: dmg
+      arch: [x64, arm64]
+  darkModeSupport: true
+  minimumSystemVersion: "13.0"
+
+# DMG options
+dmg:
+  title: Community Hub ${version}
+  background: build/dmg-background.png
+  icon: build/icon.icns
+  iconSize: 80
+  window:
+    width: 540
+    height: 380
+  contents:
+    - x: 140
+      y: 200
+    - x: 400
+      y: 200
+      type: link
+      path: /Applications
+
+# Linux (future)
+linux:
+  target: AppImage
+  category: Network
+
+# Windows (future)
+win:
+  target: nsis
+
+# Publishing (optional — GitHub Releases)
+publish:
+  provider: github
+  owner: godshiba
+  repo: community-hub
+
+# Native modules rebuild
+afterPack: scripts/after-pack.js

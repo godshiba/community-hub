@@ -1,6 +1,6 @@
 {
   "name": "community-hub",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Desktop application for managing communities across Discord and Telegram with an optional AI agent.",
   "main": "./out/main/index.js",
   "scripts": {
@@ -11,13 +11,17 @@
     "test": "vitest --run --passWithNoTests",
     "test:watch": "npm rebuild better-sqlite3 && vitest",
     "lint": "eslint src/",
-    "typecheck": "tsc --build"
+    "typecheck": "tsc --build",
+    "dist": "npm run build && electron-builder --mac",
+    "dist:universal": "npm run build && electron-builder --mac --universal",
+    "dist:x64": "npm run build && electron-builder --mac --x64",
+    "dist:arm64": "npm run build && electron-builder --mac --arm64"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/godshiba/community-hub.git"
   },
-  "author": "",
+  "author": "godshiba",
   "license": "ISC",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.81.0",
@@ -42,6 +46,7 @@
   },
   "devDependencies": {
     "@electron/rebuild": "^4.0.3",
+    "electron-builder": "^25.1.8",
     "@tailwindcss/vite": "^4.2.2",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^22.0.0",
