@@ -17,6 +17,10 @@ dist/
 # Project docs & Claude config (local only)
 docs/
 CLAUDE.md
+CLAUDE.local.md
+.claude/
+.mcp.json
+coverage/
 
 # IDE / OS
 .idea/
