@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { GlassPanel } from '@/components/glass/GlassPanel'
 import { useAgentStore } from '@/stores/agent.store'
+import { PanelHeader } from '@/components/shared/PanelHeader'
 import { AgentControls } from './AgentControls'
 import { ActionFeed } from './ActionFeed'
 import { ActionFilters } from './ActionFilters'
@@ -56,13 +57,11 @@ export function AgentPanel(): React.ReactElement {
 
   return (
     <GlassPanel className="p-4 space-y-3 overflow-hidden h-full flex flex-col">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-text-primary">Agent Terminal</h2>
-          <p className="text-xs text-text-secondary">AI agent actions and controls</p>
-        </div>
-        <AgentControls status={status} onPause={pause} onResume={resume} />
-      </div>
+      <PanelHeader
+        title="Agent Terminal"
+        subtitle="AI agent actions and controls"
+        actions={<AgentControls status={status} onPause={pause} onResume={resume} />}
+      />
 
       <ActionFilters
         filterType={filterType}

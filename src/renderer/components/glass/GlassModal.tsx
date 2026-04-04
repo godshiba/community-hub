@@ -17,7 +17,7 @@ export function GlassModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-backdrop-in"
         onClick={onClose}
         onKeyDown={(e) => e.key === 'Escape' && onClose()}
         role="button"
@@ -28,6 +28,7 @@ export function GlassModal({
         className={cn(
           'bg-glass-overlay border-glass shadow-glass rounded-[var(--radius-panel)]',
           'relative z-10 max-w-lg w-full mx-4 p-6',
+          'animate-modal-in',
           className
         )}
         {...props}

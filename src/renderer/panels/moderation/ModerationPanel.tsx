@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { GlassPanel } from '@/components/glass/GlassPanel'
 import { useModerationStore } from '@/stores/moderation.store'
+import { PanelHeader } from '@/components/shared/PanelHeader'
 import { MemberTable } from './MemberTable'
 import { MemberDetailPanel } from './MemberDetailPanel'
 import { WarningDialog } from './WarningDialog'
@@ -15,19 +16,19 @@ export function ModerationPanel(): React.ReactElement {
 
   return (
     <GlassPanel className="p-4 space-y-4 overflow-y-auto h-full">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-text-primary">Moderation</h2>
-          <p className="text-xs text-text-secondary">Manage community members, warnings, and bans</p>
-        </div>
-        <button
-          onClick={() => syncMembers()}
-          disabled={loading}
-          className="px-3 py-1.5 text-xs font-medium bg-accent/20 text-accent rounded hover:bg-accent/30 transition-colors disabled:opacity-50"
-        >
-          {loading ? 'Syncing...' : 'Sync Members'}
-        </button>
-      </div>
+      <PanelHeader
+        title="Moderation"
+        subtitle="Manage community members, warnings, and bans"
+        actions={
+          <button
+            onClick={() => syncMembers()}
+            disabled={loading}
+            className="px-3 py-1.5 text-xs font-medium bg-accent/20 text-accent rounded hover:bg-accent/30 transition-colors disabled:opacity-50"
+          >
+            {loading ? 'Syncing...' : 'Sync Members'}
+          </button>
+        }
+      />
 
       {error && (
         <div className="px-3 py-2 text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded">

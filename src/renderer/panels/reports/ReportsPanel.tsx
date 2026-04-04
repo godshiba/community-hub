@@ -1,5 +1,7 @@
 import { GlassPanel } from '@/components/glass/GlassPanel'
 import { useReportsStore } from '@/stores/reports.store'
+import { PanelHeader } from '@/components/shared/PanelHeader'
+import { SegmentedControl } from '@/components/shared/SegmentedControl'
 import { ReportGenerator } from './ReportGenerator'
 import { ReportPreview } from './ReportPreview'
 import { ReportHistory } from './ReportHistory'
@@ -15,35 +17,20 @@ export function ReportsPanel(): React.ReactElement {
 
   return (
     <GlassPanel className="p-4 space-y-4 overflow-y-auto h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-text-primary">Reports</h2>
-          <p className="text-xs text-text-secondary">Community health reports and analytics</p>
-        </div>
-        <div className="flex items-center gap-1 bg-glass-surface rounded p-0.5">
-          <button
-            onClick={() => setView('generator')}
-            className={`px-2 py-1 text-xs rounded transition-colors ${
-              activeTab === 'generator'
-                ? 'bg-accent/20 text-accent font-medium'
-                : 'text-text-muted hover:text-text-secondary'
-            }`}
-          >
-            Generator
-          </button>
-          <button
-            onClick={() => setView('history')}
-            className={`px-2 py-1 text-xs rounded transition-colors ${
-              activeTab === 'history'
-                ? 'bg-accent/20 text-accent font-medium'
-                : 'text-text-muted hover:text-text-secondary'
-            }`}
-          >
-            History
-          </button>
-        </div>
-      </div>
+      <PanelHeader
+        title="Reports"
+        subtitle="Community health reports and analytics"
+        actions={
+          <SegmentedControl
+            options={[
+              { value: 'generator', label: 'Generator' },
+              { value: 'history', label: 'History' }
+            ]}
+            value={activeTab}
+            onChange={(v) => setView(v as 'generator' | 'history')}
+          />
+        }
+      />
 
       {/* Error banner */}
       {error && (

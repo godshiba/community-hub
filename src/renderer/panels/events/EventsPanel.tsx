@@ -1,6 +1,8 @@
 import { useEffect } from 'react'
 import { GlassPanel } from '@/components/glass/GlassPanel'
 import { useEventsStore } from '@/stores/events.store'
+import { PanelHeader } from '@/components/shared/PanelHeader'
+import { SegmentedControl } from '@/components/shared/SegmentedControl'
 import { EventList } from './EventList'
 import { EventCalendar } from './EventCalendar'
 import { EventDetail } from './EventDetail'
@@ -13,44 +15,28 @@ export function EventsPanel(): React.ReactElement {
 
   return (
     <GlassPanel className="p-4 space-y-4 overflow-y-auto h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-text-primary">Events</h2>
-          <p className="text-xs text-text-secondary">Manage events, RSVPs, and reminders</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {/* View toggle */}
-          <div className="flex items-center gap-1 bg-glass-surface rounded p-0.5">
+      <PanelHeader
+        title="Events"
+        subtitle="Manage events, RSVPs, and reminders"
+        actions={
+          <>
+            <SegmentedControl
+              options={[
+                { value: 'list', label: 'List' },
+                { value: 'calendar', label: 'Calendar' }
+              ]}
+              value={viewMode}
+              onChange={(v) => setViewMode(v as 'list' | 'calendar')}
+            />
             <button
-              onClick={() => setViewMode('list')}
-              className={`px-2 py-1 text-xs rounded transition-colors ${
-                viewMode === 'list'
-                  ? 'bg-accent/20 text-accent font-medium'
-                  : 'text-text-muted hover:text-text-secondary'
-              }`}
+              onClick={() => openForm()}
+              className="px-3 py-1.5 text-xs font-medium bg-accent/20 text-accent rounded hover:bg-accent/30 transition-colors"
             >
-              List
+              New Event
             </button>
-            <button
-              onClick={() => setViewMode('calendar')}
-              className={`px-2 py-1 text-xs rounded transition-colors ${
-                viewMode === 'calendar'
-                  ? 'bg-accent/20 text-accent font-medium'
-                  : 'text-text-muted hover:text-text-secondary'
-              }`}
-            >
-              Calendar
-            </button>
-          </div>
-          <button
-            onClick={() => openForm()}
-            className="px-3 py-1.5 text-xs font-medium bg-accent/20 text-accent rounded hover:bg-accent/30 transition-colors"
-          >
-            New Event
-          </button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {/* Content */}
       <div className="flex gap-4 h-[calc(100%-5rem)]">

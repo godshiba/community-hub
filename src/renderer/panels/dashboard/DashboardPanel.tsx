@@ -3,6 +3,8 @@ import { GlassPanel } from '@/components/glass/GlassPanel'
 import { Button } from '@/components/ui/button'
 import { RefreshCw, Download, Loader2 } from 'lucide-react'
 import { useAnalyticsStore } from '@/stores/analytics.store'
+import { PanelHeader } from '@/components/shared/PanelHeader'
+import { SegmentedControl } from '@/components/shared/SegmentedControl'
 import { StatsCards } from './StatsCards'
 import { GrowthChart } from './GrowthChart'
 import { ActivityHeatmap } from './ActivityHeatmap'
@@ -40,60 +42,34 @@ export function DashboardPanel(): React.ReactElement {
 
   return (
     <GlassPanel className="p-4 space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-text-primary">Dashboard</h2>
-          <p className="text-xs text-text-muted">Community analytics overview</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {/* Platform selector */}
-          <div className="flex bg-glass-surface rounded-md border border-glass-border">
-            {PLATFORMS.map((p) => (
-              <button
-                key={p.value}
-                onClick={() => setPlatform(p.value)}
-                className={`px-3 py-1 text-xs font-medium transition-colors ${
-                  platform === p.value
-                    ? `bg-accent/20 ${p.color}`
-                    : 'text-text-muted hover:text-text-secondary'
-                }`}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Period selector */}
-          <div className="flex bg-glass-surface rounded-md border border-glass-border">
-            {PERIODS.map((p) => (
-              <button
-                key={p.value}
-                onClick={() => setPeriod(p.value)}
-                className={`px-3 py-1 text-xs transition-colors ${
-                  period === p.value
-                    ? 'bg-accent/20 text-accent'
-                    : 'text-text-muted hover:text-text-secondary'
-                }`}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
-
-          <Button size="sm" variant="outline" onClick={syncNow} disabled={loading}>
-            {loading ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}
-            Sync
-          </Button>
-
-          <Button size="sm" variant="outline" onClick={() => handleExport('csv')}>
-            <Download className="size-3.5" /> CSV
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => handleExport('pdf')}>
-            <Download className="size-3.5" /> PDF
-          </Button>
-        </div>
-      </div>
+      <PanelHeader
+        title="Dashboard"
+        subtitle="Community analytics overview"
+        actions={
+          <>
+            <SegmentedControl
+              options={PLATFORMS.map((p) => ({ value: p.value, label: p.label }))}
+              value={platform}
+              onChange={(v) => setPlatform(v as PlatformFilter)}
+            />
+            <SegmentedControl
+              options={PERIODS.map((p) => ({ value: p.value, label: p.label }))}
+              value={period}
+              onChange={(v) => setPeriod(v as AnalyticsPeriod)}
+            />
+            <Button size="sm" variant="outline" onClick={syncNow} disabled={loading}>
+              {loading ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}
+              Sync
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => handleExport('csv')}>
+              <Download className="size-3.5" /> CSV
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => handleExport('pdf')}>
+              <Download className="size-3.5" /> PDF
+            </Button>
+          </>
+        }
+      />
 
       {/* Loading state (first load only) */}
       {loading && !data && !error && (

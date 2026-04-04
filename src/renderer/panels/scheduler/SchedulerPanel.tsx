@@ -1,6 +1,8 @@
 import { useEffect } from 'react'
 import { GlassPanel } from '@/components/glass/GlassPanel'
 import { useSchedulerStore } from '@/stores/scheduler.store'
+import { PanelHeader } from '@/components/shared/PanelHeader'
+import { SegmentedControl } from '@/components/shared/SegmentedControl'
 import { PostEditor } from './PostEditor'
 import { PostQueue } from './PostQueue'
 import { PostHistory } from './PostHistory'
@@ -15,32 +17,19 @@ export function SchedulerPanel(): React.ReactElement {
 
   return (
     <GlassPanel className="p-4 space-y-4 overflow-y-auto">
+      <PanelHeader title="Scheduler" subtitle="Schedule posts and messages" />
+
       {/* Post editor */}
       <PostEditor />
 
-      {/* Queue / History tabs */}
-      <div className="flex items-center gap-1 border-b border-glass-border">
-        <button
-          onClick={() => setTab('queue')}
-          className={`px-3 py-1.5 text-xs font-medium transition-colors ${
-            tab === 'queue'
-              ? 'text-accent border-b-2 border-accent'
-              : 'text-text-muted hover:text-text-secondary'
-          }`}
-        >
-          Queue
-        </button>
-        <button
-          onClick={() => setTab('history')}
-          className={`px-3 py-1.5 text-xs font-medium transition-colors ${
-            tab === 'history'
-              ? 'text-accent border-b-2 border-accent'
-              : 'text-text-muted hover:text-text-secondary'
-          }`}
-        >
-          History
-        </button>
-      </div>
+      <SegmentedControl
+        options={[
+          { value: 'queue', label: 'Queue' },
+          { value: 'history', label: 'History' }
+        ]}
+        value={tab}
+        onChange={(v) => setTab(v as 'queue' | 'history')}
+      />
 
       {tab === 'queue' ? <PostQueue /> : <PostHistory />}
     </GlassPanel>

@@ -1,4 +1,5 @@
 import { GlassPanel } from '@/components/glass/GlassPanel'
+import { PanelHeader } from '@/components/shared/PanelHeader'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { CredentialsForm } from './CredentialsForm'
 import { AiProviderForm } from './AiProviderForm'
@@ -10,10 +11,9 @@ import { PatternLibrary } from './PatternLibrary'
 export function SettingsPanel(): React.ReactElement {
   return (
     <GlassPanel className="p-6 overflow-y-auto h-full">
-      <h2 className="text-lg font-semibold text-text-primary">Settings</h2>
-      <p className="text-sm text-text-secondary mt-1 mb-4">
-        Platform credentials, AI configuration, and preferences
-      </p>
+      <div className="mb-4">
+        <PanelHeader title="Settings" subtitle="Platform credentials, AI configuration, and preferences" />
+      </div>
 
       <Tabs defaultValue="platforms" className="w-full">
         <TabsList className="bg-glass-surface border-glass mb-4">

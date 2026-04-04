@@ -1,8 +1,10 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { TitleBar } from '@/components/layout/TitleBar'
-import { IconBar } from '@/components/layout/IconBar'
+import { Sidebar } from '@/components/layout/Sidebar'
 import { PanelContainer } from '@/components/layout/PanelContainer'
 import { StatusBar } from '@/components/layout/StatusBar'
+import { ToastContainer } from '@/components/shared/ToastContainer'
+import { CommandPalette } from '@/components/shared/CommandPalette'
 import { usePanelStore } from '@/stores/panel.store'
 import { useAgentStore } from '@/stores/agent.store'
 import type { PanelId } from '@shared/types'
@@ -14,12 +16,19 @@ const PANEL_ORDER: PanelId[] = [
 export function App(): React.ReactElement {
   const { setActivePanel, goBack, closeSecondary, secondaryPanel } = usePanelStore()
   const fetchAgentStatus = useAgentStore((s) => s.fetchStatus)
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
 
   useEffect(() => { fetchAgentStatus() }, [])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent): void => {
       const mod = e.metaKey || e.ctrlKey
+
+      if (mod && e.key === 'k') {
+        e.preventDefault()
+        setCommandPaletteOpen((v) => !v)
+        return
+      }
 
       if (mod && e.key >= '1' && e.key <= '7') {
         e.preventDefault()
@@ -32,9 +41,9 @@ export function App(): React.ReactElement {
         goBack()
       }
 
-      if (mod && e.key === '\\') {
+      if (mod && e.key === 'b') {
         e.preventDefault()
-        // Split toggle will be more useful once panels can request secondary
+        usePanelStore.getState().toggleSidebar()
       }
 
       if (e.key === 'Escape' && secondaryPanel) {
@@ -49,12 +58,17 @@ export function App(): React.ReactElement {
 
   return (
     <div className="h-screen w-screen flex flex-col overflow-hidden">
-      <TitleBar />
+      <TitleBar onSearchClick={() => setCommandPaletteOpen(true)} />
       <div className="flex flex-1 overflow-hidden">
-        <IconBar />
+        <Sidebar />
         <PanelContainer />
       </div>
       <StatusBar />
+      <ToastContainer />
+      <CommandPalette
+        open={commandPaletteOpen}
+        onClose={() => setCommandPaletteOpen(false)}
+      />
     </div>
   )
 }
