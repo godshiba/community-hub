@@ -181,6 +181,41 @@ export class TelegramService implements PlatformService {
     throw new Error(`Could not ban user ${platformUserId} — not found in any tracked chat`)
   }
 
+  async muteUser(platformUserId: string, durationMinutes: number, channelId?: string): Promise<void> {
+    if (!this.bot || this._status !== 'connected') {
+      throw new Error('Telegram is not connected')
+    }
+
+    const userId = Number(platformUserId)
+    if (isNaN(userId)) throw new Error(`Invalid Telegram user ID: ${platformUserId}`)
+
+    const untilDate = Math.floor(Date.now() / 1000) + durationMinutes * 60
+    const chatIds = channelId ? [Number(channelId)] : [...this._trackedChats.keys()]
+
+    for (const chatId of chatIds) {
+      try {
+        await this.bot.telegram.restrictChatMember(chatId, userId, {
+          permissions: { can_send_messages: false, can_send_other_messages: false, can_add_web_page_previews: false },
+          until_date: untilDate
+        })
+        return
+      } catch { /* user may not be in this chat */ }
+    }
+    throw new Error(`Could not mute user ${platformUserId}`)
+  }
+
+  async deleteMessage(channelId: string, messageId: string): Promise<void> {
+    if (!this.bot || this._status !== 'connected') {
+      throw new Error('Telegram is not connected')
+    }
+
+    const chatId = Number(channelId)
+    const msgId = Number(messageId)
+    if (isNaN(chatId) || isNaN(msgId)) throw new Error('Invalid chat or message ID')
+
+    await this.bot.telegram.deleteMessage(chatId, msgId)
+  }
+
   async unbanUser(platformUserId: string): Promise<void> {
     if (!this.bot || this._status !== 'connected') {
       throw new Error('Telegram is not connected')
@@ -388,6 +423,7 @@ export class TelegramService implements PlatformService {
               cb({
                 platform: 'telegram',
                 channelId: String(ctx.chat.id),
+                messageId: String(ctx.message.message_id),
                 userId: String(from.id),
                 username: from.username ?? from.first_name,
                 content: ctx.message.text

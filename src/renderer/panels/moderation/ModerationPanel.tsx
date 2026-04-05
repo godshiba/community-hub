@@ -2,10 +2,13 @@ import { useEffect, useState } from 'react'
 import { GlassPanel } from '@/components/glass/GlassPanel'
 import { useModerationStore } from '@/stores/moderation.store'
 import { PanelHeader } from '@/components/shared/PanelHeader'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { MemberTable } from './MemberTable'
 import { MemberDetailPanel } from './MemberDetailPanel'
 import { WarningDialog } from './WarningDialog'
 import { BanDialog } from './BanDialog'
+import { SpamEventsTab } from './SpamEventsTab'
+import { RaidAlert } from './RaidAlert'
 
 export function ModerationPanel(): React.ReactElement {
   const { selectedMember, fetchMembers, syncMembers, loading, error } = useModerationStore()
@@ -30,23 +33,38 @@ export function ModerationPanel(): React.ReactElement {
         }
       />
 
+      <RaidAlert />
+
       {error && (
         <div className="px-3 py-2 text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded">
           {error}
         </div>
       )}
 
-      <div className="flex gap-4 h-[calc(100%-5rem)]">
-        <div className={selectedMember ? 'w-1/2' : 'w-full'}>
-          <MemberTable onWarn={setWarnTarget} onBan={setBanTarget} />
-        </div>
+      <Tabs defaultValue="members" className="flex-1">
+        <TabsList className="bg-glass-surface border-glass mb-3">
+          <TabsTrigger value="members">Members</TabsTrigger>
+          <TabsTrigger value="spam">Spam Events</TabsTrigger>
+        </TabsList>
 
-        {selectedMember && (
-          <div className="w-1/2">
-            <MemberDetailPanel onWarn={setWarnTarget} onBan={setBanTarget} />
+        <TabsContent value="members">
+          <div className="flex gap-4 h-[calc(100%-5rem)]">
+            <div className={selectedMember ? 'w-1/2' : 'w-full'}>
+              <MemberTable onWarn={setWarnTarget} onBan={setBanTarget} />
+            </div>
+
+            {selectedMember && (
+              <div className="w-1/2">
+                <MemberDetailPanel onWarn={setWarnTarget} onBan={setBanTarget} />
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </TabsContent>
+
+        <TabsContent value="spam">
+          <SpamEventsTab />
+        </TabsContent>
+      </Tabs>
 
       <WarningDialog memberId={warnTarget} onClose={() => setWarnTarget(null)} />
       <BanDialog memberId={banTarget} onClose={() => setBanTarget(null)} />

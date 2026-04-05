@@ -28,6 +28,12 @@ export interface PlatformService {
 
   /** Unban a user on the platform */
   unbanUser(platformUserId: string): Promise<void>
+
+  /** Mute/timeout a user for a duration (minutes). Not all platforms support this. */
+  muteUser(platformUserId: string, durationMinutes: number, channelId?: string): Promise<void>
+
+  /** Delete a specific message by ID */
+  deleteMessage(channelId: string, messageId: string): Promise<void>
 }
 
 export interface PlatformMember {
@@ -48,6 +54,7 @@ export interface PlatformStats {
 export interface PlatformMessage {
   platform: 'discord' | 'telegram'
   channelId: string
+  messageId: string
   userId: string
   username: string
   content: string

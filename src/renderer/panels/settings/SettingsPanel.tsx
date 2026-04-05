@@ -7,6 +7,8 @@ import { AppPreferencesForm } from './AppPreferencesForm'
 import { AgentProfileEditor } from './AgentProfileEditor'
 import { AutomationRules } from './AutomationRules'
 import { PatternLibrary } from './PatternLibrary'
+import { SpamProtectionForm } from './SpamProtectionForm'
+import { RaidProtectionForm } from './RaidProtectionForm'
 
 export function SettingsPanel(): React.ReactElement {
   return (
@@ -20,6 +22,7 @@ export function SettingsPanel(): React.ReactElement {
           <TabsTrigger value="platforms">Platforms</TabsTrigger>
           <TabsTrigger value="ai">AI Provider</TabsTrigger>
           <TabsTrigger value="agent">Agent</TabsTrigger>
+          <TabsTrigger value="protection">Protection</TabsTrigger>
           <TabsTrigger value="preferences">Preferences</TabsTrigger>
         </TabsList>
 
@@ -36,6 +39,13 @@ export function SettingsPanel(): React.ReactElement {
             <AgentProfileEditor />
             <AutomationRules />
             <PatternLibrary />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="protection">
+          <div className="space-y-4">
+            <SpamProtectionForm />
+            <RaidProtectionForm />
           </div>
         </TabsContent>
 

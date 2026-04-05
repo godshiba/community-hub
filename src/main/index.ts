@@ -10,6 +10,11 @@ import { registerEventHandlers } from './ipc/events'
 import { registerAgentHandlers } from './ipc/agent'
 import { registerReportsHandlers } from './ipc/reports'
 import { registerAnalyticsHandlers } from './ipc/analytics'
+import { registerSpamHandlers } from './ipc/spam'
+import { checkMessage as checkSpam } from './services/spam/spam.engine'
+import { recordJoin as recordRaidJoin } from './services/spam/raid.detector'
+import { executeSpamAction, executeRaidActions } from './services/spam/raid.actions'
+import * as spamRepo from './services/spam/spam.repository'
 import { initPlatformManager, getPlatformManager } from './services/platform-manager'
 import { initAgentService, getAgentService } from './services/ai/agent.service'
 
@@ -50,6 +55,7 @@ app.whenReady().then(async () => {
   registerEventHandlers()
   registerAgentHandlers()
   registerReportsHandlers()
+  registerSpamHandlers()
   initAgentService()
   createWindow()
 
@@ -59,6 +65,23 @@ app.whenReady().then(async () => {
   // Wire platform messages to AI agent
   const agent = getAgentService()
   manager.onMessage((msg) => {
+    // --- Spam check (runs before AI agent) ---
+    const spamResult = checkSpam(msg.platform, msg.userId, msg.username, msg.channelId, msg.messageId, msg.content)
+    if (spamResult?.triggered) {
+      spamRepo.logSpamEvent({
+        platform: msg.platform,
+        userId: msg.userId,
+        username: msg.username,
+        channelId: msg.channelId,
+        ruleType: spamResult.ruleType,
+        ruleName: spamResult.ruleName,
+        actionTaken: spamResult.action,
+        messageContent: msg.content.slice(0, 500)
+      })
+      executeSpamAction(msg.platform, msg.userId, msg.channelId, spamResult.messageRefs, spamResult.action, spamResult.muteDurationMinutes).catch(() => {})
+      return // Don't pass spam to AI agent
+    }
+
     // Detect if the bot was mentioned by name, @username, or Discord <@ID>
     const profile = agent.conversation.getProfile()
     const botName = profile?.name?.toLowerCase() ?? ''
@@ -103,6 +126,12 @@ app.whenReady().then(async () => {
   })
 
   manager.onNewMember((member) => {
+    // --- Raid detection ---
+    const raidResult = recordRaidJoin(member.platform, member.userId, member.username)
+    if (raidResult.stateChanged && raidResult.newState === 'active') {
+      executeRaidActions(member.platform, raidResult).catch(() => {})
+    }
+
     agent.handleNewMember({
       platform: member.platform,
       channelId: member.channelId,

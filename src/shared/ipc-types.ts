@@ -57,6 +57,15 @@ import type {
   SavedReport,
   ReportExportResult
 } from './reports-types'
+import type {
+  SpamConfig,
+  SpamRule,
+  SpamRulePayload,
+  SpamEvent,
+  SpamEventsFilter,
+  RaidEvent,
+  RaidState
+} from './spam-types'
 
 /**
  * Master IPC contract. Every channel is typed here.
@@ -141,6 +150,19 @@ export interface IpcContract {
   'agent:deleteAutomation': { request: { id: number }; response: void }
   'agent:toggleAutomation': { request: { id: number; enabled: boolean }; response: void }
   'agent:testProvider': { request: void; response: { success: boolean; error?: string } }
+
+  // Spam & Raid Protection — Phase 1 (v1.1)
+  'spam:getConfig': { request: void; response: SpamConfig }
+  'spam:updateConfig': { request: SpamConfig; response: void }
+  'spam:getRules': { request: void; response: readonly SpamRule[] }
+  'spam:saveRule': { request: SpamRulePayload & { id?: number }; response: SpamRule }
+  'spam:deleteRule': { request: { id: number }; response: void }
+  'spam:toggleRule': { request: { id: number; enabled: boolean }; response: void }
+  'spam:getEvents': { request: SpamEventsFilter; response: readonly SpamEvent[] }
+  'spam:getRaidEvents': { request: { limit?: number }; response: readonly RaidEvent[] }
+  'spam:getRaidState': { request: void; response: RaidState }
+  'spam:setManualLockdown': { request: { enabled: boolean }; response: void }
+  'spam:testRule': { request: { ruleType: string; content: string }; response: { triggered: boolean; reason: string } }
 }
 
 export type IpcChannel = keyof IpcContract

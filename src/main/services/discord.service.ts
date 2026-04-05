@@ -215,14 +215,61 @@ export class DiscordService implements PlatformService {
     throw new Error(`Could not unban user ${platformUserId}: ${lastError ?? 'not found in any guild'}`)
   }
 
+  async muteUser(platformUserId: string, durationMinutes: number): Promise<void> {
+    if (!this.client || this._status !== 'connected') {
+      throw new Error('Discord is not connected')
+    }
+
+    const durationMs = durationMinutes * 60 * 1000
+    let lastError: string | null = null
+    for (const guild of this._guilds.values()) {
+      try {
+        const member = await guild.members.fetch(platformUserId)
+        await member.timeout(durationMs, 'Automated spam protection')
+        return
+      } catch (err: unknown) {
+        lastError = err instanceof Error ? err.message : String(err)
+      }
+    }
+    throw new Error(`Could not timeout user ${platformUserId}: ${lastError ?? 'not found in any guild'}`)
+  }
+
+  async deleteMessage(channelId: string, messageId: string): Promise<void> {
+    if (!this.client || this._status !== 'connected') {
+      throw new Error('Discord is not connected')
+    }
+
+    const channel = this.client.channels.cache.get(channelId)
+    if (!channel?.isTextBased()) throw new Error(`Channel ${channelId} not found`)
+
+    const msg = channel.messages.cache.get(messageId)
+    if (msg) {
+      await msg.delete()
+    } else {
+      const fetched = await (channel as TextChannel).messages.fetch(messageId)
+      await fetched.delete()
+    }
+  }
+
+  /** Delete multiple messages at once (max 100, must be < 14 days old) */
+  async bulkDeleteMessages(channelId: string, messageIds: readonly string[]): Promise<void> {
+    if (!this.client || this._status !== 'connected') return
+    if (messageIds.length === 0) return
+
+    const channel = this.client.channels.cache.get(channelId)
+    if (!channel?.isTextBased()) return
+
+    await (channel as TextChannel).bulkDelete(messageIds as string[])
+  }
+
   /** Generate the OAuth2 URL to invite the bot to a server */
   getInviteUrl(): string | null {
     const clientId = getEnv('DISCORD_CLIENT_ID')
     if (!clientId) return null
 
     // Permissions: Kick, Ban, ManageChannels, ManageGuild, ViewChannel,
-    // SendMessages, ReadMessageHistory, ManageRoles, ModerateMembers
-    const permissions = '1099780063318'
+    // SendMessages, ManageMessages, ReadMessageHistory, ManageRoles, ModerateMembers
+    const permissions = '1099780071510'
     const scopes = 'bot%20applications.commands'
     return `https://discord.com/oauth2/authorize?client_id=${clientId}&permissions=${permissions}&scope=${scopes}`
   }
@@ -324,6 +371,7 @@ export class DiscordService implements PlatformService {
           cb({
             platform: 'discord',
             channelId: message.channelId,
+            messageId: message.id,
             userId: message.author.id,
             username: message.author.username,
             content: message.content
