@@ -103,6 +103,14 @@ export function getRaidState(platform?: string): RaidState {
   return worst
 }
 
+/** Reset all in-memory state (for testing) */
+export function resetRaidState(): void {
+  for (const [, pState] of platformStates) {
+    if (pState.cooldownTimer) clearTimeout(pState.cooldownTimer)
+  }
+  platformStates.clear()
+}
+
 /** Toggle manual lockdown mode */
 export function setManualLockdown(enabled: boolean): void {
   for (const [platform] of platformStates) {

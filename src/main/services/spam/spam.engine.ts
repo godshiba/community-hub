@@ -177,7 +177,8 @@ function checkMessageRate(tracker: UserTracker, flood: FloodConfig): RuleMatch |
 function checkDuplicates(tracker: UserTracker, flood: FloodConfig, content: string): RuleMatch | null {
   const windowMs = flood.messageRateWindowSeconds * 1000
   const cutoff = Date.now() - windowMs
-  const recent = tracker.messages.filter((m) => m.timestamp > cutoff && m.content !== content)
+  // Compare against all prior messages in window (skip the last one — it's the current message)
+  const recent = tracker.messages.filter((m) => m.timestamp > cutoff).slice(0, -1)
 
   for (const msg of recent) {
     const similarity = computeSimilarity(msg.content, content)
@@ -324,6 +325,14 @@ export function testRule(ruleType: string, content: string): { triggered: boolea
     default:
       return { triggered: false, reason: `Rule type '${ruleType}' cannot be tested with static content` }
   }
+}
+
+// ---------------------------------------------------------------------------
+// Reset (for testing)
+// ---------------------------------------------------------------------------
+
+export function resetTrackers(): void {
+  userTrackers.clear()
 }
 
 // ---------------------------------------------------------------------------
