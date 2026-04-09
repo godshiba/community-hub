@@ -9,6 +9,7 @@ import { AutomationRules } from './AutomationRules'
 import { PatternLibrary } from './PatternLibrary'
 import { SpamProtectionForm } from './SpamProtectionForm'
 import { RaidProtectionForm } from './RaidProtectionForm'
+import { EscalationConfigForm } from './EscalationConfigForm'
 
 export function SettingsPanel(): React.ReactElement {
   return (
@@ -46,6 +47,7 @@ export function SettingsPanel(): React.ReactElement {
           <div className="space-y-4">
             <SpamProtectionForm />
             <RaidProtectionForm />
+            <EscalationConfigForm />
           </div>
         </TabsContent>
 

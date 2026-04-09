@@ -11,10 +11,13 @@ import { registerAgentHandlers } from './ipc/agent'
 import { registerReportsHandlers } from './ipc/reports'
 import { registerAnalyticsHandlers } from './ipc/analytics'
 import { registerSpamHandlers } from './ipc/spam'
+import { registerAuditHandlers } from './ipc/audit'
 import { checkMessage as checkSpam } from './services/spam/spam.engine'
 import { recordJoin as recordRaidJoin } from './services/spam/raid.detector'
 import { executeSpamAction, executeRaidActions } from './services/spam/raid.actions'
 import * as spamRepo from './services/spam/spam.repository'
+import { logAuditEntry } from './services/audit.repository'
+import { getMemberByPlatformId } from './services/moderation.repository'
 import { initPlatformManager, getPlatformManager } from './services/platform-manager'
 import { initAgentService, getAgentService } from './services/ai/agent.service'
 
@@ -56,6 +59,7 @@ app.whenReady().then(async () => {
   registerAgentHandlers()
   registerReportsHandlers()
   registerSpamHandlers()
+  registerAuditHandlers()
   initAgentService()
   createWindow()
 
@@ -78,6 +82,19 @@ app.whenReady().then(async () => {
         actionTaken: spamResult.action,
         messageContent: msg.content.slice(0, 500)
       })
+
+      const spamMember = getMemberByPlatformId(msg.platform, msg.userId)
+      logAuditEntry({
+        moderator: 'spam-engine',
+        moderatorType: 'system',
+        targetMemberId: spamMember?.id ?? null,
+        targetUsername: msg.username,
+        actionType: 'spam_detection',
+        reason: `${spamResult.ruleName}: ${spamResult.action}`,
+        platform: msg.platform,
+        metadata: { ruleType: spamResult.ruleType, action: spamResult.action }
+      })
+
       executeSpamAction(msg.platform, msg.userId, msg.channelId, spamResult.messageRefs, spamResult.action, spamResult.muteDurationMinutes).catch(() => {})
       return // Don't pass spam to AI agent
     }
@@ -129,6 +146,16 @@ app.whenReady().then(async () => {
     // --- Raid detection ---
     const raidResult = recordRaidJoin(member.platform, member.userId, member.username)
     if (raidResult.stateChanged && raidResult.newState === 'active') {
+      logAuditEntry({
+        moderator: 'raid-detector',
+        moderatorType: 'system',
+        targetMemberId: null,
+        targetUsername: member.username,
+        actionType: 'raid_action',
+        reason: `Raid detected: ${raidResult.joinCount} joins in window`,
+        platform: member.platform,
+        metadata: { joinCount: raidResult.joinCount, actions: raidResult.actions }
+      })
       executeRaidActions(member.platform, raidResult).catch(() => {})
     }
 

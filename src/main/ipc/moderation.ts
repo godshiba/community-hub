@@ -1,6 +1,8 @@
 import { registerHandler } from './register-handler'
 import { getPlatformManager } from '../services/platform-manager'
 import * as repo from '../services/moderation.repository'
+import { logAuditEntry } from '../services/audit.repository'
+import { checkEscalation } from '../services/escalation.engine'
 
 export function registerModerationHandlers(): void {
   registerHandler('moderation:getMembers', (filter) => {
@@ -11,8 +13,22 @@ export function registerModerationHandlers(): void {
     return repo.getMemberDetail(payload.id)
   })
 
-  registerHandler('moderation:warnUser', (payload) => {
+  registerHandler('moderation:warnUser', async (payload) => {
     repo.addWarning(payload.memberId, payload.reason, 'app')
+
+    const member = repo.getMemberById(payload.memberId)
+    if (member) {
+      logAuditEntry({
+        moderator: 'app',
+        moderatorType: 'human',
+        targetMemberId: payload.memberId,
+        targetUsername: member.username,
+        actionType: 'warn',
+        reason: payload.reason,
+        platform: member.platform
+      })
+      await checkEscalation(payload.memberId, member.platform)
+    }
   })
 
   registerHandler('moderation:banUser', async (payload) => {
@@ -28,6 +44,16 @@ export function registerModerationHandlers(): void {
     }
 
     repo.banMember(payload.memberId, payload.reason)
+
+    logAuditEntry({
+      moderator: 'app',
+      moderatorType: 'human',
+      targetMemberId: payload.memberId,
+      targetUsername: member.username,
+      actionType: 'ban',
+      reason: payload.reason,
+      platform: member.platform
+    })
   })
 
   registerHandler('moderation:unbanUser', async (payload) => {
@@ -43,6 +69,16 @@ export function registerModerationHandlers(): void {
     }
 
     repo.unbanMember(payload.id)
+
+    logAuditEntry({
+      moderator: 'app',
+      moderatorType: 'human',
+      targetMemberId: payload.id,
+      targetUsername: member.username,
+      actionType: 'unban',
+      reason: null,
+      platform: member.platform
+    })
   })
 
   registerHandler('moderation:updateNotes', (payload) => {

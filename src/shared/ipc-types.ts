@@ -29,7 +29,12 @@ import type {
   WarnPayload,
   BanPayload,
   NotePayload,
-  ExportResult as ModerationExportResult
+  ExportResult as ModerationExportResult,
+  AuditFilter,
+  AuditPage,
+  AuditExportResult,
+  EscalationChain,
+  EscalationChainPayload
 } from './moderation-types'
 import type {
   EventPayload,
@@ -150,6 +155,15 @@ export interface IpcContract {
   'agent:deleteAutomation': { request: { id: number }; response: void }
   'agent:toggleAutomation': { request: { id: number; enabled: boolean }; response: void }
   'agent:testProvider': { request: void; response: { success: boolean; error?: string } }
+
+  // Spam & Raid Protection — Phase 1 (v1.1)
+  // Audit Log & Escalation — Phase 2 (v1.2)
+  'moderation:getAuditLog': { request: AuditFilter; response: AuditPage }
+  'moderation:exportAuditLog': { request: AuditFilter; response: AuditExportResult }
+  'moderation:getEscalationChains': { request: void; response: readonly EscalationChain[] }
+  'moderation:saveEscalationChain': { request: EscalationChainPayload & { id?: number }; response: EscalationChain }
+  'moderation:deleteEscalationChain': { request: { id: number }; response: void }
+  'moderation:toggleEscalationChain': { request: { id: number; enabled: boolean }; response: void }
 
   // Spam & Raid Protection — Phase 1 (v1.1)
   'spam:getConfig': { request: void; response: SpamConfig }

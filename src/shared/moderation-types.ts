@@ -77,3 +77,82 @@ export interface ExportResult {
   readonly csv: string
   readonly count: number
 }
+
+// ---------------------------------------------------------------------------
+// Audit Log (Phase 2)
+// ---------------------------------------------------------------------------
+
+export type AuditActionType =
+  | 'warn'
+  | 'mute'
+  | 'kick'
+  | 'ban'
+  | 'unban'
+  | 'note'
+  | 'spam_detection'
+  | 'raid_action'
+
+export interface AuditLogEntry {
+  readonly id: number
+  readonly timestamp: string
+  readonly moderator: string
+  readonly moderatorType: 'human' | 'ai_agent' | 'system'
+  readonly targetMemberId: number | null
+  readonly targetUsername: string
+  readonly actionType: AuditActionType
+  readonly reason: string | null
+  readonly platform: Platform
+  readonly metadata: string | null
+}
+
+export interface AuditFilter {
+  readonly dateFrom?: string
+  readonly dateTo?: string
+  readonly actionType?: AuditActionType
+  readonly moderator?: string
+  readonly targetUsername?: string
+  readonly platform?: Platform
+  readonly limit?: number
+  readonly offset?: number
+}
+
+export interface AuditPage {
+  readonly entries: readonly AuditLogEntry[]
+  readonly total: number
+}
+
+export interface AuditExportResult {
+  readonly csv: string
+  readonly count: number
+}
+
+// ---------------------------------------------------------------------------
+// Escalation Chains (Phase 2)
+// ---------------------------------------------------------------------------
+
+export type EscalationActionType = 'warning' | 'mute' | 'kick' | 'ban'
+
+export interface EscalationStep {
+  readonly warningNumber: number
+  readonly action: EscalationActionType
+  readonly durationMinutes: number | null
+}
+
+export interface EscalationChain {
+  readonly id: number
+  readonly name: string
+  readonly platform: Platform | 'all'
+  readonly steps: readonly EscalationStep[]
+  readonly warningExpiryDays: number | null
+  readonly enabled: boolean
+  readonly createdAt: string
+  readonly updatedAt: string
+}
+
+export interface EscalationChainPayload {
+  readonly name: string
+  readonly platform: Platform | 'all'
+  readonly steps: readonly EscalationStep[]
+  readonly warningExpiryDays: number | null
+  readonly enabled: boolean
+}

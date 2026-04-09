@@ -8,6 +8,7 @@ import { MemberDetailPanel } from './MemberDetailPanel'
 import { WarningDialog } from './WarningDialog'
 import { BanDialog } from './BanDialog'
 import { SpamEventsTab } from './SpamEventsTab'
+import { AuditLogTab } from './AuditLogTab'
 import { RaidAlert } from './RaidAlert'
 
 export function ModerationPanel(): React.ReactElement {
@@ -44,6 +45,7 @@ export function ModerationPanel(): React.ReactElement {
       <Tabs defaultValue="members" className="flex-1">
         <TabsList className="bg-glass-surface border-glass mb-3">
           <TabsTrigger value="members">Members</TabsTrigger>
+          <TabsTrigger value="audit">Audit Log</TabsTrigger>
           <TabsTrigger value="spam">Spam Events</TabsTrigger>
         </TabsList>
 
@@ -59,6 +61,10 @@ export function ModerationPanel(): React.ReactElement {
               </div>
             )}
           </div>
+        </TabsContent>
+
+        <TabsContent value="audit">
+          <AuditLogTab />
         </TabsContent>
 
         <TabsContent value="spam">

@@ -1,6 +1,18 @@
-import { useState, memo } from 'react'
+import { useState, useEffect, memo } from 'react'
 import { GlassCard } from '@/components/glass/GlassCard'
 import { useModerationStore } from '@/stores/moderation.store'
+import type { AuditLogEntry, AuditActionType } from '@shared/moderation-types'
+
+const AUDIT_ACTION_COLORS: Record<AuditActionType, string> = {
+  warn: 'text-yellow-400',
+  mute: 'text-blue-400',
+  kick: 'text-orange-400',
+  ban: 'text-red-500',
+  unban: 'text-green-400',
+  note: 'text-text-secondary',
+  spam_detection: 'text-purple-400',
+  raid_action: 'text-red-400'
+}
 
 interface MemberDetailPanelProps {
   onWarn: (id: number) => void
@@ -11,6 +23,17 @@ export const MemberDetailPanel = memo(function MemberDetailPanel({ onWarn, onBan
   const { selectedMember, detailLoading, clearDetail, unbanMember, updateNotes } = useModerationStore()
   const [editingNotes, setEditingNotes] = useState(false)
   const [notesValue, setNotesValue] = useState('')
+  const [auditEntries, setAuditEntries] = useState<readonly AuditLogEntry[]>([])
+
+  useEffect(() => {
+    if (!selectedMember) { setAuditEntries([]); return }
+    window.api.invoke('moderation:getAuditLog', {
+      targetUsername: selectedMember.member.username,
+      limit: 20
+    }).then((result) => {
+      if (result.success) setAuditEntries(result.data.entries)
+    }).catch(() => {})
+  }, [selectedMember?.member.id])
 
   if (detailLoading) {
     return (
@@ -162,18 +185,23 @@ export const MemberDetailPanel = memo(function MemberDetailPanel({ onWarn, onBan
         )}
       </div>
 
-      {/* Action log */}
+      {/* Audit history */}
       <div>
-        <h4 className="text-xs text-text-muted font-medium mb-1">Action Log ({actions.length})</h4>
-        {actions.length === 0 ? (
-          <p className="text-xs text-text-muted">No actions</p>
+        <h4 className="text-xs text-text-muted font-medium mb-1">Audit History ({auditEntries.length})</h4>
+        {auditEntries.length === 0 ? (
+          <p className="text-xs text-text-muted">No audit entries</p>
         ) : (
           <div className="space-y-1">
-            {actions.map((a) => (
-              <div key={a.id} className="px-2 py-1.5 bg-glass-surface rounded text-xs">
-                <span className="text-text-primary capitalize font-medium">{a.actionType}</span>
-                {a.reason && <span className="text-text-secondary"> - {a.reason}</span>}
-                <p className="text-text-muted mt-0.5">{new Date(a.executedAt).toLocaleDateString()}</p>
+            {auditEntries.map((e) => (
+              <div key={e.id} className="px-2 py-1.5 bg-glass-surface rounded text-xs">
+                <div className="flex items-center gap-1.5">
+                  <span className={`font-medium ${AUDIT_ACTION_COLORS[e.actionType] ?? 'text-text-primary'}`}>
+                    {e.actionType}
+                  </span>
+                  <span className="text-text-muted">by {e.moderator}</span>
+                </div>
+                {e.reason && <p className="text-text-secondary mt-0.5">{e.reason}</p>}
+                <p className="text-text-muted mt-0.5">{new Date(e.timestamp + 'Z').toLocaleString()}</p>
               </div>
             ))}
           </div>
