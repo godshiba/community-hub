@@ -190,7 +190,10 @@ export async function syncMembers(): Promise<{ synced: number }> {
 
     try {
       const members = await service.fetchMembers()
+      const activePlatformIds = new Set<string>()
+
       for (const m of members) {
+        activePlatformIds.add(m.platformUserId)
         try {
           repo.upsertMember(m.platform, m.platformUserId, m.username, m.joinDate, m.status)
           synced++
@@ -199,6 +202,9 @@ export async function syncMembers(): Promise<{ synced: number }> {
           errors.push(`upsert ${m.username}: ${msg}`)
         }
       }
+
+      // Mark members no longer on the platform as 'left'
+      repo.markAbsentMembersAsLeft(service.platform, activePlatformIds)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err)
       errors.push(`${service.platform} fetchMembers: ${msg}`)

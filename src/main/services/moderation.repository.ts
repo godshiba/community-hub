@@ -191,6 +191,7 @@ export function upsertMember(
     VALUES (?, ?, ?, ?, ?, datetime('now'))
     ON CONFLICT(platform, platform_user_id) DO UPDATE SET
       username = excluded.username,
+      status = excluded.status,
       last_activity = datetime('now'),
       updated_at = datetime('now')
   `).run(username, platform, platformUserId, joinDate, status)
@@ -274,6 +275,26 @@ function logAction(memberId: number, actionType: string, reason: string | null, 
     INSERT INTO member_actions (member_id, action_type, reason, executed_by)
     VALUES (?, ?, ?, ?)
   `).run(memberId, actionType, reason, executedBy ?? null)
+}
+
+// ---------------------------------------------------------------------------
+// Mark stale members as 'left'
+// ---------------------------------------------------------------------------
+
+export function markAbsentMembersAsLeft(platform: string, activePlatformUserIds: ReadonlySet<string>): number {
+  const db = getDatabase()
+  const rows = db.prepare(
+    "SELECT id, platform_user_id FROM community_members WHERE platform = ? AND status IN ('active', 'warned')"
+  ).all(platform) as { id: number; platform_user_id: string }[]
+
+  let marked = 0
+  for (const row of rows) {
+    if (!activePlatformUserIds.has(row.platform_user_id)) {
+      db.prepare("UPDATE community_members SET status = 'left', updated_at = datetime('now') WHERE id = ?").run(row.id)
+      marked++
+    }
+  }
+  return marked
 }
 
 // ---------------------------------------------------------------------------
