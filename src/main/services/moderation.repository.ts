@@ -236,6 +236,14 @@ export function banMember(memberId: number, reason: string): void {
   logAction(memberId, 'ban', reason)
 }
 
+export function kickMember(memberId: number, reason: string): void {
+  const db = getDatabase()
+  db.prepare(`
+    UPDATE community_members SET status = 'left', updated_at = datetime('now') WHERE id = ?
+  `).run(memberId)
+  logAction(memberId, 'kick', reason)
+}
+
 export function unbanMember(memberId: number): void {
   const db = getDatabase()
   db.prepare(`

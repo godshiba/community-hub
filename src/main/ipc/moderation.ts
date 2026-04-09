@@ -153,6 +153,8 @@ async function executeBulkAction(
 
         if (action === 'ban') {
           repo.banMember(memberId, reason)
+        } else if (action === 'kick') {
+          repo.kickMember(memberId, reason)
         }
       }
 
