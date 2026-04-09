@@ -156,3 +156,67 @@ export interface EscalationChainPayload {
   readonly warningExpiryDays: number | null
   readonly enabled: boolean
 }
+
+// ---------------------------------------------------------------------------
+// Bulk Moderation (Phase 3)
+// ---------------------------------------------------------------------------
+
+export type BulkActionType = 'warn' | 'ban' | 'kick'
+
+export interface BulkActionPayload {
+  readonly memberIds: readonly number[]
+  readonly reason: string
+}
+
+export interface BulkActionResult {
+  readonly total: number
+  readonly succeeded: number
+  readonly failed: number
+  readonly errors: readonly string[]
+}
+
+// ---------------------------------------------------------------------------
+// Role Management (Phase 3)
+// ---------------------------------------------------------------------------
+
+export type RoleRuleType = 'auto_assign' | 'temp_role'
+
+export interface RoleRule {
+  readonly id: number
+  readonly platform: Platform
+  readonly ruleType: RoleRuleType
+  readonly roleId: string
+  readonly roleName: string
+  readonly durationHours: number | null
+  readonly enabled: boolean
+  readonly createdAt: string
+  readonly updatedAt: string
+}
+
+export interface RoleRulePayload {
+  readonly platform: Platform
+  readonly ruleType: RoleRuleType
+  readonly roleId: string
+  readonly roleName: string
+  readonly durationHours: number | null
+  readonly enabled: boolean
+}
+
+export interface RoleAssignment {
+  readonly id: number
+  readonly memberId: number
+  readonly memberUsername: string
+  readonly platform: Platform
+  readonly roleId: string
+  readonly roleName: string
+  readonly assignedAt: string
+  readonly expiresAt: string | null
+  readonly expired: boolean
+}
+
+export interface PlatformRole {
+  readonly id: string
+  readonly name: string
+  readonly color: string | null
+  readonly position: number
+}

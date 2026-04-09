@@ -1,7 +1,8 @@
 import { useState, useEffect, memo } from 'react'
 import { GlassCard } from '@/components/glass/GlassCard'
 import { useModerationStore } from '@/stores/moderation.store'
-import type { AuditLogEntry, AuditActionType } from '@shared/moderation-types'
+import { useRolesStore } from '@/stores/roles.store'
+import type { AuditLogEntry, AuditActionType, RoleAssignment } from '@shared/moderation-types'
 
 const AUDIT_ACTION_COLORS: Record<AuditActionType, string> = {
   warn: 'text-yellow-400',
@@ -21,9 +22,11 @@ interface MemberDetailPanelProps {
 
 export const MemberDetailPanel = memo(function MemberDetailPanel({ onWarn, onBan }: MemberDetailPanelProps): React.ReactElement | null {
   const { selectedMember, detailLoading, clearDetail, unbanMember, updateNotes } = useModerationStore()
+  const { assignments, fetchAssignments, fetchPlatformRoles, platformRoles, assignRole, removeRole } = useRolesStore()
   const [editingNotes, setEditingNotes] = useState(false)
   const [notesValue, setNotesValue] = useState('')
   const [auditEntries, setAuditEntries] = useState<readonly AuditLogEntry[]>([])
+  const [showRoleAssign, setShowRoleAssign] = useState(false)
 
   useEffect(() => {
     if (!selectedMember) { setAuditEntries([]); return }
@@ -33,7 +36,10 @@ export const MemberDetailPanel = memo(function MemberDetailPanel({ onWarn, onBan
     }).then((result) => {
       if (result.success) setAuditEntries(result.data.entries)
     }).catch(() => {})
+    fetchAssignments(selectedMember.member.id)
   }, [selectedMember?.member.id])
+
+  const memberAssignments = assignments.filter((a) => !a.expired)
 
   if (detailLoading) {
     return (
@@ -121,6 +127,65 @@ export const MemberDetailPanel = memo(function MemberDetailPanel({ onWarn, onBan
           >
             Unban
           </button>
+        )}
+      </div>
+
+      {/* Roles */}
+      <div>
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-xs text-text-muted font-medium">Roles ({memberAssignments.length})</span>
+          <button
+            onClick={() => {
+              setShowRoleAssign(!showRoleAssign)
+              if (!showRoleAssign) fetchPlatformRoles(member.platform)
+            }}
+            className="text-xs text-accent hover:text-accent/80 transition-colors"
+          >
+            {showRoleAssign ? 'Close' : 'Assign'}
+          </button>
+        </div>
+
+        {memberAssignments.length > 0 && (
+          <div className="space-y-1 mb-2">
+            {memberAssignments.map((a: RoleAssignment) => (
+              <div key={a.id} className="flex items-center gap-1.5 px-2 py-1 bg-glass-surface rounded text-xs">
+                <span className="text-text-primary">{a.roleName}</span>
+                {a.expiresAt && (
+                  <span className="text-text-muted text-[10px]">
+                    expires {new Date(a.expiresAt + 'Z').toLocaleString()}
+                  </span>
+                )}
+                <button
+                  onClick={() => {
+                    removeRole(a.id).then(() => fetchAssignments(member.id)).catch(() => {})
+                  }}
+                  className="ml-auto text-red-400 hover:bg-red-400/10 px-1 rounded transition-colors"
+                >
+                  x
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {showRoleAssign && (
+          <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto mb-2">
+            {platformRoles.length === 0 ? (
+              <p className="text-xs text-text-muted">Connect platform to see roles</p>
+            ) : (
+              platformRoles.map((r) => (
+                <button
+                  key={r.id}
+                  onClick={() => {
+                    assignRole(member.id, r.id, r.name, null).then(() => setShowRoleAssign(false)).catch(() => {})
+                  }}
+                  className="px-2 py-0.5 text-xs bg-glass-surface text-text-secondary border border-glass-border rounded hover:border-accent/30 transition-colors"
+                >
+                  {r.name}
+                </button>
+              ))
+            )}
+          </div>
         )}
       </div>
 

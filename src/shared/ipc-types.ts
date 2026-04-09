@@ -34,7 +34,13 @@ import type {
   AuditPage,
   AuditExportResult,
   EscalationChain,
-  EscalationChainPayload
+  EscalationChainPayload,
+  BulkActionPayload,
+  BulkActionResult,
+  RoleRule,
+  RoleRulePayload,
+  RoleAssignment,
+  PlatformRole
 } from './moderation-types'
 import type {
   EventPayload,
@@ -155,6 +161,21 @@ export interface IpcContract {
   'agent:deleteAutomation': { request: { id: number }; response: void }
   'agent:toggleAutomation': { request: { id: number; enabled: boolean }; response: void }
   'agent:testProvider': { request: void; response: { success: boolean; error?: string } }
+
+  // Bulk Moderation — Phase 3 (v1.3)
+  'moderation:bulkWarn': { request: BulkActionPayload; response: BulkActionResult }
+  'moderation:bulkBan': { request: BulkActionPayload; response: BulkActionResult }
+  'moderation:bulkKick': { request: BulkActionPayload; response: BulkActionResult }
+
+  // Role Management — Phase 3 (v1.3)
+  'roles:getRules': { request: void; response: readonly RoleRule[] }
+  'roles:saveRule': { request: RoleRulePayload & { id?: number }; response: RoleRule }
+  'roles:deleteRule': { request: { id: number }; response: void }
+  'roles:toggleRule': { request: { id: number; enabled: boolean }; response: void }
+  'roles:getRoles': { request: { platform: 'discord' | 'telegram' }; response: readonly PlatformRole[] }
+  'roles:getAssignments': { request: { memberId?: number }; response: readonly RoleAssignment[] }
+  'roles:assignRole': { request: { memberId: number; roleId: string; roleName: string; durationHours: number | null }; response: RoleAssignment }
+  'roles:removeRole': { request: { assignmentId: number }; response: void }
 
   // Spam & Raid Protection — Phase 1 (v1.1)
   // Audit Log & Escalation — Phase 2 (v1.2)

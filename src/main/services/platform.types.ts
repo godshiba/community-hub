@@ -32,6 +32,18 @@ export interface PlatformService {
   /** Mute/timeout a user for a duration (minutes). Not all platforms support this. */
   muteUser(platformUserId: string, durationMinutes: number, channelId?: string): Promise<void>
 
+  /** Kick a user from the server/chat */
+  kickUser(platformUserId: string, reason?: string): Promise<void>
+
+  /** Fetch available roles from the platform */
+  fetchRoles(): Promise<{ id: string; name: string; color: string | null; position: number }[]>
+
+  /** Assign a role to a user */
+  assignRole(platformUserId: string, roleId: string): Promise<void>
+
+  /** Remove a role from a user */
+  removeRole(platformUserId: string, roleId: string): Promise<void>
+
   /** Delete a specific message by ID */
   deleteMessage(channelId: string, messageId: string): Promise<void>
 }

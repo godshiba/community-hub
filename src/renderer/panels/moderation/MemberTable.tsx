@@ -23,7 +23,8 @@ export const MemberTable = memo(function MemberTable({ onWarn, onBan }: MemberTa
     members, total, page, pageSize, loading,
     platform, status, search,
     setPlatform, setStatus, setSearch, setPage,
-    fetchMemberDetail, sortBy, sortDir, setSort
+    fetchMemberDetail, sortBy, sortDir, setSort,
+    selectedIds, toggleSelect, selectAll, clearSelection
   } = useModerationStore()
 
   const [localSearch, setLocalSearch] = useState(search)
@@ -84,6 +85,9 @@ export const MemberTable = memo(function MemberTable({ onWarn, onBan }: MemberTa
           <option value="left">Left</option>
         </select>
 
+        {selectedIds.size > 0 && (
+          <span className="text-xs text-accent font-medium">{selectedIds.size} selected</span>
+        )}
         <span className="text-xs text-text-muted ml-auto">{total} members</span>
       </div>
 
@@ -92,6 +96,16 @@ export const MemberTable = memo(function MemberTable({ onWarn, onBan }: MemberTa
         <table className="w-full text-xs">
           <thead>
             <tr className="text-text-muted border-b border-glass-border">
+              <th className="py-1.5 px-2 w-8">
+                <input
+                  type="checkbox"
+                  checked={members.length > 0 && members.every((m) => selectedIds.has(m.id))}
+                  onChange={() => {
+                    if (members.every((m) => selectedIds.has(m.id))) { clearSelection() } else { selectAll() }
+                  }}
+                  className="accent-accent cursor-pointer"
+                />
+              </th>
               <th className="text-left py-1.5 px-2 cursor-pointer hover:text-text-secondary" onClick={() => handleSort('username')}>
                 Username{sortArrow('username')}
               </th>
@@ -110,14 +124,23 @@ export const MemberTable = memo(function MemberTable({ onWarn, onBan }: MemberTa
             {loading && members.length === 0 ? (
               <>{Array.from({ length: 6 }, (_, i) => <SkeletonRow key={i} />)}</>
             ) : members.length === 0 ? (
-              <tr><td colSpan={6} className="text-center py-8 text-text-muted">No members found. Click "Sync Members" to import from platforms.</td></tr>
+              <tr><td colSpan={7} className="text-center py-8 text-text-muted">No members found. Click &quot;Sync Members&quot; to import from platforms.</td></tr>
             ) : (
               members.map((m) => (
                 <tr
                   key={m.id}
-                  className="border-b border-glass-border/50 hover:bg-white/5 cursor-pointer transition-colors"
+                  className={`border-b border-glass-border/50 hover:bg-white/5 cursor-pointer transition-colors ${selectedIds.has(m.id) ? 'bg-accent/5' : ''}`}
                   onClick={() => fetchMemberDetail(m.id)}
                 >
+                  <td className="py-1.5 px-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(m.id)}
+                      onChange={(e) => { e.stopPropagation(); toggleSelect(m.id) }}
+                      onClick={(e) => e.stopPropagation()}
+                      className="accent-accent cursor-pointer"
+                    />
+                  </td>
                   <td className="py-1.5 px-2 text-text-primary font-medium">{m.username}</td>
                   <td className="py-1.5 px-2 text-text-secondary capitalize">{m.platform}</td>
                   <td className="py-1.5 px-2 text-text-secondary">{m.reputationScore}</td>

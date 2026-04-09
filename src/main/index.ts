@@ -12,6 +12,7 @@ import { registerReportsHandlers } from './ipc/reports'
 import { registerAnalyticsHandlers } from './ipc/analytics'
 import { registerSpamHandlers } from './ipc/spam'
 import { registerAuditHandlers } from './ipc/audit'
+import { registerRoleHandlers } from './ipc/roles'
 import { checkMessage as checkSpam } from './services/spam/spam.engine'
 import { recordJoin as recordRaidJoin } from './services/spam/raid.detector'
 import { executeSpamAction, executeRaidActions } from './services/spam/raid.actions'
@@ -20,6 +21,7 @@ import { logAuditEntry } from './services/audit.repository'
 import { getMemberByPlatformId } from './services/moderation.repository'
 import { initPlatformManager, getPlatformManager } from './services/platform-manager'
 import { initAgentService, getAgentService } from './services/ai/agent.service'
+import { handleAutoAssignOnJoin } from './services/roles.service'
 
 function createWindow(): void {
   const win = new BrowserWindow({
@@ -60,6 +62,7 @@ app.whenReady().then(async () => {
   registerReportsHandlers()
   registerSpamHandlers()
   registerAuditHandlers()
+  registerRoleHandlers()
   initAgentService()
   createWindow()
 
@@ -159,6 +162,9 @@ app.whenReady().then(async () => {
       executeRaidActions(member.platform, raidResult).catch(() => {})
     }
 
+    // Auto-assign roles on join
+    handleAutoAssignOnJoin(member.platform, member.userId, member.username).catch(() => {})
+
     agent.handleNewMember({
       platform: member.platform,
       channelId: member.channelId,
@@ -172,6 +178,7 @@ app.whenReady().then(async () => {
   import('./tasks/post-sender').then((m) => m.startPostSender()).catch(() => {})
   import('./tasks/member-sync').then((m) => m.startMemberSync()).catch(() => {})
   import('./tasks/event-reminders').then((m) => m.startEventReminders()).catch(() => {})
+  import('./tasks/role-expiry').then((m) => m.startRoleExpiry()).catch(() => {})
 })
 
 app.on('window-all-closed', () => {

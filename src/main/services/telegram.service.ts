@@ -216,6 +216,84 @@ export class TelegramService implements PlatformService {
     await this.bot.telegram.deleteMessage(chatId, msgId)
   }
 
+  async kickUser(platformUserId: string, _reason?: string): Promise<void> {
+    if (!this.bot || this._status !== 'connected') {
+      throw new Error('Telegram is not connected')
+    }
+
+    const userId = Number(platformUserId)
+    if (isNaN(userId)) throw new Error(`Invalid Telegram user ID: ${platformUserId}`)
+
+    for (const [chatId] of this._trackedChats.entries()) {
+      try {
+        // Ban then immediately unban = kick (Telegram has no direct kick API)
+        await this.bot.telegram.banChatMember(chatId, userId)
+        await this.bot.telegram.unbanChatMember(chatId, userId)
+        return
+      } catch { /* user may not be in this chat */ }
+    }
+    throw new Error(`Could not kick user ${platformUserId} — not found in any tracked chat`)
+  }
+
+  async fetchRoles(): Promise<{ id: string; name: string; color: string | null; position: number }[]> {
+    // Telegram doesn't have a traditional role system like Discord.
+    // Return admin rights as pseudo-roles.
+    if (!this.bot || this._status !== 'connected') {
+      throw new Error('Telegram is not connected')
+    }
+
+    return [
+      { id: 'admin', name: 'Administrator', color: null, position: 1 },
+      { id: 'restricted', name: 'Restricted', color: null, position: 0 }
+    ]
+  }
+
+  async assignRole(platformUserId: string, roleId: string): Promise<void> {
+    if (!this.bot || this._status !== 'connected') {
+      throw new Error('Telegram is not connected')
+    }
+
+    const userId = Number(platformUserId)
+    if (isNaN(userId)) throw new Error(`Invalid Telegram user ID: ${platformUserId}`)
+
+    for (const [chatId] of this._trackedChats.entries()) {
+      try {
+        if (roleId === 'admin') {
+          await this.bot.telegram.promoteChatMember(chatId, userId, {
+            can_manage_chat: true,
+            can_delete_messages: true,
+            can_restrict_members: true
+          })
+        }
+        return
+      } catch { /* user may not be in this chat */ }
+    }
+    throw new Error(`Could not assign role to user ${platformUserId}`)
+  }
+
+  async removeRole(platformUserId: string, roleId: string): Promise<void> {
+    if (!this.bot || this._status !== 'connected') {
+      throw new Error('Telegram is not connected')
+    }
+
+    const userId = Number(platformUserId)
+    if (isNaN(userId)) throw new Error(`Invalid Telegram user ID: ${platformUserId}`)
+
+    for (const [chatId] of this._trackedChats.entries()) {
+      try {
+        if (roleId === 'admin') {
+          await this.bot.telegram.promoteChatMember(chatId, userId, {
+            can_manage_chat: false,
+            can_delete_messages: false,
+            can_restrict_members: false
+          })
+        }
+        return
+      } catch { /* user may not be in this chat */ }
+    }
+    throw new Error(`Could not remove role from user ${platformUserId}`)
+  }
+
   async unbanUser(platformUserId: string): Promise<void> {
     if (!this.bot || this._status !== 'connected') {
       throw new Error('Telegram is not connected')

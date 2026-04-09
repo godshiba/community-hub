@@ -7,6 +7,7 @@ import { MemberTable } from './MemberTable'
 import { MemberDetailPanel } from './MemberDetailPanel'
 import { WarningDialog } from './WarningDialog'
 import { BanDialog } from './BanDialog'
+import { BulkActionToolbar } from './BulkActionToolbar'
 import { SpamEventsTab } from './SpamEventsTab'
 import { AuditLogTab } from './AuditLogTab'
 import { RaidAlert } from './RaidAlert'
@@ -50,6 +51,7 @@ export function ModerationPanel(): React.ReactElement {
         </TabsList>
 
         <TabsContent value="members">
+          <BulkActionToolbar />
           <div className="flex gap-4 h-[calc(100%-5rem)]">
             <div className={selectedMember ? 'w-1/2' : 'w-full'}>
               <MemberTable onWarn={setWarnTarget} onBan={setBanTarget} />

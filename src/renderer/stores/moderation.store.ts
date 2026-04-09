@@ -3,7 +3,8 @@ import type {
   CommunityMember,
   MemberDetail,
   MembersFilter,
-  MemberStatus
+  MemberStatus,
+  BulkActionResult
 } from '@shared/moderation-types'
 import type { Platform } from '@shared/settings-types'
 
@@ -26,6 +27,10 @@ interface ModerationState {
   selectedMember: MemberDetail | null
   detailLoading: boolean
 
+  // Bulk selection
+  selectedIds: ReadonlySet<number>
+  bulkLoading: boolean
+
   // Actions
   setPlatform: (p: Platform | undefined) => void
   setStatus: (s: MemberStatus | undefined) => void
@@ -41,6 +46,15 @@ interface ModerationState {
   updateNotes: (memberId: number, notes: string) => Promise<void>
   syncMembers: () => Promise<number>
   exportCsv: () => Promise<string | null>
+
+  // Bulk actions
+  toggleSelect: (id: number) => void
+  selectAll: () => void
+  clearSelection: () => void
+  bulkWarn: (reason: string) => Promise<BulkActionResult>
+  bulkBan: (reason: string) => Promise<BulkActionResult>
+  bulkKick: (reason: string) => Promise<BulkActionResult>
+  exportSelectedCsv: () => string | null
 }
 
 function buildFilter(state: ModerationState): MembersFilter {
@@ -71,6 +85,9 @@ export const useModerationStore = create<ModerationState>((set, get) => ({
 
   selectedMember: null,
   detailLoading: false,
+
+  selectedIds: new Set<number>(),
+  bulkLoading: false,
 
   setPlatform: (p) => { set({ platform: p, page: 1 }); get().fetchMembers() },
   setStatus: (s) => { set({ status: s, page: 1 }); get().fetchMembers() },
@@ -168,5 +185,83 @@ export const useModerationStore = create<ModerationState>((set, get) => ({
     } catch {
       return null
     }
+  },
+
+  // Bulk selection
+  toggleSelect: (id) => {
+    const current = get().selectedIds
+    const next = new Set(current)
+    if (next.has(id)) { next.delete(id) } else { next.add(id) }
+    set({ selectedIds: next })
+  },
+
+  selectAll: () => {
+    const ids = new Set(get().members.map((m) => m.id))
+    set({ selectedIds: ids })
+  },
+
+  clearSelection: () => set({ selectedIds: new Set<number>() }),
+
+  bulkWarn: async (reason) => {
+    set({ bulkLoading: true })
+    try {
+      const result = await window.api.invoke('moderation:bulkWarn', {
+        memberIds: [...get().selectedIds],
+        reason
+      })
+      if (!result.success) throw new Error(result.error ?? 'Bulk warn failed')
+      set({ selectedIds: new Set<number>(), bulkLoading: false })
+      await get().fetchMembers()
+      return result.data
+    } catch (err: unknown) {
+      set({ bulkLoading: false })
+      throw err
+    }
+  },
+
+  bulkBan: async (reason) => {
+    set({ bulkLoading: true })
+    try {
+      const result = await window.api.invoke('moderation:bulkBan', {
+        memberIds: [...get().selectedIds],
+        reason
+      })
+      if (!result.success) throw new Error(result.error ?? 'Bulk ban failed')
+      set({ selectedIds: new Set<number>(), bulkLoading: false })
+      await get().fetchMembers()
+      return result.data
+    } catch (err: unknown) {
+      set({ bulkLoading: false })
+      throw err
+    }
+  },
+
+  bulkKick: async (reason) => {
+    set({ bulkLoading: true })
+    try {
+      const result = await window.api.invoke('moderation:bulkKick', {
+        memberIds: [...get().selectedIds],
+        reason
+      })
+      if (!result.success) throw new Error(result.error ?? 'Bulk kick failed')
+      set({ selectedIds: new Set<number>(), bulkLoading: false })
+      await get().fetchMembers()
+      return result.data
+    } catch (err: unknown) {
+      set({ bulkLoading: false })
+      throw err
+    }
+  },
+
+  exportSelectedCsv: () => {
+    const { members, selectedIds } = get()
+    const selected = members.filter((m) => selectedIds.has(m.id))
+    if (selected.length === 0) return null
+
+    const header = 'id,username,platform,platform_user_id,status,reputation_score,warnings_count,join_date,last_activity'
+    const lines = selected.map((m) =>
+      [m.id, m.username, m.platform, m.platformUserId, m.status, m.reputationScore, m.warningsCount, m.joinDate ?? '', m.lastActivity ?? ''].join(',')
+    )
+    return [header, ...lines].join('\n')
   }
 }))

@@ -234,6 +234,75 @@ export class DiscordService implements PlatformService {
     throw new Error(`Could not timeout user ${platformUserId}: ${lastError ?? 'not found in any guild'}`)
   }
 
+  async kickUser(platformUserId: string, reason?: string): Promise<void> {
+    if (!this.client || this._status !== 'connected') {
+      throw new Error('Discord is not connected')
+    }
+
+    let lastError: string | null = null
+    for (const guild of this._guilds.values()) {
+      try {
+        const member = await guild.members.fetch(platformUserId)
+        await member.kick(reason ?? 'Kicked via Community Hub')
+        return
+      } catch (err: unknown) {
+        lastError = err instanceof Error ? err.message : String(err)
+      }
+    }
+    throw new Error(`Could not kick user ${platformUserId}: ${lastError ?? 'not found in any guild'}`)
+  }
+
+  async fetchRoles(): Promise<{ id: string; name: string; color: string | null; position: number }[]> {
+    if (!this.client || this._status !== 'connected') {
+      throw new Error('Discord is not connected')
+    }
+
+    const roles: { id: string; name: string; color: string | null; position: number }[] = []
+    for (const guild of this._guilds.values()) {
+      const guildRoles = await guild.roles.fetch()
+      for (const role of guildRoles.values()) {
+        if (role.name === '@everyone') continue
+        roles.push({
+          id: role.id,
+          name: role.name,
+          color: role.hexColor !== '#000000' ? role.hexColor : null,
+          position: role.position
+        })
+      }
+    }
+    return roles.sort((a, b) => b.position - a.position)
+  }
+
+  async assignRole(platformUserId: string, roleId: string): Promise<void> {
+    if (!this.client || this._status !== 'connected') {
+      throw new Error('Discord is not connected')
+    }
+
+    for (const guild of this._guilds.values()) {
+      try {
+        const member = await guild.members.fetch(platformUserId)
+        await member.roles.add(roleId)
+        return
+      } catch { /* user may not be in this guild */ }
+    }
+    throw new Error(`Could not assign role to user ${platformUserId}`)
+  }
+
+  async removeRole(platformUserId: string, roleId: string): Promise<void> {
+    if (!this.client || this._status !== 'connected') {
+      throw new Error('Discord is not connected')
+    }
+
+    for (const guild of this._guilds.values()) {
+      try {
+        const member = await guild.members.fetch(platformUserId)
+        await member.roles.remove(roleId)
+        return
+      } catch { /* user may not be in this guild */ }
+    }
+    throw new Error(`Could not remove role from user ${platformUserId}`)
+  }
+
   async deleteMessage(channelId: string, messageId: string): Promise<void> {
     if (!this.client || this._status !== 'connected') {
       throw new Error('Discord is not connected')

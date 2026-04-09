@@ -10,6 +10,7 @@ import { PatternLibrary } from './PatternLibrary'
 import { SpamProtectionForm } from './SpamProtectionForm'
 import { RaidProtectionForm } from './RaidProtectionForm'
 import { EscalationConfigForm } from './EscalationConfigForm'
+import { RoleManagementForm } from './RoleManagementForm'
 
 export function SettingsPanel(): React.ReactElement {
   return (
@@ -48,6 +49,7 @@ export function SettingsPanel(): React.ReactElement {
             <SpamProtectionForm />
             <RaidProtectionForm />
             <EscalationConfigForm />
+            <RoleManagementForm />
           </div>
         </TabsContent>
 

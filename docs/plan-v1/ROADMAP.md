@@ -9,7 +9,7 @@ Post-v1.0 enhancements focused on scaling to large communities and deepening AI 
 | UI | [UI/UX Upgrade](ui-upgrade.md) | v1.0.x | Complete |
 | 1 | [Anti-Spam & Raid Protection](phase-1-anti-spam.md) | v1.1.0 | Complete |
 | 2 | [Audit Log & Escalation](phase-2-audit-escalation.md) | v1.2.0 | Complete |
-| 3 | [Bulk Moderation & Role Management](phase-3-bulk-roles.md) | v1.3.0 | Pending |
+| 3 | [Bulk Moderation & Role Management](phase-3-bulk-roles.md) | v1.3.0 | Complete |
 | 4 | [AI Content Moderation](phase-4-ai-moderation.md) | v1.4.0 | Pending |
 | 5 | [Knowledge Base & Smart Agent](phase-5-knowledge-agent.md) | v1.5.0 | Pending |
 | 6 | [Engagement & Gamification](phase-6-engagement.md) | v1.6.0 | Pending |
