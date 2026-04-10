@@ -36,14 +36,15 @@ const NO_ACTION: PolicyResult = {
 
 export function evaluatePolicy(
   classification: ContentClassification,
-  platform: Platform
+  platform: Platform,
+  policy?: ModerationPolicy | null
 ): PolicyResult {
-  const policy = modRepo.getPolicy()
-  if (!policy || !policy.enabled) return NO_ACTION
-  if (policy.platform !== 'all' && policy.platform !== platform) return NO_ACTION
+  const resolved = policy ?? modRepo.getPolicy()
+  if (!resolved || !resolved.enabled) return NO_ACTION
+  if (resolved.platform !== 'all' && resolved.platform !== platform) return NO_ACTION
 
   const categoryMap = new Map<string, CategoryPolicy>()
-  for (const cp of policy.categories) {
+  for (const cp of resolved.categories) {
     categoryMap.set(cp.category, cp)
   }
   // Fall back to defaults for missing categories
@@ -89,7 +90,7 @@ export function evaluatePolicy(
     action: highestAction,
     triggeredCategory,
     triggeredScore,
-    testMode: policy.testMode
+    testMode: resolved.testMode
   }
 }
 
@@ -107,10 +108,7 @@ export function executePolicyAction(
   messageContent: string,
   classification: ContentClassification
 ): void {
-  // In test mode, always flag instead of executing the action
-  const effectiveAction: ContentActionType = result.testMode ? 'flag' : result.action
-
-  // Create flag record
+  // Always store the real action so review queue can execute it later
   modRepo.createFlag({
     platform,
     userId,
@@ -119,8 +117,10 @@ export function executePolicyAction(
     messageId,
     messageContent: messageContent.slice(0, 2000),
     classification,
-    policyAction: effectiveAction
+    policyAction: result.action
   })
+
+  const effectiveAction: ContentActionType = result.testMode ? 'flag' : result.action
 
   // Log to audit trail
   const member = getMemberByPlatformId(platform, userId)

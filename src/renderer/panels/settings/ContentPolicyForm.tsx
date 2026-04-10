@@ -51,7 +51,10 @@ export function ContentPolicyForm(): React.ReactElement {
       setEnabled(policy.enabled)
       setTestMode(policy.testMode)
       setClassificationMode(policy.classificationMode)
-      setCategories([...policy.categories])
+      // Merge saved categories with defaults so all categories are always present
+      const saved = new Map(policy.categories.map((c) => [c.category, c]))
+      const merged = DEFAULT_CATEGORY_POLICIES.map((def) => saved.get(def.category) ?? def)
+      setCategories([...merged])
     }
   }, [policy])
 

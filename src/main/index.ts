@@ -116,7 +116,7 @@ app.whenReady().then(async () => {
         try {
           const classification = await classifyContent(agent.provider, msg.content)
           if (classification.primaryCategory !== 'clean') {
-            const policyResult = evaluatePolicy(classification, msg.platform)
+            const policyResult = evaluatePolicy(classification, msg.platform, contentModPolicy)
             if (policyResult.shouldAct) {
               executePolicyAction(
                 policyResult, msg.platform, msg.userId, msg.username,
