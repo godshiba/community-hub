@@ -33,6 +33,7 @@ import type {
   AuditFilter,
   AuditPage,
   AuditExportResult,
+  AuditLogEntry,
   EscalationChain,
   EscalationChainPayload,
   BulkActionPayload,
@@ -187,6 +188,7 @@ export interface IpcContract {
   // Spam & Raid Protection — Phase 1 (v1.1)
   // Audit Log & Escalation — Phase 2 (v1.2)
   'moderation:getAuditLog': { request: AuditFilter; response: AuditPage }
+  'moderation:getMemberAuditLog': { request: { memberId: number }; response: readonly AuditLogEntry[] }
   'moderation:exportAuditLog': { request: AuditFilter; response: AuditExportResult }
   'moderation:getEscalationChains': { request: void; response: readonly EscalationChain[] }
   'moderation:saveEscalationChain': { request: EscalationChainPayload & { id?: number }; response: EscalationChain }

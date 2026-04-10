@@ -81,13 +81,16 @@ export function getChainById(id: number): EscalationChain | undefined {
 
 export function saveChain(payload: EscalationChainPayload & { id?: number }): EscalationChain {
   const db = getDatabase()
+  const expiryDays = payload.warningExpiryDays != null
+    ? Math.max(1, Math.floor(payload.warningExpiryDays))
+    : null
 
   if (payload.id) {
     db.prepare(`
       UPDATE escalation_chains
       SET name = ?, platform = ?, warning_expiry_days = ?, enabled = ?, updated_at = datetime('now')
       WHERE id = ?
-    `).run(payload.name, payload.platform, payload.warningExpiryDays, payload.enabled ? 1 : 0, payload.id)
+    `).run(payload.name, payload.platform, expiryDays, payload.enabled ? 1 : 0, payload.id)
 
     db.prepare('DELETE FROM escalation_steps WHERE chain_id = ?').run(payload.id)
     insertSteps(payload.id, payload.steps)
@@ -97,7 +100,7 @@ export function saveChain(payload: EscalationChainPayload & { id?: number }): Es
   const result = db.prepare(`
     INSERT INTO escalation_chains (name, platform, warning_expiry_days, enabled)
     VALUES (?, ?, ?, ?)
-  `).run(payload.name, payload.platform, payload.warningExpiryDays, payload.enabled ? 1 : 0)
+  `).run(payload.name, payload.platform, expiryDays, payload.enabled ? 1 : 0)
 
   const chainId = Number(result.lastInsertRowid)
   insertSteps(chainId, payload.steps)
@@ -156,12 +159,13 @@ export async function checkEscalation(memberId: number, platform: Platform): Pro
 function getActiveWarningCount(memberId: number, expiryDays: number | null): number {
   const db = getDatabase()
 
-  if (expiryDays != null) {
+  if (expiryDays != null && expiryDays > 0) {
+    const safeDays = Math.max(1, Math.floor(expiryDays))
     const row = db.prepare(`
       SELECT COUNT(*) as cnt FROM member_warnings
       WHERE member_id = ? AND resolved = 0
         AND given_at >= datetime('now', '-' || ? || ' days')
-    `).get(memberId, expiryDays) as { cnt: number }
+    `).get(memberId, safeDays) as { cnt: number }
     return row.cnt
   }
 
@@ -200,11 +204,10 @@ async function executeEscalationAction(
         break
 
       case 'kick':
-        // Kick = ban + unban (no dedicated kick in platform interface)
+        // Kick = ban + unban on platform, set status to 'left' locally
         await service.banUser(platformUserId, reason)
         await service.unbanUser(platformUserId)
-        modRepo.banMember(memberId, reason)
-        modRepo.unbanMember(memberId)
+        modRepo.setMemberStatus(memberId, 'left')
         logAuditEntry({
           moderator: 'escalation-engine',
           moderatorType: 'system',
@@ -218,7 +221,7 @@ async function executeEscalationAction(
 
       case 'ban':
         await service.banUser(platformUserId, reason)
-        modRepo.banMember(memberId, reason)
+        modRepo.setMemberStatus(memberId, 'banned')
         logAuditEntry({
           moderator: 'escalation-engine',
           moderatorType: 'system',

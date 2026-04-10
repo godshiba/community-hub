@@ -30,11 +30,10 @@ export const MemberDetailPanel = memo(function MemberDetailPanel({ onWarn, onBan
 
   useEffect(() => {
     if (!selectedMember) { setAuditEntries([]); return }
-    window.api.invoke('moderation:getAuditLog', {
-      targetUsername: selectedMember.member.username,
-      limit: 20
+    window.api.invoke('moderation:getMemberAuditLog', {
+      memberId: selectedMember.member.id
     }).then((result) => {
-      if (result.success) setAuditEntries(result.data.entries)
+      if (result.success) setAuditEntries(result.data)
     }).catch(() => {})
     fetchAssignments(selectedMember.member.id)
   }, [selectedMember?.member.id])

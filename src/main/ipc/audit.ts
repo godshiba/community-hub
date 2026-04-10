@@ -7,6 +7,10 @@ export function registerAuditHandlers(): void {
     return auditRepo.getAuditLog(filter)
   })
 
+  registerHandler('moderation:getMemberAuditLog', (payload) => {
+    return auditRepo.getMemberAuditLog(payload.memberId)
+  })
+
   registerHandler('moderation:exportAuditLog', (filter) => {
     return auditRepo.exportAuditLog(filter)
   })

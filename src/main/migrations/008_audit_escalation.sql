@@ -46,10 +46,14 @@ CREATE INDEX IF NOT EXISTS idx_escalation_steps_chain ON escalation_steps(chain_
 INSERT INTO escalation_chains (name, platform, warning_expiry_days, enabled)
 VALUES ('Default', 'all', 30, 1);
 
+-- Use subquery to get the chain id (avoids hardcoding and survives last_insert_rowid changes)
 INSERT INTO escalation_steps (chain_id, warning_number, action, duration_minutes)
-VALUES
-  (1, 1, 'warning', NULL),
-  (1, 2, 'mute', 60),
-  (1, 3, 'mute', 1440),
-  (1, 4, 'kick', NULL),
-  (1, 5, 'ban', NULL);
+SELECT id, 1, 'warning', NULL FROM escalation_chains WHERE name = 'Default'
+UNION ALL
+SELECT id, 2, 'mute', 60 FROM escalation_chains WHERE name = 'Default'
+UNION ALL
+SELECT id, 3, 'mute', 1440 FROM escalation_chains WHERE name = 'Default'
+UNION ALL
+SELECT id, 4, 'kick', NULL FROM escalation_chains WHERE name = 'Default'
+UNION ALL
+SELECT id, 5, 'ban', NULL FROM escalation_chains WHERE name = 'Default';

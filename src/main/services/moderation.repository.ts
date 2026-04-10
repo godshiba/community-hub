@@ -253,6 +253,14 @@ export function unbanMember(memberId: number): void {
   logAction(memberId, 'unban', null)
 }
 
+/** Update member status without logging to member_actions (for escalation engine use) */
+export function setMemberStatus(memberId: number, status: MemberStatus): void {
+  const db = getDatabase()
+  db.prepare(
+    "UPDATE community_members SET status = ?, updated_at = datetime('now') WHERE id = ?"
+  ).run(status, memberId)
+}
+
 // ---------------------------------------------------------------------------
 // Notes
 // ---------------------------------------------------------------------------
