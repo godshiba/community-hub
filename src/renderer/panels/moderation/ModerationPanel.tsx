@@ -11,6 +11,7 @@ import { BulkActionToolbar } from './BulkActionToolbar'
 import { SpamEventsTab } from './SpamEventsTab'
 import { AuditLogTab } from './AuditLogTab'
 import { RaidAlert } from './RaidAlert'
+import { ContentReviewQueue } from './ContentReviewQueue'
 
 export function ModerationPanel(): React.ReactElement {
   const { selectedMember, fetchMembers, syncMembers, loading, error } = useModerationStore()
@@ -47,6 +48,7 @@ export function ModerationPanel(): React.ReactElement {
         <TabsList className="bg-glass-surface border-glass mb-3">
           <TabsTrigger value="members">Members</TabsTrigger>
           <TabsTrigger value="audit">Audit Log</TabsTrigger>
+          <TabsTrigger value="content">Content Review</TabsTrigger>
           <TabsTrigger value="spam">Spam Events</TabsTrigger>
         </TabsList>
 
@@ -63,6 +65,10 @@ export function ModerationPanel(): React.ReactElement {
               </div>
             )}
           </div>
+        </TabsContent>
+
+        <TabsContent value="content">
+          <ContentReviewQueue />
         </TabsContent>
 
         <TabsContent value="audit">

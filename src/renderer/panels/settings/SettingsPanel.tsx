@@ -11,6 +11,7 @@ import { SpamProtectionForm } from './SpamProtectionForm'
 import { RaidProtectionForm } from './RaidProtectionForm'
 import { EscalationConfigForm } from './EscalationConfigForm'
 import { RoleManagementForm } from './RoleManagementForm'
+import { ContentPolicyForm } from './ContentPolicyForm'
 
 export function SettingsPanel(): React.ReactElement {
   return (
@@ -48,6 +49,7 @@ export function SettingsPanel(): React.ReactElement {
           <div className="space-y-4">
             <SpamProtectionForm />
             <RaidProtectionForm />
+            <ContentPolicyForm />
             <EscalationConfigForm />
             <RoleManagementForm />
           </div>

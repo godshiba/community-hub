@@ -77,6 +77,13 @@ import type {
   RaidEvent,
   RaidState
 } from './spam-types'
+import type {
+  ModerationPolicy,
+  ModerationPolicyPayload,
+  ContentFlag,
+  ContentFlagFilter,
+  ReviewFlagPayload
+} from './content-moderation-types'
 
 /**
  * Master IPC contract. Every channel is typed here.
@@ -198,6 +205,12 @@ export interface IpcContract {
   'spam:getRaidState': { request: void; response: RaidState }
   'spam:setManualLockdown': { request: { enabled: boolean }; response: void }
   'spam:testRule': { request: { ruleType: string; content: string }; response: { triggered: boolean; reason: string } }
+
+  // Content Moderation — Phase 4 (v1.4)
+  'content-mod:getPolicy': { request: void; response: ModerationPolicy | null }
+  'content-mod:updatePolicy': { request: ModerationPolicyPayload & { id?: number }; response: ModerationPolicy }
+  'content-mod:getFlags': { request: ContentFlagFilter; response: readonly ContentFlag[] }
+  'content-mod:reviewFlag': { request: ReviewFlagPayload; response: void }
 }
 
 export type IpcChannel = keyof IpcContract

@@ -13,6 +13,7 @@ import { registerAnalyticsHandlers } from './ipc/analytics'
 import { registerSpamHandlers } from './ipc/spam'
 import { registerAuditHandlers } from './ipc/audit'
 import { registerRoleHandlers } from './ipc/roles'
+import { registerContentModerationHandlers } from './ipc/content-moderation'
 import { checkMessage as checkSpam } from './services/spam/spam.engine'
 import { recordJoin as recordRaidJoin } from './services/spam/raid.detector'
 import { executeSpamAction, executeRaidActions } from './services/spam/raid.actions'
@@ -22,6 +23,12 @@ import { getMemberByPlatformId } from './services/moderation.repository'
 import { initPlatformManager, getPlatformManager } from './services/platform-manager'
 import { initAgentService, getAgentService } from './services/ai/agent.service'
 import { handleAutoAssignOnJoin } from './services/roles.service'
+import { classifyContent, isSuspicious } from './services/ai/content-classifier'
+import { evaluatePolicy, executePolicyAction } from './services/ai/content-policy.engine'
+import { executeContentAction } from './services/ai/content-mod.actions'
+import { getPolicy as getContentModPolicy } from './services/ai/content-moderation.repository'
+import { createProvider } from './services/ai/provider.factory'
+import { loadAiConfig } from './services/credentials.repository'
 
 function createWindow(): void {
   const win = new BrowserWindow({
@@ -63,6 +70,7 @@ app.whenReady().then(async () => {
   registerSpamHandlers()
   registerAuditHandlers()
   registerRoleHandlers()
+  registerContentModerationHandlers()
   initAgentService()
   createWindow()
 
@@ -100,6 +108,35 @@ app.whenReady().then(async () => {
 
       executeSpamAction(msg.platform, msg.userId, msg.channelId, spamResult.messageRefs, spamResult.action, spamResult.muteDurationMinutes).catch(() => {})
       return // Don't pass spam to AI agent
+    }
+
+    // --- AI content moderation (runs after spam check, before agent) ---
+    const contentModPolicy = getContentModPolicy()
+    if (contentModPolicy?.enabled) {
+      const shouldClassify = contentModPolicy.classificationMode === 'all' || isSuspicious(msg.content)
+      if (shouldClassify) {
+        const aiConfig = loadAiConfig()
+        const classifierProvider = createProvider(aiConfig)
+        if (classifierProvider) {
+          classifyContent(classifierProvider, msg.content)
+            .then((classification) => {
+              if (classification.primaryCategory === 'clean') return
+              const policyResult = evaluatePolicy(classification, msg.platform)
+              if (!policyResult.shouldAct) return
+              executePolicyAction(
+                policyResult, msg.platform, msg.userId, msg.username,
+                msg.channelId, msg.messageId, msg.content, classification
+              )
+              if (!policyResult.testMode) {
+                executeContentAction(
+                  policyResult.action, msg.platform, msg.userId,
+                  msg.channelId, msg.messageId
+                ).catch(() => {})
+              }
+            })
+            .catch(() => {})
+        }
+      }
     }
 
     // Detect if the bot was mentioned by name, @username, or Discord <@ID>
