@@ -27,8 +27,6 @@ import { classifyContent, isSuspicious } from './services/ai/content-classifier'
 import { evaluatePolicy, executePolicyAction } from './services/ai/content-policy.engine'
 import { executeContentAction } from './services/ai/content-mod.actions'
 import { getPolicy as getContentModPolicy } from './services/ai/content-moderation.repository'
-import { createProvider } from './services/ai/provider.factory'
-import { loadAiConfig } from './services/credentials.repository'
 
 function createWindow(): void {
   const win = new BrowserWindow({
@@ -79,7 +77,7 @@ app.whenReady().then(async () => {
 
   // Wire platform messages to AI agent
   const agent = getAgentService()
-  manager.onMessage((msg) => {
+  manager.onMessage(async (msg) => {
     // --- Spam check (runs before AI agent) ---
     const spamResult = checkSpam(msg.platform, msg.userId, msg.username, msg.channelId, msg.messageId, msg.content)
     if (spamResult?.triggered) {
@@ -114,27 +112,27 @@ app.whenReady().then(async () => {
     const contentModPolicy = getContentModPolicy()
     if (contentModPolicy?.enabled) {
       const shouldClassify = contentModPolicy.classificationMode === 'all' || isSuspicious(msg.content)
-      if (shouldClassify) {
-        const aiConfig = loadAiConfig()
-        const classifierProvider = createProvider(aiConfig)
-        if (classifierProvider) {
-          classifyContent(classifierProvider, msg.content)
-            .then((classification) => {
-              if (classification.primaryCategory === 'clean') return
-              const policyResult = evaluatePolicy(classification, msg.platform)
-              if (!policyResult.shouldAct) return
+      if (shouldClassify && agent.provider) {
+        try {
+          const classification = await classifyContent(agent.provider, msg.content)
+          if (classification.primaryCategory !== 'clean') {
+            const policyResult = evaluatePolicy(classification, msg.platform)
+            if (policyResult.shouldAct) {
               executePolicyAction(
                 policyResult, msg.platform, msg.userId, msg.username,
                 msg.channelId, msg.messageId, msg.content, classification
               )
               if (!policyResult.testMode) {
-                executeContentAction(
+                await executeContentAction(
                   policyResult.action, msg.platform, msg.userId,
                   msg.channelId, msg.messageId
-                ).catch(() => {})
+                )
+                return // Block message from reaching AI agent
               }
-            })
-            .catch(() => {})
+            }
+          }
+        } catch {
+          // Classification failed — let message through to agent
         }
       }
     }

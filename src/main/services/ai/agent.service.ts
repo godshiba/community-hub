@@ -13,8 +13,12 @@ import { loadAiConfig } from '../credentials.repository'
 let instance: AgentService | null = null
 
 export class AgentService {
-  private provider: AiProvider | null = null
+  private _provider: AiProvider | null = null
   private _state: AgentRunState = 'unavailable'
+
+  get provider(): AiProvider | null {
+    return this._provider
+  }
   readonly conversation = new ConversationEngine()
   readonly automation = new AutomationEngine()
 
@@ -26,10 +30,10 @@ export class AgentService {
 
   /** (Re)configure with a new AI config */
   configure(config: AiConfig): void {
-    this.provider = createProvider(config)
-    this.conversation.setProvider(this.provider)
+    this._provider = createProvider(config)
+    this.conversation.setProvider(this._provider)
 
-    if (this.provider) {
+    if (this._provider) {
       // Ensure a default profile exists so the conversation engine works
       getOrCreateDefault()
       this._state = 'running'
@@ -57,7 +61,7 @@ export class AgentService {
   getStatus(): AgentStatus {
     return {
       state: this._state,
-      provider: this.provider?.name ?? null,
+      provider: this._provider?.name ?? null,
       respondMode: this.getRespondMode(),
       actionsToday: repo.countTodayActions(),
       pendingApproval: repo.countPendingActions()
@@ -77,7 +81,7 @@ export class AgentService {
   }
 
   isActive(): boolean {
-    return this._state === 'running' && this.provider !== null
+    return this._state === 'running' && this._provider !== null
   }
 
   /** Process an incoming message through automation, patterns, and conversation engines */
@@ -130,11 +134,11 @@ export class AgentService {
 
   /** Test provider connectivity */
   async testProvider(): Promise<{ success: boolean; error?: string }> {
-    if (!this.provider) {
+    if (!this._provider) {
       return { success: false, error: 'No AI provider configured' }
     }
     try {
-      await this.provider.complete('You are a test.', 'Reply with "OK".')
+      await this._provider.complete('You are a test.', 'Reply with "OK".')
       return { success: true }
     } catch (err: unknown) {
       return { success: false, error: err instanceof Error ? err.message : 'Unknown error' }
