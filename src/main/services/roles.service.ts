@@ -54,8 +54,7 @@ export async function assignRoleToMember(
 }
 
 export async function removeRoleFromMember(assignmentId: number): Promise<void> {
-  const assignments = repo.getAssignments()
-  const assignment = assignments.find((a) => a.id === assignmentId)
+  const assignment = repo.getAssignmentById(assignmentId)
   if (!assignment) throw new Error(`Assignment ${assignmentId} not found`)
 
   const member = getMemberById(assignment.memberId)

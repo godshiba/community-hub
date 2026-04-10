@@ -11,19 +11,25 @@ export function BulkActionToolbar(): React.ReactElement | null {
   const [activeAction, setActiveAction] = useState<BulkAction>(null)
   const [reason, setReason] = useState('')
   const [result, setResult] = useState<BulkActionResult | null>(null)
+  const [actionCount, setActionCount] = useState(0)
 
-  if (selectedIds.size === 0) return null
+  // Stay visible while a dialog is open (action or result), even after selection is cleared
+  if (selectedIds.size === 0 && activeAction === null && result === null) return null
 
-  const count = selectedIds.size
+  const count = selectedIds.size || actionCount
 
   function closeDialog(): void {
     setActiveAction(null)
     setReason('')
     setResult(null)
+    setActionCount(0)
   }
 
   async function handleConfirm(): Promise<void> {
     if (!activeAction || !reason.trim()) return
+
+    // Capture count before the store clears selection
+    setActionCount(selectedIds.size)
 
     try {
       let res: BulkActionResult

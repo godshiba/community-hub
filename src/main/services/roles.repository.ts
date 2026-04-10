@@ -141,14 +141,15 @@ export function createAssignment(
 ): RoleAssignment {
   const db = getDatabase()
 
+  // Compute expires_at as an actual datetime value, not a raw SQL expression
   const expiresAt = durationHours
-    ? `datetime('now', '+${Math.round(durationHours)} hours')`
+    ? new Date(Date.now() + Math.round(durationHours) * 3600_000).toISOString().replace('T', ' ').replace('Z', '')
     : null
 
   const result = db.prepare(`
     INSERT INTO role_assignments (member_id, platform, role_id, role_name, expires_at)
-    VALUES (?, ?, ?, ?, ${expiresAt ? expiresAt : 'NULL'})
-  `).run(memberId, platform, roleId, roleName)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(memberId, platform, roleId, roleName, expiresAt)
 
   const row = db.prepare(
     `SELECT ra.*, cm.username FROM role_assignments ra
@@ -157,6 +158,16 @@ export function createAssignment(
   ).get(Number(result.lastInsertRowid)) as AssignmentRow
 
   return rowToAssignment(row)
+}
+
+export function getAssignmentById(id: number): RoleAssignment | undefined {
+  const db = getDatabase()
+  const row = db.prepare(
+    `SELECT ra.*, cm.username FROM role_assignments ra
+     LEFT JOIN community_members cm ON cm.id = ra.member_id
+     WHERE ra.id = ?`
+  ).get(id) as AssignmentRow | undefined
+  return row ? rowToAssignment(row) : undefined
 }
 
 export function removeAssignment(id: number): void {
