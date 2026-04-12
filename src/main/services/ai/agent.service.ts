@@ -9,6 +9,7 @@ import type { AutomationEvent, AutomationMatch } from './automation.engine'
 import * as repo from './agent.repository'
 import { getOrCreateDefault } from './profile.service'
 import { loadAiConfig } from '../credentials.repository'
+import { refreshChannelConfigs } from './channel-config.service'
 
 let instance: AgentService | null = null
 
@@ -47,6 +48,7 @@ export class AgentService {
   refreshAll(): void {
     this.conversation.refreshContext()
     this.automation.refresh()
+    refreshChannelConfigs()
   }
 
   get state(): AgentRunState {
@@ -113,8 +115,8 @@ export class AgentService {
       return { automationMatches, conversationResult: patternResult }
     }
 
-    // 3. LLM conversation respects respondMode
-    const mode = this.getRespondMode()
+    // 3. LLM conversation respects per-channel respondMode (falls back to global)
+    const mode = this.conversation.getEffectiveRespondMode(ctx.platform, ctx.channelId)
     if (mode === 'never') {
       return { automationMatches, conversationResult: null }
     }

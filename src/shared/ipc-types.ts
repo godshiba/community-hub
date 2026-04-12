@@ -85,6 +85,18 @@ import type {
   ContentFlagFilter,
   ReviewFlagPayload
 } from './content-moderation-types'
+import type {
+  KnowledgeEntry,
+  KnowledgeEntryPayload,
+  KnowledgeCategory,
+  KnowledgeCategoryPayload,
+  KnowledgeSearchQuery,
+  KnowledgeSearchResult,
+  KnowledgeImportPayload,
+  KnowledgeImportResult,
+  ChannelAgentConfig,
+  ChannelAgentConfigPayload
+} from './knowledge-types'
 
 /**
  * Master IPC contract. Every channel is typed here.
@@ -213,6 +225,25 @@ export interface IpcContract {
   'content-mod:updatePolicy': { request: ModerationPolicyPayload & { id?: number }; response: ModerationPolicy }
   'content-mod:getFlags': { request: ContentFlagFilter; response: readonly ContentFlag[] }
   'content-mod:reviewFlag': { request: ReviewFlagPayload; response: void }
+
+  // Knowledge Base — Phase 5 (v1.5)
+  'knowledge:getEntries': { request: { categoryId?: number; platformScope?: string } | void; response: readonly KnowledgeEntry[] }
+  'knowledge:getEntry': { request: { id: number }; response: KnowledgeEntry | null }
+  'knowledge:createEntry': { request: KnowledgeEntryPayload; response: KnowledgeEntry }
+  'knowledge:updateEntry': { request: KnowledgeEntryPayload & { id: number }; response: KnowledgeEntry }
+  'knowledge:deleteEntry': { request: { id: number }; response: void }
+  'knowledge:search': { request: KnowledgeSearchQuery; response: readonly KnowledgeSearchResult[] }
+  'knowledge:import': { request: KnowledgeImportPayload; response: KnowledgeImportResult }
+  'knowledge:getCategories': { request: void; response: readonly KnowledgeCategory[] }
+  'knowledge:createCategory': { request: KnowledgeCategoryPayload; response: KnowledgeCategory }
+  'knowledge:updateCategory': { request: KnowledgeCategoryPayload & { id: number }; response: KnowledgeCategory }
+  'knowledge:deleteCategory': { request: { id: number }; response: void }
+
+  // Channel Agent Config — Phase 5 (v1.5)
+  'knowledge:getChannelConfigs': { request: void; response: readonly ChannelAgentConfig[] }
+  'knowledge:getChannelConfig': { request: { platform: string; channelId: string }; response: ChannelAgentConfig | null }
+  'knowledge:updateChannelConfig': { request: ChannelAgentConfigPayload; response: ChannelAgentConfig }
+  'knowledge:deleteChannelConfig': { request: { id: number }; response: void }
 }
 
 export type IpcChannel = keyof IpcContract

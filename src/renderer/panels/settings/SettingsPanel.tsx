@@ -12,6 +12,7 @@ import { RaidProtectionForm } from './RaidProtectionForm'
 import { EscalationConfigForm } from './EscalationConfigForm'
 import { RoleManagementForm } from './RoleManagementForm'
 import { ContentPolicyForm } from './ContentPolicyForm'
+import { ChannelAgentConfig } from './ChannelAgentConfig'
 
 export function SettingsPanel(): React.ReactElement {
   return (
@@ -40,6 +41,7 @@ export function SettingsPanel(): React.ReactElement {
         <TabsContent value="agent">
           <div className="space-y-4">
             <AgentProfileEditor />
+            <ChannelAgentConfig />
             <AutomationRules />
             <PatternLibrary />
           </div>

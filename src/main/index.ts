@@ -14,6 +14,7 @@ import { registerSpamHandlers } from './ipc/spam'
 import { registerAuditHandlers } from './ipc/audit'
 import { registerRoleHandlers } from './ipc/roles'
 import { registerContentModerationHandlers } from './ipc/content-moderation'
+import { registerKnowledgeHandlers } from './ipc/knowledge'
 import { checkMessage as checkSpam } from './services/spam/spam.engine'
 import { recordJoin as recordRaidJoin } from './services/spam/raid.detector'
 import { executeSpamAction, executeRaidActions } from './services/spam/raid.actions'
@@ -69,6 +70,7 @@ app.whenReady().then(async () => {
   registerAuditHandlers()
   registerRoleHandlers()
   registerContentModerationHandlers()
+  registerKnowledgeHandlers()
   initAgentService()
   createWindow()
 

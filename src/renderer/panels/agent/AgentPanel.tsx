@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react'
 import { GlassPanel } from '@/components/glass/GlassPanel'
 import { useAgentStore } from '@/stores/agent.store'
 import { PanelHeader } from '@/components/shared/PanelHeader'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AgentControls } from './AgentControls'
 import { ActionFeed } from './ActionFeed'
 import { ActionFilters } from './ActionFilters'
 import { ApprovalQueue } from './ApprovalQueue'
 import { ConversationThread } from './ConversationThread'
+import { KnowledgeBasePanel } from './KnowledgeBasePanel'
 
 export function AgentPanel(): React.ReactElement {
   const {
@@ -56,45 +58,58 @@ export function AgentPanel(): React.ReactElement {
   }
 
   return (
-    <GlassPanel className="p-4 space-y-3 overflow-hidden h-full flex flex-col">
+    <GlassPanel className="p-4 overflow-hidden h-full flex flex-col">
       <PanelHeader
         title="Agent Terminal"
-        subtitle="AI agent actions and controls"
+        subtitle="AI agent actions, knowledge base, and controls"
         actions={<AgentControls status={status} onPause={pause} onResume={resume} />}
       />
 
-      <ActionFilters
-        filterType={filterType}
-        filterPlatform={filterPlatform}
-        filterStatus={filterStatus}
-        onTypeChange={setFilterType}
-        onPlatformChange={setFilterPlatform}
-        onStatusChange={setFilterStatus}
-      />
+      <Tabs defaultValue="terminal" className="flex-1 flex flex-col min-h-0 mt-3">
+        <TabsList className="bg-glass-surface border-glass shrink-0">
+          <TabsTrigger value="terminal">Terminal</TabsTrigger>
+          <TabsTrigger value="knowledge">Knowledge Base</TabsTrigger>
+        </TabsList>
 
-      <div className="flex gap-3 flex-1 min-h-0">
-        <div className="w-1/2 flex flex-col gap-3 overflow-hidden">
-          <ApprovalQueue
-            actions={[...actions]}
-            onApprove={approveAction}
-            onReject={rejectAction}
-            onEdit={editAction}
+        <TabsContent value="terminal" className="flex-1 min-h-0 flex flex-col gap-3 mt-3">
+          <ActionFilters
+            filterType={filterType}
+            filterPlatform={filterPlatform}
+            filterStatus={filterStatus}
+            onTypeChange={setFilterType}
+            onPlatformChange={setFilterPlatform}
+            onStatusChange={setFilterStatus}
           />
 
-          <div className="flex-1 min-h-0 overflow-y-auto">
-            <ActionFeed
-              actions={actions}
-              loading={actionsLoading}
-              selectedId={selectedActionId}
-              onSelect={setSelectedActionId}
-            />
-          </div>
-        </div>
+          <div className="flex gap-3 flex-1 min-h-0">
+            <div className="w-1/2 flex flex-col gap-3 overflow-hidden">
+              <ApprovalQueue
+                actions={[...actions]}
+                onApprove={approveAction}
+                onReject={rejectAction}
+                onEdit={editAction}
+              />
 
-        <div className="w-1/2 border-l border-glass-border overflow-y-auto">
-          <ConversationThread action={selectedAction} />
-        </div>
-      </div>
+              <div className="flex-1 min-h-0 overflow-y-auto">
+                <ActionFeed
+                  actions={actions}
+                  loading={actionsLoading}
+                  selectedId={selectedActionId}
+                  onSelect={setSelectedActionId}
+                />
+              </div>
+            </div>
+
+            <div className="w-1/2 border-l border-glass-border overflow-y-auto">
+              <ConversationThread action={selectedAction} />
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="knowledge" className="flex-1 min-h-0 mt-3">
+          <KnowledgeBasePanel />
+        </TabsContent>
+      </Tabs>
     </GlassPanel>
   )
 }

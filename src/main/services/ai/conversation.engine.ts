@@ -1,11 +1,17 @@
 import type { AiProvider } from './provider.interface'
 import type { AgentProfile, AgentPattern, AgentAction } from '@shared/agent-types'
+import type { ChannelAgentConfig } from '@shared/knowledge-types'
 import type { Platform } from '@shared/settings-types'
 import * as repo from './agent.repository'
 import { buildSystemPrompt } from './prompts/system.prompt'
+import { retrieveKnowledge, buildKnowledgeContextBlock } from './knowledge.service'
+import { getChannelConfig } from './channel-config.service'
 
 /** Confidence threshold — below this, actions go to approval queue */
 const CONFIDENCE_THRESHOLD = 0.7
+
+/** Confidence boost when response is grounded in knowledge base */
+const KNOWLEDGE_CONFIDENCE_BOOST = 0.15
 
 /** Words/phrases that indicate the AI is uncertain */
 const UNCERTAINTY_MARKERS = [
@@ -32,6 +38,7 @@ export interface ConversationResult {
   response: string
   confidence: number
   action: AgentAction
+  knowledgeEntryIds?: readonly number[]
 }
 
 export class ConversationEngine {
@@ -81,15 +88,52 @@ export class ConversationEngine {
     return null
   }
 
-  /** Call the LLM to generate a response. */
+  /** Get the effective respond mode for a channel, considering per-channel overrides */
+  getEffectiveRespondMode(
+    platform: Platform,
+    channelId: string
+  ): 'always' | 'mentioned' | 'never' {
+    const channelCfg = getChannelConfig(platform, channelId)
+    if (channelCfg?.enabled) {
+      return channelCfg.respondMode
+    }
+    return this.profile?.respondMode ?? 'mentioned'
+  }
+
+  /** Call the LLM to generate a response, enriched with knowledge base context. */
   async respondWithLlm(ctx: ConversationContext): Promise<ConversationResult | null> {
     if (!this.provider || !this.profile) return null
 
-    const systemPrompt = buildSystemPrompt(this.profile, this.patterns)
+    // Look up per-channel config
+    const channelConfig = getChannelConfig(ctx.platform, ctx.channelId)
+
+    // Retrieve relevant knowledge
+    const knowledgeScope = channelConfig?.enabled
+      ? channelConfig.knowledgeCategoryIds
+      : undefined
+    const knowledge = retrieveKnowledge(
+      ctx.message,
+      ctx.platform,
+      knowledgeScope as readonly number[] | undefined
+    )
+    const knowledgeContext = buildKnowledgeContextBlock(knowledge.entries)
+    const hasKnowledge = knowledge.entries.length > 0
+
+    // Build system prompt with knowledge and channel config
+    const systemPrompt = buildSystemPrompt(this.profile, this.patterns, {
+      knowledgeContext: knowledgeContext || undefined,
+      channelConfig: channelConfig?.enabled ? channelConfig : null
+    })
     const userPrompt = `[${ctx.platform}] ${ctx.username}: ${ctx.message}`
 
     const response = await this.provider.complete(systemPrompt, userPrompt)
-    const confidence = estimateConfidence(response)
+
+    // Calculate confidence with knowledge boost
+    let confidence = estimateConfidence(response)
+    if (hasKnowledge) {
+      confidence = Math.min(1.0, confidence + KNOWLEDGE_CONFIDENCE_BOOST)
+    }
+
     const status = confidence >= CONFIDENCE_THRESHOLD ? 'completed' : 'pending'
 
     const action = repo.createAction({
@@ -98,14 +142,21 @@ export class ConversationEngine {
       context: JSON.stringify({
         channelId: ctx.channelId,
         userId: ctx.userId,
-        username: ctx.username
+        username: ctx.username,
+        knowledgeEntryIds: knowledge.usedEntryIds,
+        channelConfigId: channelConfig?.id ?? null
       }),
       input: ctx.message,
       output: response,
       status
     })
 
-    return { response, confidence, action }
+    return {
+      response,
+      confidence,
+      action,
+      knowledgeEntryIds: knowledge.usedEntryIds
+    }
   }
 }
 
