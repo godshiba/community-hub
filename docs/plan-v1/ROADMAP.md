@@ -12,6 +12,7 @@ Post-v1.0 enhancements focused on scaling to large communities and deepening AI 
 | 3 | [Bulk Moderation & Role Management](phase-3-bulk-roles.md) | v1.3.0 | Complete |
 | 4 | [AI Content Moderation](phase-4-ai-moderation.md) | v1.4.0 | Complete |
 | 5 | [Knowledge Base & Smart Agent](phase-5-knowledge-agent.md) | v1.5.0 | Complete |
+| 5b | [Agent Brain: Memory, Reasoning & Actions](phase-5b-agent-brain.md) | v1.5.1 | Pending |
 | 6 | [Engagement & Gamification](phase-6-engagement.md) | v1.6.0 | Pending |
 | 7 | [Agent Intelligence & Analytics](phase-7-agent-analytics.md) | v1.7.0 | Pending |
 
@@ -45,7 +46,8 @@ UI Upgrade (shell, shared components, glass polish) -- do first
   |
   +-- Phase 4 (AI content moderation -- independent, needs AI provider)
         |-- Phase 5 (knowledge base + smart agent -- extends AI layer)
-              |-- Phase 7 (agent analytics -- needs data from Phase 5)
+              |-- Phase 5b (agent brain -- memory, reasoning, actions)
+                    |-- Phase 7 (agent analytics -- needs data from Phase 5b)
 ```
 
 Phases 1 and 4 can be built in parallel. Phase 6 is independent of the AI track.
