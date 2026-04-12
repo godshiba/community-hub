@@ -1,17 +1,18 @@
 import type { AiProvider } from './provider.interface'
 import type { AgentProfile, AgentPattern, AgentAction } from '@shared/agent-types'
-import type { ChannelAgentConfig } from '@shared/knowledge-types'
 import type { Platform } from '@shared/settings-types'
 import * as repo from './agent.repository'
 import { buildSystemPrompt } from './prompts/system.prompt'
-import { retrieveKnowledge, buildKnowledgeContextBlock } from './knowledge.service'
+import {
+  retrieveKnowledge,
+  buildKnowledgeContextBlock,
+  calculateKnowledgeConfidenceBoost,
+  getRecentContext
+} from './knowledge.service'
 import { getChannelConfig } from './channel-config.service'
 
 /** Confidence threshold — below this, actions go to approval queue */
 const CONFIDENCE_THRESHOLD = 0.7
-
-/** Confidence boost when response is grounded in knowledge base */
-const KNOWLEDGE_CONFIDENCE_BOOST = 0.15
 
 /** Words/phrases that indicate the AI is uncertain */
 const UNCERTAINTY_MARKERS = [
@@ -107,31 +108,39 @@ export class ConversationEngine {
     // Look up per-channel config
     const channelConfig = getChannelConfig(ctx.platform, ctx.channelId)
 
-    // Retrieve relevant knowledge
+    // Retrieve relevant knowledge with keyword extraction
     const knowledgeScope = channelConfig?.enabled
       ? channelConfig.knowledgeCategoryIds
       : undefined
     const knowledge = retrieveKnowledge(
       ctx.message,
       ctx.platform,
+      ctx.channelId,
       knowledgeScope as readonly number[] | undefined
     )
     const knowledgeContext = buildKnowledgeContextBlock(knowledge.entries)
-    const hasKnowledge = knowledge.entries.length > 0
 
-    // Build system prompt with knowledge and channel config
+    // Get recent conversation for follow-up awareness
+    const recentMessages = getRecentContext(ctx.platform, ctx.channelId)
+
+    // Build system prompt with knowledge, channel config, and conversation context
     const systemPrompt = buildSystemPrompt(this.profile, this.patterns, {
       knowledgeContext: knowledgeContext || undefined,
-      channelConfig: channelConfig?.enabled ? channelConfig : null
+      channelConfig: channelConfig?.enabled ? channelConfig : null,
+      recentMessages: recentMessages.length > 1 ? recentMessages.slice(0, -1) : undefined
     })
     const userPrompt = `[${ctx.platform}] ${ctx.username}: ${ctx.message}`
 
     const response = await this.provider.complete(systemPrompt, userPrompt)
 
-    // Calculate confidence with knowledge boost
+    // Calculate confidence with graduated knowledge boost
     let confidence = estimateConfidence(response)
-    if (hasKnowledge) {
-      confidence = Math.min(1.0, confidence + KNOWLEDGE_CONFIDENCE_BOOST)
+    if (knowledge.entries.length > 0) {
+      const boost = calculateKnowledgeConfidenceBoost(
+        knowledge.entries.length,
+        knowledge.topRank
+      )
+      confidence = Math.min(1.0, confidence + boost)
     }
 
     const status = confidence >= CONFIDENCE_THRESHOLD ? 'completed' : 'pending'

@@ -8,20 +8,22 @@ export function buildSystemPrompt(
   options?: {
     knowledgeContext?: string
     channelConfig?: ChannelAgentConfig | null
+    recentMessages?: readonly string[]
   }
 ): string {
   const parts: string[] = []
   const channelConfig = options?.channelConfig
 
-  // Use channel personality override if available
-  if (channelConfig?.systemPromptOverride) {
-    parts.push(channelConfig.systemPromptOverride)
-  } else {
-    parts.push(`You are ${profile.name}.`)
+  // Agent identity — always present regardless of overrides
+  parts.push(`You are ${profile.name}.`)
 
-    if (profile.role) {
-      parts.push(`Your role: ${profile.role}`)
-    }
+  if (profile.role) {
+    parts.push(`Your role: ${profile.role}`)
+  }
+
+  // Channel-specific system prompt adds to (not replaces) the identity
+  if (channelConfig?.systemPromptOverride) {
+    parts.push(`\nChannel-specific instructions:\n${channelConfig.systemPromptOverride}`)
   }
 
   // Tone: channel personality override takes precedence
@@ -46,6 +48,18 @@ export function buildSystemPrompt(
   // Inject knowledge base context if available
   if (options?.knowledgeContext) {
     parts.push(options.knowledgeContext)
+    parts.push(buildKnowledgeInstructions(true))
+  } else {
+    parts.push(buildKnowledgeInstructions(false))
+  }
+
+  // Inject recent conversation context for follow-up awareness
+  if (options?.recentMessages && options.recentMessages.length > 0) {
+    parts.push('\nRecent conversation in this channel:')
+    for (const msg of options.recentMessages) {
+      parts.push(`> ${msg}`)
+    }
+    parts.push('Use this context to understand follow-up questions and maintain conversation continuity.')
   }
 
   const enabledPatterns = patterns.filter((p) => p.enabled)
@@ -56,8 +70,31 @@ export function buildSystemPrompt(
     }
   }
 
-  parts.push('\nKeep responses concise and helpful. If unsure, indicate low confidence.')
-  parts.push('If a question is not covered by the knowledge base, honestly say you do not have that information.')
+  parts.push('\nKeep responses concise, helpful, and natural.')
 
   return parts.join('\n')
+}
+
+/**
+ * Build instructions that tell the agent HOW to use knowledge.
+ * Different instructions depending on whether knowledge was found.
+ */
+function buildKnowledgeInstructions(hasKnowledge: boolean): string {
+  if (hasKnowledge) {
+    return [
+      '',
+      'How to use the reference material above:',
+      '- Synthesize information naturally into your answer. Do not just copy-paste.',
+      '- If multiple entries are relevant, combine them into a coherent response.',
+      '- You may reference where the info comes from briefly (e.g., "Based on our FAQ..." or "Per our server rules...") but do not mechanically cite entry numbers.',
+      '- If the question is partially covered, share what you know and clearly state what you are unsure about.',
+      '- If the question is completely outside the reference material, say you do not have specific information about that and suggest who or where to ask.'
+    ].join('\n')
+  }
+
+  return [
+    '',
+    'You have a knowledge base but no entries matched this question.',
+    'Answer based on your general knowledge and role. If the question seems specific to this community and you lack the information, say so honestly rather than guessing.'
+  ].join('\n')
 }

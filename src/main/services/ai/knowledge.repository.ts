@@ -208,17 +208,40 @@ export function incrementEntryUsage(id: number): void {
 // FTS5 Full-Text Search
 // ---------------------------------------------------------------------------
 
+/** FTS5 reserved operators and characters that must be stripped or quoted */
+const FTS5_OPERATORS = /\b(AND|OR|NOT|NEAR)\b/gi
+const FTS5_SPECIAL = /['"(){}:*^~+\-<>@#$%&|\\]/g
+
+/**
+ * Sanitize a user query into safe FTS5 syntax.
+ * Strips operators, special chars, and wraps remaining terms in quotes.
+ */
+function sanitizeFtsQuery(raw: string): string {
+  const cleaned = raw
+    .replace(FTS5_SPECIAL, ' ')
+    .replace(FTS5_OPERATORS, ' ')
+    .trim()
+
+  // Split into individual words, remove empties and very short noise
+  const words = cleaned
+    .split(/\s+/)
+    .filter((w) => w.length >= 2)
+
+  if (words.length === 0) return ''
+
+  // Quote each term individually for safety, join with implicit AND
+  return words.map((w) => `"${w}"`).join(' ')
+}
+
 export function searchEntries(query: KnowledgeSearchQuery): readonly KnowledgeSearchResult[] {
   const db = getDatabase()
   const limit = query.limit ?? 10
 
-  // Build FTS5 match query — escape special chars
-  const sanitized = query.query.replace(/['"]/g, '').trim()
-  if (sanitized.length === 0) return []
+  const ftsQuery = sanitizeFtsQuery(query.query)
+  if (ftsQuery.length === 0) return []
 
-  // Use FTS5 with bm25 ranking, joining back to get category info
   const conditions: string[] = ['knowledge_fts MATCH ?']
-  const params: unknown[] = [sanitized]
+  const params: unknown[] = [ftsQuery]
 
   if (query.categoryId) {
     conditions.push('e.category_id = ?')
@@ -231,23 +254,28 @@ export function searchEntries(query: KnowledgeSearchQuery): readonly KnowledgeSe
 
   const where = conditions.join(' AND ')
 
-  const rows = db.prepare(`
-    SELECT e.*, c.name as category_name,
-           rank as rank,
-           snippet(knowledge_fts, 1, '<mark>', '</mark>', '...', 64) as snippet
-    FROM knowledge_fts
-    JOIN knowledge_entries e ON knowledge_fts.rowid = e.id
-    LEFT JOIN knowledge_categories c ON e.category_id = c.id
-    WHERE ${where}
-    ORDER BY rank
-    LIMIT ?
-  `).all(...params, limit) as FtsRow[]
+  try {
+    const rows = db.prepare(`
+      SELECT e.*, c.name as category_name,
+             rank as rank,
+             snippet(knowledge_fts, 1, '<mark>', '</mark>', '...', 64) as snippet
+      FROM knowledge_fts
+      JOIN knowledge_entries e ON knowledge_fts.rowid = e.id
+      LEFT JOIN knowledge_categories c ON e.category_id = c.id
+      WHERE ${where}
+      ORDER BY rank
+      LIMIT ?
+    `).all(...params, limit) as FtsRow[]
 
-  return rows.map((row) => ({
-    entry: rowToEntry(row),
-    rank: Math.abs(row.rank),
-    snippet: row.snippet
-  }))
+    return rows.map((row) => ({
+      entry: rowToEntry(row),
+      rank: Math.abs(row.rank),
+      snippet: row.snippet
+    }))
+  } catch {
+    // FTS5 query failed (malformed despite sanitization) — return empty
+    return []
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -336,6 +364,17 @@ export function upsertChannelConfig(
   const categoryIds = JSON.stringify(payload.knowledgeCategoryIds ?? [])
 
   if (existing) {
+    // Use !== undefined to allow explicit null clearing
+    const channelName = payload.channelName !== undefined ? payload.channelName : existing.channelName
+    const respondMode = payload.respondMode !== undefined ? payload.respondMode : existing.respondMode
+    const promptOverride = payload.systemPromptOverride !== undefined
+      ? payload.systemPromptOverride
+      : existing.systemPromptOverride
+    const personalityOverride = payload.personalityOverride !== undefined
+      ? payload.personalityOverride
+      : existing.personalityOverride
+    const enabled = payload.enabled !== undefined ? payload.enabled : existing.enabled
+
     db.prepare(`
       UPDATE channel_agent_configs
       SET channel_name = ?, respond_mode = ?, system_prompt_override = ?,
@@ -343,12 +382,12 @@ export function upsertChannelConfig(
           updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `).run(
-      payload.channelName ?? existing.channelName,
-      payload.respondMode ?? existing.respondMode,
-      payload.systemPromptOverride ?? existing.systemPromptOverride,
-      payload.personalityOverride ?? existing.personalityOverride,
+      channelName,
+      respondMode,
+      promptOverride,
+      personalityOverride,
       categoryIds,
-      payload.enabled !== undefined ? (payload.enabled ? 1 : 0) : (existing.enabled ? 1 : 0),
+      enabled ? 1 : 0,
       existing.id
     )
   } else {
