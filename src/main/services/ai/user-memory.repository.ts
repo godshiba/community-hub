@@ -313,8 +313,13 @@ export function getOldestTurns(
 export function deleteTurns(ids: readonly number[]): void {
   if (ids.length === 0) return
   const db = getDatabase()
-  const placeholders = ids.map(() => '?').join(',')
-  db.prepare(`DELETE FROM conversation_turns WHERE id IN (${placeholders})`).run(...ids)
+  // Chunk to stay within SQLite's bind-parameter limit (999)
+  const chunkSize = 900
+  for (let i = 0; i < ids.length; i += chunkSize) {
+    const chunk = ids.slice(i, i + chunkSize)
+    const placeholders = chunk.map(() => '?').join(',')
+    db.prepare(`DELETE FROM conversation_turns WHERE id IN (${placeholders})`).run(...chunk)
+  }
 }
 
 export function getUsersWithManyTurns(

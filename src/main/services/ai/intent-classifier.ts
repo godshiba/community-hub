@@ -92,7 +92,7 @@ ${recentContext}Message: "${message}"
 Respond: { "intent": "question"|"request"|"complaint"|"greeting"|"follow_up"|"off_topic"|"feedback", "confidence": 0.0-1.0, "needsKnowledge": bool, "needsUserHistory": bool, "isUrgent": bool }`
 
   try {
-    const raw = await provider.complete(systemPrompt, message)
+    const raw = await provider.complete(systemPrompt, 'Classify the message above.')
     return parseClassification(raw)
   } catch {
     return fallbackClassification(message)

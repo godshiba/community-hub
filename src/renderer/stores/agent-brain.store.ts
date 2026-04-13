@@ -48,8 +48,8 @@ export const useAgentBrainStore = create<AgentBrainState>((set, get) => ({
       } else {
         set({ error: result.error, memoryLoading: false })
       }
-    } catch {
-      set({ memoryLoading: false })
+    } catch (err) {
+      set({ memoryLoading: false, error: err instanceof Error ? err.message : 'Failed to load memory' })
     }
   },
 
@@ -66,8 +66,8 @@ export const useAgentBrainStore = create<AgentBrainState>((set, get) => ({
       } else {
         set({ error: result.error, conversationsLoading: false })
       }
-    } catch {
-      set({ conversationsLoading: false })
+    } catch (err) {
+      set({ conversationsLoading: false, error: err instanceof Error ? err.message : 'Failed to load conversations' })
     }
   },
 
@@ -93,8 +93,8 @@ export const useAgentBrainStore = create<AgentBrainState>((set, get) => ({
       } else {
         set({ error: result.error, conversationsLoading: false })
       }
-    } catch {
-      set({ conversationsLoading: false })
+    } catch (err) {
+      set({ conversationsLoading: false, error: err instanceof Error ? err.message : 'Failed to load conversations' })
     }
   },
 

@@ -31,6 +31,9 @@ export function assembleContext(params: {
 }): AssembledContext {
   const { platform, channelId, userId, message, intent, memory, recentTurns } = params
 
+  // Load channel config once (used for both knowledge scope and channel context)
+  const channelCfg = getChannelConfig(platform, channelId)
+
   // 1. User profile — always included (cheap)
   const userProfile = buildUserProfile(memory)
 
@@ -44,13 +47,12 @@ export function assembleContext(params: {
   // 3. Knowledge context — only if intent requires it
   let knowledgeContext = ''
   if (intent.needsKnowledge) {
-    const channelCfg = getChannelConfig(platform, channelId)
     const scope = channelCfg?.enabled ? channelCfg.knowledgeCategoryIds : undefined
     const knowledge = retrieveKnowledge(
       message,
       platform,
       channelId,
-      scope as readonly number[] | undefined
+      scope
     )
     knowledgeContext = buildKnowledgeContextBlock(knowledge.entries)
   }
@@ -66,7 +68,6 @@ export function assembleContext(params: {
 
   // 5. Channel context
   let channelContext: string | null = null
-  const channelCfg = getChannelConfig(platform, channelId)
   if (channelCfg?.enabled) {
     const parts: string[] = [`Channel: ${channelCfg.channelName || channelCfg.channelId}`]
     if (channelCfg.personalityOverride) {
@@ -168,20 +169,24 @@ function truncateContext(ctx: AssembledContext): AssembledContext {
 
   if (total <= MAX_CONTEXT_CHARS) return ctx
 
-  // Prioritize: userProfile > conversationHistory > knowledgeContext > rest
-  // Truncate knowledge context first (it's the largest)
-  const excess = total - MAX_CONTEXT_CHARS
-  if (ctx.knowledgeContext.length > excess) {
-    return {
-      ...ctx,
-      knowledgeContext: ctx.knowledgeContext.slice(0, ctx.knowledgeContext.length - excess)
-    }
+  // Prioritize keeping: userProfile > availableActions > conversationHistory > knowledgeContext
+  // Truncate knowledge first, then conversation history
+  let excess = total - MAX_CONTEXT_CHARS
+  let knowledgeContext = ctx.knowledgeContext
+  let conversationHistory = ctx.conversationHistory
+
+  // First: trim knowledge context
+  if (knowledgeContext.length > 0 && excess > 0) {
+    const trimBy = Math.min(excess, knowledgeContext.length)
+    knowledgeContext = knowledgeContext.slice(0, knowledgeContext.length - trimBy)
+    excess -= trimBy
   }
 
-  // If still over, truncate conversation history
-  return {
-    ...ctx,
-    knowledgeContext: ctx.knowledgeContext.slice(0, Math.floor(ctx.knowledgeContext.length / 2)),
-    conversationHistory: ctx.conversationHistory.slice(0, Math.floor(ctx.conversationHistory.length / 2))
+  // Second: trim conversation history if still over budget
+  if (conversationHistory.length > 0 && excess > 0) {
+    const trimBy = Math.min(excess, conversationHistory.length)
+    conversationHistory = conversationHistory.slice(0, conversationHistory.length - trimBy)
   }
+
+  return { ...ctx, knowledgeContext, conversationHistory }
 }
