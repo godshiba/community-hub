@@ -2,30 +2,11 @@ import type { AiProvider } from './provider.interface'
 import type { AgentProfile, AgentPattern, AgentAction } from '@shared/agent-types'
 import type { Platform } from '@shared/settings-types'
 import * as repo from './agent.repository'
-import { buildSystemPrompt } from './prompts/system.prompt'
-import {
-  retrieveKnowledge,
-  buildKnowledgeContextBlock,
-  calculateKnowledgeConfidenceBoost,
-  getRecentContext
-} from './knowledge.service'
 import { getChannelConfig } from './channel-config.service'
+import { processMessage } from './agent-reasoning'
 
 /** Confidence threshold — below this, actions go to approval queue */
 const CONFIDENCE_THRESHOLD = 0.7
-
-/** Words/phrases that indicate the AI is uncertain */
-const UNCERTAINTY_MARKERS = [
-  "i'm not sure",
-  "i don't know",
-  'not certain',
-  'i think',
-  'maybe',
-  'possibly',
-  'unclear',
-  'cannot determine',
-  'i apologize'
-]
 
 export interface ConversationContext {
   platform: Platform
@@ -101,49 +82,17 @@ export class ConversationEngine {
     return this.profile?.respondMode ?? 'mentioned'
   }
 
-  /** Call the LLM to generate a response, enriched with knowledge base context. */
+  /**
+   * Delegate to the agent reasoning engine for a full brain-powered response.
+   * The reasoning engine handles: memory, intent classification, context assembly,
+   * chain-of-thought reasoning, action execution, and memory updates.
+   */
   async respondWithLlm(ctx: ConversationContext): Promise<ConversationResult | null> {
     if (!this.provider || !this.profile) return null
 
-    // Look up per-channel config
-    const channelConfig = getChannelConfig(ctx.platform, ctx.channelId)
+    const result = await processMessage(ctx, this.provider, this.profile)
 
-    // Retrieve relevant knowledge with keyword extraction
-    const knowledgeScope = channelConfig?.enabled
-      ? channelConfig.knowledgeCategoryIds
-      : undefined
-    const knowledge = retrieveKnowledge(
-      ctx.message,
-      ctx.platform,
-      ctx.channelId,
-      knowledgeScope as readonly number[] | undefined
-    )
-    const knowledgeContext = buildKnowledgeContextBlock(knowledge.entries)
-
-    // Get recent conversation for follow-up awareness
-    const recentMessages = getRecentContext(ctx.platform, ctx.channelId)
-
-    // Build system prompt with knowledge, channel config, and conversation context
-    const systemPrompt = buildSystemPrompt(this.profile, this.patterns, {
-      knowledgeContext: knowledgeContext || undefined,
-      channelConfig: channelConfig?.enabled ? channelConfig : null,
-      recentMessages: recentMessages.length > 1 ? recentMessages.slice(0, -1) : undefined
-    })
-    const userPrompt = `[${ctx.platform}] ${ctx.username}: ${ctx.message}`
-
-    const response = await this.provider.complete(systemPrompt, userPrompt)
-
-    // Calculate confidence with graduated knowledge boost
-    let confidence = estimateConfidence(response)
-    if (knowledge.entries.length > 0) {
-      const boost = calculateKnowledgeConfidenceBoost(
-        knowledge.entries.length,
-        knowledge.topRank
-      )
-      confidence = Math.min(1.0, confidence + boost)
-    }
-
-    const status = confidence >= CONFIDENCE_THRESHOLD ? 'completed' : 'pending'
+    const status = result.confidence >= CONFIDENCE_THRESHOLD ? 'completed' : 'pending'
 
     const action = repo.createAction({
       actionType: 'replied',
@@ -152,37 +101,23 @@ export class ConversationEngine {
         channelId: ctx.channelId,
         userId: ctx.userId,
         username: ctx.username,
-        knowledgeEntryIds: knowledge.usedEntryIds,
-        channelConfigId: channelConfig?.id ?? null
+        intent: result.intent.intent,
+        thought: result.thought,
+        actions: result.actions,
+        knowledgeEntryIds: result.knowledgeEntryIds
       }),
       input: ctx.message,
-      output: response,
+      output: result.response,
       status
     })
 
     return {
-      response,
-      confidence,
+      response: result.response,
+      confidence: result.confidence,
       action,
-      knowledgeEntryIds: knowledge.usedEntryIds
+      knowledgeEntryIds: result.knowledgeEntryIds
     }
   }
-}
-
-function estimateConfidence(response: string): number {
-  const lower = response.toLowerCase()
-  let penalty = 0
-
-  for (const marker of UNCERTAINTY_MARKERS) {
-    if (lower.includes(marker)) {
-      penalty += 0.15
-    }
-  }
-
-  // Very short responses get a slight penalty
-  if (response.length < 20) penalty += 0.1
-
-  return Math.max(0, 1 - penalty)
 }
 
 function interpolateTemplate(template: string, ctx: ConversationContext): string {

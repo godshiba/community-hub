@@ -9,6 +9,7 @@ import { ActionFilters } from './ActionFilters'
 import { ApprovalQueue } from './ApprovalQueue'
 import { ConversationThread } from './ConversationThread'
 import { KnowledgeBasePanel } from './KnowledgeBasePanel'
+import { ConversationMemory } from './ConversationMemory'
 
 export function AgentPanel(): React.ReactElement {
   const {
@@ -69,6 +70,7 @@ export function AgentPanel(): React.ReactElement {
         <TabsList className="bg-glass-surface border-glass shrink-0">
           <TabsTrigger value="terminal">Terminal</TabsTrigger>
           <TabsTrigger value="knowledge">Knowledge Base</TabsTrigger>
+          <TabsTrigger value="memory">Memory</TabsTrigger>
         </TabsList>
 
         <TabsContent value="terminal" className="flex-1 min-h-0 flex flex-col gap-3 mt-3">
@@ -108,6 +110,10 @@ export function AgentPanel(): React.ReactElement {
 
         <TabsContent value="knowledge" className="flex-1 min-h-0 mt-3">
           <KnowledgeBasePanel />
+        </TabsContent>
+
+        <TabsContent value="memory" className="flex-1 min-h-0 mt-3">
+          <ConversationMemory />
         </TabsContent>
       </Tabs>
     </GlassPanel>

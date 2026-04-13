@@ -97,6 +97,10 @@ import type {
   ChannelAgentConfig,
   ChannelAgentConfigPayload
 } from './knowledge-types'
+import type {
+  UserMemory,
+  ConversationTurn
+} from './agent-brain-types'
 
 /**
  * Master IPC contract. Every channel is typed here.
@@ -244,6 +248,12 @@ export interface IpcContract {
   'knowledge:getChannelConfig': { request: { platform: string; channelId: string }; response: ChannelAgentConfig | null }
   'knowledge:updateChannelConfig': { request: ChannelAgentConfigPayload; response: ChannelAgentConfig }
   'knowledge:deleteChannelConfig': { request: { id: number }; response: void }
+
+  // Agent Brain — Phase 5b (v1.5.1)
+  'agent:getUserMemory': { request: { platform: string; userId: string }; response: UserMemory | null }
+  'agent:getUserConversations': { request: { platform: string; userId: string; limit?: number }; response: readonly ConversationTurn[] }
+  'agent:clearUserMemory': { request: { platform: string; userId: string }; response: void }
+  'agent:getRecentConversations': { request: { limit?: number }; response: readonly ConversationTurn[] }
 }
 
 export type IpcChannel = keyof IpcContract

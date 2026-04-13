@@ -15,6 +15,7 @@ import { registerAuditHandlers } from './ipc/audit'
 import { registerRoleHandlers } from './ipc/roles'
 import { registerContentModerationHandlers } from './ipc/content-moderation'
 import { registerKnowledgeHandlers } from './ipc/knowledge'
+import { registerAgentBrainHandlers } from './ipc/agent-brain'
 import { checkMessage as checkSpam } from './services/spam/spam.engine'
 import { recordJoin as recordRaidJoin } from './services/spam/raid.detector'
 import { executeSpamAction, executeRaidActions } from './services/spam/raid.actions'
@@ -71,6 +72,7 @@ app.whenReady().then(async () => {
   registerRoleHandlers()
   registerContentModerationHandlers()
   registerKnowledgeHandlers()
+  registerAgentBrainHandlers()
   initAgentService()
   createWindow()
 
@@ -216,6 +218,7 @@ app.whenReady().then(async () => {
   import('./tasks/member-sync').then((m) => m.startMemberSync()).catch(() => {})
   import('./tasks/event-reminders').then((m) => m.startEventReminders()).catch(() => {})
   import('./tasks/role-expiry').then((m) => m.startRoleExpiry()).catch(() => {})
+  import('./tasks/memory-compaction').then((m) => m.startMemoryCompaction()).catch(() => {})
 })
 
 app.on('window-all-closed', () => {
