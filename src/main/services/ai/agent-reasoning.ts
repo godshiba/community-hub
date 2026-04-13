@@ -4,8 +4,7 @@ import type { Platform } from '@shared/settings-types'
 import type {
   AgentReasoningResult,
   AgentDecidedAction,
-  IntentClassification,
-  ConversationTurn
+  IntentClassification
 } from '@shared/agent-brain-types'
 import type { ConversationContext } from './conversation.engine'
 import { classifyIntent } from './intent-classifier'
@@ -50,7 +49,7 @@ export async function processMessage(
 
   // For simple intents (greeting, off_topic), skip heavy reasoning
   if (intent.intent === 'greeting' || intent.intent === 'off_topic') {
-    return handleSimpleIntent(ctx, provider, profile, memory, intent, recentTurns)
+    return handleSimpleIntent(ctx, provider, profile, memory, intent)
   }
 
   // Step 3: Assemble context
@@ -145,8 +144,7 @@ async function handleSimpleIntent(
   provider: AiProvider,
   profile: AgentProfile,
   memory: ReturnType<typeof memoryRepo.getOrCreate>,
-  intent: IntentClassification,
-  recentTurns: readonly ConversationTurn[]
+  intent: IntentClassification
 ): Promise<ReasoningEngineResult> {
   const parts: string[] = [
     `You are ${profile.name}.`,
@@ -251,7 +249,12 @@ function isValidAction(action: unknown): action is AgentDecidedAction {
     'search_knowledge', 'lookup_member', 'escalate',
     'assign_role', 'create_reminder', 'tag_moderator', 'none'
   ]
-  return typeof a.type === 'string' && validTypes.includes(a.type)
+  if (typeof a.type !== 'string' || !validTypes.includes(a.type)) return false
+  // Ensure params is an object (default to empty if missing)
+  if (a.params === undefined || a.params === null) {
+    a.params = {}
+  }
+  return typeof a.params === 'object'
 }
 
 interface ActionExecutionResult {
@@ -321,7 +324,7 @@ async function executeActions(
         const member = getMemberByPlatformId(ctx.platform, ctx.userId)
         logAuditEntry({
           moderator: profile.name,
-          moderatorType: 'agent',
+          moderatorType: 'ai_agent',
           targetMemberId: member?.id ?? null,
           targetUsername: ctx.username,
           actionType: 'escalation',

@@ -91,6 +91,7 @@ export type AuditActionType =
   | 'note'
   | 'spam_detection'
   | 'raid_action'
+  | 'escalation'
 
 export interface AuditLogEntry {
   readonly id: number
