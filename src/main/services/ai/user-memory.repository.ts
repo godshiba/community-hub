@@ -102,27 +102,25 @@ export function getOrCreate(
     .prepare('SELECT * FROM user_memory WHERE platform = ? AND platform_user_id = ?')
     .get(platform, userId) as UserMemoryRow | undefined
 
-  if (existing) return rowToMemory(existing)
+  if (existing) {
+    // Update username if it changed (users can rename on Discord/Telegram)
+    if (existing.username !== username) {
+      db.prepare('UPDATE user_memory SET username = ? WHERE id = ?').run(username, existing.id)
+      return rowToMemory({ ...existing, username })
+    }
+    return rowToMemory(existing)
+  }
 
-  const result = db.prepare(`
+  db.prepare(`
     INSERT INTO user_memory (platform, platform_user_id, username)
     VALUES (?, ?, ?)
   `).run(platform, userId, username)
 
-  return {
-    id: result.lastInsertRowid as number,
-    platform,
-    platformUserId: userId,
-    username,
-    firstInteraction: new Date().toISOString(),
-    lastInteraction: new Date().toISOString(),
-    interactionCount: 0,
-    primaryLanguage: null,
-    expertiseLevel: null,
-    facts: [],
-    conversationSummary: null,
-    updatedAt: new Date().toISOString()
-  }
+  // Re-SELECT to get DB-generated timestamps in their canonical format
+  const created = db
+    .prepare('SELECT * FROM user_memory WHERE platform = ? AND platform_user_id = ?')
+    .get(platform, userId) as UserMemoryRow
+  return rowToMemory(created)
 }
 
 export function getUserMemory(
