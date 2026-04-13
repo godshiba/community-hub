@@ -31,19 +31,20 @@ export function ConversationMemory(): React.ReactElement {
 
   const handleSearch = (): void => {
     if (!searchInput.trim()) return
-    // Parse "platform:userId" format or search in recent conversations
+    // Parse "platform:userId" format
     const parts = searchInput.split(':')
     if (parts.length === 2) {
       const [platform, userId] = parts
+      if (platform !== 'discord' && platform !== 'telegram') return
       fetchUserMemory(platform, userId)
       fetchUserConversations(platform, userId)
       setSearchQuery(searchInput)
     }
   }
 
-  const handleClearMemory = (): void => {
+  const handleClearMemory = async (): Promise<void> => {
     if (!selectedMemory) return
-    clearUserMemory(selectedMemory.platform, selectedMemory.platformUserId)
+    await clearUserMemory(selectedMemory.platform, selectedMemory.platformUserId)
     setShowConfirmClear(false)
   }
 
@@ -245,7 +246,7 @@ function IntentBadge({ intent }: { intent: string }): React.ReactElement {
 
   return (
     <span className={`px-1.5 py-0.5 rounded text-[10px] ${colors[intent] ?? 'text-text-muted bg-white/5'}`}>
-      {intent.replace('_', ' ')}
+      {intent.replace(/_/g, ' ')}
     </span>
   )
 }

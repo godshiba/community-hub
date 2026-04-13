@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { UserMemory, ConversationTurn } from '@shared/agent-brain-types'
+import type { Platform } from '@shared/settings-types'
 
 interface AgentBrainState {
   // User memory
@@ -21,9 +22,9 @@ interface AgentBrainState {
   error: string | null
 
   // Actions
-  fetchUserMemory: (platform: string, userId: string) => Promise<void>
-  fetchUserConversations: (platform: string, userId: string, limit?: number) => Promise<void>
-  clearUserMemory: (platform: string, userId: string) => Promise<void>
+  fetchUserMemory: (platform: Platform, userId: string) => Promise<void>
+  fetchUserConversations: (platform: Platform, userId: string, limit?: number) => Promise<void>
+  clearUserMemory: (platform: Platform, userId: string) => Promise<void>
   fetchRecentConversations: (limit?: number) => Promise<void>
   setSelectedTurnId: (id: number | null) => void
   setSearchQuery: (query: string) => void
@@ -75,7 +76,11 @@ export const useAgentBrainStore = create<AgentBrainState>((set, get) => ({
     try {
       const result = await window.api.invoke('agent:clearUserMemory', { platform, userId })
       if (result.success) {
-        set({ selectedMemory: null, userConversations: [] })
+        // Only clear UI state if the cleared user matches the selected one
+        const selected = get().selectedMemory
+        if (selected?.platform === platform && selected?.platformUserId === userId) {
+          set({ selectedMemory: null, userConversations: [] })
+        }
       } else {
         set({ error: result.error })
       }

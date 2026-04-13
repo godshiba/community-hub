@@ -4,7 +4,6 @@ import {
   Target,
   BookOpen,
   Zap,
-  MessageSquare,
   User,
   Bot
 } from 'lucide-react'
@@ -148,7 +147,7 @@ function ActionRow({ action }: { action: AgentDecidedAction }): React.ReactEleme
   return (
     <div className="flex items-start gap-2 text-xs">
       <span className={`px-1.5 py-0.5 rounded text-[10px] shrink-0 ${typeColors[action.type] ?? 'text-text-muted bg-white/5'}`}>
-        {action.type.replace('_', ' ')}
+        {action.type.replace(/_/g, ' ')}
       </span>
       <div className="flex-1 min-w-0">
         {Object.keys(action.params).length > 0 && (
@@ -179,7 +178,7 @@ function IntentBadge({ intent }: { intent: string }): React.ReactElement {
 
   return (
     <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${colors[intent] ?? 'text-text-muted bg-white/5'}`}>
-      {intent.replace('_', ' ')}
+      {intent.replace(/_/g, ' ')}
     </span>
   )
 }
