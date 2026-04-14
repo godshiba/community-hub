@@ -81,9 +81,9 @@ export function EventForm(): React.ReactElement | null {
         await createEvent(payload)
       }
       resetAndClose()
-    } catch { /* error handled in store */ }
-
-    setSubmitting(false)
+    } catch { /* error handled in store */ } finally {
+      setSubmitting(false)
+    }
   }
 
   function toggleReminder(offset: ReminderOffset): void {

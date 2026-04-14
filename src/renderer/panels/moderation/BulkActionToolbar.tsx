@@ -56,7 +56,7 @@ export function BulkActionToolbar(): React.ReactElement | null {
     a.href = url
     a.download = `members-export-${count}.csv`
     a.click()
-    URL.revokeObjectURL(url)
+    setTimeout(() => URL.revokeObjectURL(url), 200)
   }
 
   const actionLabels: Record<string, { label: string; color: string; bg: string }> = {

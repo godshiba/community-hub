@@ -129,21 +129,21 @@ export const useAgentStore = create<AgentState>((set, get) => ({
   approveAction: async (id) => {
     const result = await window.api.invoke('agent:approve', { id })
     if (!result.success) set({ error: result.error ?? 'Failed to approve action' })
-    get().fetchActions()
-    get().fetchStatus()
+    await get().fetchActions()
+    await get().fetchStatus()
   },
 
   rejectAction: async (id) => {
     const result = await window.api.invoke('agent:reject', { id })
     if (!result.success) set({ error: result.error ?? 'Failed to reject action' })
-    get().fetchActions()
-    get().fetchStatus()
+    await get().fetchActions()
+    await get().fetchStatus()
   },
 
   editAction: async (id, output) => {
     const result = await window.api.invoke('agent:editAction', { id, output })
     if (!result.success) set({ error: result.error ?? 'Failed to edit action' })
-    get().fetchActions()
+    await get().fetchActions()
   },
 
   pause: async () => {
@@ -184,13 +184,15 @@ export const useAgentStore = create<AgentState>((set, get) => ({
   },
 
   savePattern: async (payload) => {
-    await window.api.invoke('agent:savePattern', payload)
-    get().fetchPatterns()
+    const result = await window.api.invoke('agent:savePattern', payload)
+    if (!result.success) set({ error: result.error ?? 'Failed to save pattern' })
+    await get().fetchPatterns()
   },
 
   deletePattern: async (id) => {
-    await window.api.invoke('agent:deletePattern', { id })
-    get().fetchPatterns()
+    const result = await window.api.invoke('agent:deletePattern', { id })
+    if (!result.success) set({ error: result.error ?? 'Failed to delete pattern' })
+    await get().fetchPatterns()
   },
 
   fetchAutomations: async () => {
@@ -203,18 +205,21 @@ export const useAgentStore = create<AgentState>((set, get) => ({
   },
 
   saveAutomation: async (payload) => {
-    await window.api.invoke('agent:saveAutomation', payload)
-    get().fetchAutomations()
+    const result = await window.api.invoke('agent:saveAutomation', payload)
+    if (!result.success) set({ error: result.error ?? 'Failed to save automation' })
+    await get().fetchAutomations()
   },
 
   deleteAutomation: async (id) => {
-    await window.api.invoke('agent:deleteAutomation', { id })
-    get().fetchAutomations()
+    const result = await window.api.invoke('agent:deleteAutomation', { id })
+    if (!result.success) set({ error: result.error ?? 'Failed to delete automation' })
+    await get().fetchAutomations()
   },
 
   toggleAutomation: async (id, enabled) => {
-    await window.api.invoke('agent:toggleAutomation', { id, enabled })
-    get().fetchAutomations()
+    const result = await window.api.invoke('agent:toggleAutomation', { id, enabled })
+    if (!result.success) set({ error: result.error ?? 'Failed to toggle automation' })
+    await get().fetchAutomations()
   },
 
   testProvider: async () => {

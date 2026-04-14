@@ -267,31 +267,6 @@ export function getRecentConversations(
   return rows.map(rowToTurn)
 }
 
-export function getActiveUsers(
-  since: string,
-  limit = 50
-): readonly UserMemory[] {
-  const db = getDatabase()
-  const rows = db.prepare(`
-    SELECT * FROM user_memory
-    WHERE last_interaction >= ?
-    ORDER BY last_interaction DESC
-    LIMIT ?
-  `).all(since, limit) as UserMemoryRow[]
-  return rows.map(rowToMemory)
-}
-
-export function countTurns(
-  platform: Platform,
-  userId: string
-): number {
-  const db = getDatabase()
-  const row = db.prepare(`
-    SELECT COUNT(*) as cnt FROM conversation_turns
-    WHERE platform = ? AND platform_user_id = ?
-  `).get(platform, userId) as { cnt: number }
-  return row.cnt
-}
 
 export function getOldestTurns(
   platform: Platform,

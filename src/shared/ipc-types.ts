@@ -65,7 +65,6 @@ import type {
 } from './agent-types'
 import type {
   ReportConfig,
-  ReportData,
   SavedReport,
   ReportExportResult
 } from './reports-types'

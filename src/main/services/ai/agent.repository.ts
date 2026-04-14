@@ -96,12 +96,20 @@ function rowToPattern(row: PatternRow): AgentPattern {
   }
 }
 
+function safeParseJson<T>(raw: string, fallback: T): T {
+  try {
+    return JSON.parse(raw) as T
+  } catch {
+    return fallback
+  }
+}
+
 function rowToAutomation(row: AutomationRow): AgentAutomation {
   return {
     id: row.id,
     name: row.name,
-    trigger: JSON.parse(row.trigger),
-    action: JSON.parse(row.action),
+    trigger: safeParseJson(row.trigger, { type: 'keyword', value: '' }),
+    action: safeParseJson(row.action, { type: 'reply', value: '' }),
     platform: row.platform as Platform | null,
     enabled: row.enabled === 1,
     lastTriggered: row.last_triggered,

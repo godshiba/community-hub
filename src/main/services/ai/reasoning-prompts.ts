@@ -75,29 +75,6 @@ Rules:
 - Set confidence based on how well you can answer: 1.0 = certain, 0.5 = moderate, 0.0 = guessing`
 
 /**
- * Build the classification prompt for intent detection.
- */
-export function buildClassificationPrompt(
-  message: string,
-  recentTurns: readonly { userMessage: string; agentResponse: string }[]
-): string {
-  const contextLines: string[] = []
-  if (recentTurns.length > 0) {
-    contextLines.push('Recent context:')
-    for (const turn of recentTurns.slice(-2)) {
-      contextLines.push(`User: ${turn.userMessage}`)
-      contextLines.push(`Agent: ${turn.agentResponse}`)
-    }
-  }
-
-  const context = contextLines.length > 0 ? contextLines.join('\n') + '\n' : ''
-
-  return `You classify community messages. Return ONLY valid JSON, no markdown.
-${context}Message: "${message}"
-Respond: { "intent": "question"|"request"|"complaint"|"greeting"|"follow_up"|"off_topic"|"feedback", "confidence": 0.0-1.0, "needsKnowledge": bool, "needsUserHistory": bool, "isUrgent": bool }`
-}
-
-/**
  * Build the summary prompt for conversation compaction.
  */
 export function buildSummaryPrompt(

@@ -167,7 +167,7 @@ export function getEvents(filter: EventsFilter): readonly CommunityEvent[] {
   const params: unknown[] = []
 
   if (filter.status === 'upcoming') {
-    conditions.push("event_date >= datetime('now')")
+    conditions.push("event_date >= date('now')")
     conditions.push("status NOT IN ('cancelled', 'completed')")
   } else if (filter.status === 'past') {
     conditions.push("(event_date < datetime('now') OR status IN ('completed', 'cancelled'))")
@@ -303,11 +303,20 @@ export function markReminderSent(id: number): void {
 // Export
 // ---------------------------------------------------------------------------
 
+/** Escape a value for RFC 4180 CSV (prevents CSV injection) */
+function csvField(value: unknown): string {
+  const str = String(value ?? '')
+  if (str.includes(',') || str.includes('"') || str.includes('\n') || /^[=+\-@\t\r]/.test(str)) {
+    return `"${str.replace(/"/g, '""')}"`
+  }
+  return str
+}
+
 export function exportAttendees(eventId: number): ExportAttendeesResult {
   const rsvps = getRSVPs(eventId)
   const header = 'id,event_id,user_id,username,platform,response,responded_at'
   const lines = rsvps.map((r) =>
-    [r.id, r.eventId, r.userId, r.username, r.platform, r.response, r.respondedAt].join(',')
+    [r.id, r.eventId, csvField(r.userId), csvField(r.username), r.platform, r.response, r.respondedAt].join(',')
   )
 
   return {

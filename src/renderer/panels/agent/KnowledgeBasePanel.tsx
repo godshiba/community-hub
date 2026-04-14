@@ -56,14 +56,16 @@ export function KnowledgeBasePanel(): React.ReactElement {
     [search, clearSearch]
   )
 
-  const handleSave = (payload: KnowledgeEntryPayload): void => {
-    if (editingEntry) {
-      updateEntry(editingEntry.id, payload)
-    } else {
-      createEntry(payload)
-    }
-    setShowForm(false)
-    setEditingEntry(null)
+  const handleSave = async (payload: KnowledgeEntryPayload): Promise<void> => {
+    try {
+      if (editingEntry) {
+        await updateEntry(editingEntry.id, payload)
+      } else {
+        await createEntry(payload)
+      }
+      setShowForm(false)
+      setEditingEntry(null)
+    } catch { /* error handled in store */ }
   }
 
   const handleEdit = (entry: KnowledgeEntry): void => {

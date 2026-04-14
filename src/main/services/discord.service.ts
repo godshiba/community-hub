@@ -175,7 +175,6 @@ export class DiscordService implements PlatformService {
         }
       } catch (err: unknown) {
         console.error(`[Discord] fetchMembers failed for guild ${guild.name}:`, err instanceof Error ? err.message : err)
-        throw err
       }
     }
     return members
@@ -409,6 +408,17 @@ export class DiscordService implements PlatformService {
       try {
         modRepo.upsertMember('discord', member.user.id, member.user.username, member.joinedAt?.toISOString() ?? null)
       } catch { /* DB may not be ready */ }
+      // Forward to agent callbacks
+      for (const cb of this._newMemberCallbacks) {
+        try {
+          cb({
+            platform: 'discord',
+            channelId: member.guild.systemChannelId ?? '',
+            userId: member.user.id,
+            username: member.user.username
+          })
+        } catch { /* callback error should not break event loop */ }
+      }
     })
 
     this.client.on(Events.GuildMemberRemove, (member) => {
@@ -449,20 +459,7 @@ export class DiscordService implements PlatformService {
       }
     })
 
-    // Forward new member events to agent callbacks
-    this.client.on(Events.GuildMemberAdd, (member: GuildMember) => {
-      if (member.user.bot) return
-      for (const cb of this._newMemberCallbacks) {
-        try {
-          cb({
-            platform: 'discord',
-            channelId: member.guild.systemChannelId ?? '',
-            userId: member.user.id,
-            username: member.user.username
-          })
-        } catch { /* callback error should not break event loop */ }
-      }
-    })
+    // Note: GuildMemberAdd new-member callbacks are handled in the handler above
 
     // Interaction handler for slash commands — owner-only
     this.client.on(Events.InteractionCreate, async (interaction) => {

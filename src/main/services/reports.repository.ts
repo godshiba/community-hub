@@ -60,14 +60,21 @@ function computeGrowth(
   const { prevStart, prevEnd } = previousPeriod(start, end)
   const { clause, params } = platformClause(config.platformFilter)
 
+  // SUM the latest member_count per platform to get total across platforms
   const currentRow = db.prepare(`
-    SELECT MAX(metric_value) as value FROM platform_stats
-    WHERE metric_name = 'member_count' AND timestamp BETWEEN ? AND ? ${clause}
+    SELECT COALESCE(SUM(latest_value), 0) as value FROM (
+      SELECT MAX(metric_value) as latest_value FROM platform_stats
+      WHERE metric_name = 'member_count' AND timestamp BETWEEN ? AND ? ${clause}
+      GROUP BY platform
+    )
   `).get(start, end, ...params) as Row<{ value: number }>
 
   const prevRow = db.prepare(`
-    SELECT MAX(metric_value) as value FROM platform_stats
-    WHERE metric_name = 'member_count' AND timestamp BETWEEN ? AND ? ${clause}
+    SELECT COALESCE(SUM(latest_value), 0) as value FROM (
+      SELECT MAX(metric_value) as latest_value FROM platform_stats
+      WHERE metric_name = 'member_count' AND timestamp BETWEEN ? AND ? ${clause}
+      GROUP BY platform
+    )
   `).get(prevStart, prevEnd, ...params) as Row<{ value: number }>
 
   const current = currentRow?.value ?? 0
@@ -129,8 +136,11 @@ function computeEngagement(
   const { clause, params } = platformClause(config.platformFilter)
 
   const membersRow = db.prepare(`
-    SELECT MAX(metric_value) as value FROM platform_stats
-    WHERE metric_name = 'member_count' AND timestamp BETWEEN ? AND ? ${clause}
+    SELECT COALESCE(SUM(latest_value), 0) as value FROM (
+      SELECT MAX(metric_value) as latest_value FROM platform_stats
+      WHERE metric_name = 'member_count' AND timestamp BETWEEN ? AND ? ${clause}
+      GROUP BY platform
+    )
   `).get(start, end, ...params) as Row<{ value: number }>
 
   const onlineRow = db.prepare(`
@@ -184,13 +194,13 @@ function computeRetention(
   const db = getDatabase()
   const { clause, params } = platformClause(config.platformFilter)
 
-  // Members at start of period
+  // Members at start of period (joined before start, still active)
   const startRow = db.prepare(`
     SELECT COUNT(*) as count FROM community_members
-    WHERE join_date <= ? ${clause}
+    WHERE join_date <= ? AND status NOT IN ('left', 'banned') ${clause}
   `).get(start, ...params) as Row<{ count: number }>
 
-  // Members at end of period
+  // Members at end of period (all who joined by end)
   const endRow = db.prepare(`
     SELECT COUNT(*) as count FROM community_members
     WHERE join_date <= ? ${clause}
@@ -202,12 +212,19 @@ function computeRetention(
     WHERE join_date BETWEEN ? AND ? ${clause}
   `).get(start, end, ...params) as Row<{ count: number }>
 
+  // Retained = start-cohort members still active at end
+  const retainedRow = db.prepare(`
+    SELECT COUNT(*) as count FROM community_members
+    WHERE join_date <= ? AND status NOT IN ('left', 'banned') ${clause}
+  `).get(start, ...params) as Row<{ count: number }>
+
   const startUsers = startRow?.count ?? 0
   const endUsers = endRow?.count ?? 0
   const newUsers = newRow?.count ?? 0
+  const retained = retainedRow?.count ?? 0
 
   const retentionRate = startUsers > 0
-    ? ((endUsers - newUsers) / startUsers) * 100
+    ? (retained / startUsers) * 100
     : 100
   const churnRate = 100 - retentionRate
 

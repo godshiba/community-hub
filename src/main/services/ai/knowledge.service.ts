@@ -64,7 +64,7 @@ function bufferKey(platform: string, channelId: string): string {
   return `${platform}:${channelId}`
 }
 
-export function recordMessage(
+function recordMessage(
   platform: Platform,
   channelId: string,
   message: string
@@ -75,7 +75,7 @@ export function recordMessage(
   conversationBuffer.set(key, updated)
 }
 
-export function getRecentContext(
+function getRecentContext(
   platform: Platform,
   channelId: string
 ): readonly string[] {
@@ -175,20 +175,3 @@ export function buildKnowledgeContextBlock(
   return parts.join('\n')
 }
 
-/**
- * Calculate a graduated confidence boost based on search result quality.
- * Higher rank = better FTS5 BM25 match = more confident the answer is grounded.
- */
-export function calculateKnowledgeConfidenceBoost(
-  resultCount: number,
-  topRank: number
-): number {
-  if (resultCount === 0) return 0
-
-  // Multiple strong matches = high confidence
-  if (resultCount >= 3 && topRank > 2) return 0.25
-  if (resultCount >= 2 && topRank > 1) return 0.2
-  if (topRank > 2) return 0.15
-  if (topRank > 0.5) return 0.1
-  return 0.05
-}

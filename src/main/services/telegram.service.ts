@@ -158,7 +158,6 @@ export class TelegramService implements PlatformService {
         }
       } catch (err: unknown) {
         console.error(`[Telegram] fetchMembers failed for chat ${chatId}:`, err instanceof Error ? err.message : err)
-        throw err
       }
     }
     return members
@@ -172,13 +171,16 @@ export class TelegramService implements PlatformService {
     const userId = Number(platformUserId)
     if (isNaN(userId)) throw new Error(`Invalid Telegram user ID: ${platformUserId}`)
 
+    let successCount = 0
     for (const [chatId] of this._trackedChats.entries()) {
       try {
         await this.bot.telegram.banChatMember(chatId, userId)
-        return
+        successCount++
       } catch { /* user may not be in this chat */ }
     }
-    throw new Error(`Could not ban user ${platformUserId} — not found in any tracked chat`)
+    if (successCount === 0) {
+      throw new Error(`Could not ban user ${platformUserId} — not found in any tracked chat`)
+    }
   }
 
   async muteUser(platformUserId: string, durationMinutes: number, channelId?: string): Promise<void> {
@@ -192,16 +194,19 @@ export class TelegramService implements PlatformService {
     const untilDate = Math.floor(Date.now() / 1000) + durationMinutes * 60
     const chatIds = channelId ? [Number(channelId)] : [...this._trackedChats.keys()]
 
+    let muteSuccess = 0
     for (const chatId of chatIds) {
       try {
         await this.bot.telegram.restrictChatMember(chatId, userId, {
           permissions: { can_send_messages: false, can_send_other_messages: false, can_add_web_page_previews: false },
           until_date: untilDate
         })
-        return
+        muteSuccess++
       } catch { /* user may not be in this chat */ }
     }
-    throw new Error(`Could not mute user ${platformUserId}`)
+    if (muteSuccess === 0) {
+      throw new Error(`Could not mute user ${platformUserId}`)
+    }
   }
 
   async deleteMessage(channelId: string, messageId: string): Promise<void> {
@@ -224,15 +229,18 @@ export class TelegramService implements PlatformService {
     const userId = Number(platformUserId)
     if (isNaN(userId)) throw new Error(`Invalid Telegram user ID: ${platformUserId}`)
 
+    let kickSuccess = 0
     for (const [chatId] of this._trackedChats.entries()) {
       try {
         // Ban then immediately unban = kick (Telegram has no direct kick API)
         await this.bot.telegram.banChatMember(chatId, userId)
         await this.bot.telegram.unbanChatMember(chatId, userId)
-        return
+        kickSuccess++
       } catch { /* user may not be in this chat */ }
     }
-    throw new Error(`Could not kick user ${platformUserId} — not found in any tracked chat`)
+    if (kickSuccess === 0) {
+      throw new Error(`Could not kick user ${platformUserId} — not found in any tracked chat`)
+    }
   }
 
   async fetchRoles(): Promise<{ id: string; name: string; color: string | null; position: number }[]> {
@@ -256,6 +264,7 @@ export class TelegramService implements PlatformService {
     const userId = Number(platformUserId)
     if (isNaN(userId)) throw new Error(`Invalid Telegram user ID: ${platformUserId}`)
 
+    let assignSuccess = 0
     for (const [chatId] of this._trackedChats.entries()) {
       try {
         if (roleId === 'admin') {
@@ -264,11 +273,14 @@ export class TelegramService implements PlatformService {
             can_delete_messages: true,
             can_restrict_members: true
           })
+          assignSuccess++
         }
-        return
       } catch { /* user may not be in this chat */ }
     }
-    throw new Error(`Could not assign role to user ${platformUserId}`)
+    if (roleId !== 'admin') return // non-admin roles are no-ops on Telegram
+    if (assignSuccess === 0) {
+      throw new Error(`Could not assign role to user ${platformUserId}`)
+    }
   }
 
   async removeRole(platformUserId: string, roleId: string): Promise<void> {
@@ -279,6 +291,7 @@ export class TelegramService implements PlatformService {
     const userId = Number(platformUserId)
     if (isNaN(userId)) throw new Error(`Invalid Telegram user ID: ${platformUserId}`)
 
+    let removeSuccess = 0
     for (const [chatId] of this._trackedChats.entries()) {
       try {
         if (roleId === 'admin') {
@@ -287,11 +300,14 @@ export class TelegramService implements PlatformService {
             can_delete_messages: false,
             can_restrict_members: false
           })
+          removeSuccess++
         }
-        return
       } catch { /* user may not be in this chat */ }
     }
-    throw new Error(`Could not remove role from user ${platformUserId}`)
+    if (roleId !== 'admin') return
+    if (removeSuccess === 0) {
+      throw new Error(`Could not remove role from user ${platformUserId}`)
+    }
   }
 
   async unbanUser(platformUserId: string): Promise<void> {
@@ -302,13 +318,16 @@ export class TelegramService implements PlatformService {
     const userId = Number(platformUserId)
     if (isNaN(userId)) throw new Error(`Invalid Telegram user ID: ${platformUserId}`)
 
+    let unbanSuccess = 0
     for (const [chatId] of this._trackedChats.entries()) {
       try {
         await this.bot.telegram.unbanChatMember(chatId, userId)
-        return
+        unbanSuccess++
       } catch { /* user may not be banned in this chat */ }
     }
-    throw new Error(`Could not unban user ${platformUserId}`)
+    if (unbanSuccess === 0) {
+      throw new Error(`Could not unban user ${platformUserId}`)
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -366,10 +385,10 @@ export class TelegramService implements PlatformService {
   // Bot command handlers
   // ---------------------------------------------------------------------------
 
-  /** Check if a Telegram user is the bot owner */
+  /** Check if a Telegram user is the bot owner — fail closed when unconfigured */
   private isOwner(userId: number): boolean {
     const ownerId = getEnv('OWNER_TELEGRAM_ID')
-    if (!ownerId) return true // no owner configured = allow all
+    if (!ownerId) return false
     return String(userId) === ownerId.trim()
   }
 

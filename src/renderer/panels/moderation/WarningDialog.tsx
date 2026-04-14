@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { GlassModal } from '@/components/glass/GlassModal'
 import { useModerationStore } from '@/stores/moderation.store'
 
@@ -11,6 +11,11 @@ export function WarningDialog({ memberId, onClose }: WarningDialogProps): React.
   const { warnMember } = useModerationStore()
   const [reason, setReason] = useState('')
   const [submitting, setSubmitting] = useState(false)
+
+  // Reset reason when dialog opens for a new member
+  useEffect(() => {
+    if (memberId !== null) setReason('')
+  }, [memberId])
 
   async function handleSubmit(): Promise<void> {
     if (!memberId || !reason.trim()) return

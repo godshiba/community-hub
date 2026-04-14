@@ -309,12 +309,21 @@ export function markAbsentMembersAsLeft(platform: string, activePlatformUserIds:
 // Export
 // ---------------------------------------------------------------------------
 
+/** Escape a value for RFC 4180 CSV (prevents CSV injection) */
+function csvField(value: unknown): string {
+  const str = String(value ?? '')
+  if (str.includes(',') || str.includes('"') || str.includes('\n') || /^[=+\-@\t\r]/.test(str)) {
+    return `"${str.replace(/"/g, '""')}"`
+  }
+  return str
+}
+
 export function exportMembers(filter: MembersFilter): ExportResult {
   const { members } = getMembers({ ...filter, page: 1, pageSize: 10000 })
 
   const header = 'id,username,platform,platform_user_id,status,reputation_score,warnings_count,join_date,last_activity'
   const lines = members.map((m) =>
-    [m.id, m.username, m.platform, m.platformUserId, m.status, m.reputationScore, m.warningsCount, m.joinDate ?? '', m.lastActivity ?? ''].join(',')
+    [m.id, csvField(m.username), m.platform, csvField(m.platformUserId), m.status, m.reputationScore, m.warningsCount, m.joinDate ?? '', m.lastActivity ?? ''].join(',')
   )
 
   return {
