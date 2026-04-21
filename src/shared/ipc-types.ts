@@ -103,6 +103,7 @@ import type {
   MemoryStats,
   MemoryUserEntry
 } from './agent-brain-types'
+import type { PlatformName } from './system-types'
 
 /**
  * Master IPC contract. Every channel is typed here.
@@ -266,6 +267,11 @@ export interface IpcContract {
   'agent:runCompaction': { request: void; response: { compacted: number } }
   'agent:getBrainConfig': { request: void; response: BrainConfig }
   'agent:updateBrainConfig': { request: Partial<BrainConfig>; response: BrainConfig }
+
+  // System bridge — Phase 0 (UI upgrade)
+  'system:getAccentColor': { request: void; response: string | null }
+  'system:getUserLocale': { request: void; response: string }
+  'system:getPlatform': { request: void; response: PlatformName }
 }
 
 export type IpcChannel = keyof IpcContract
