@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import { TitleBar } from '@/components/layout/TitleBar'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { PanelContainer } from '@/components/layout/PanelContainer'
@@ -7,7 +7,19 @@ import { ToastContainer } from '@/components/shared/ToastContainer'
 import { CommandPalette } from '@/components/shared/CommandPalette'
 import { usePanelStore } from '@/stores/panel.store'
 import { useAgentStore } from '@/stores/agent.store'
+import { useSystemAccent } from '@/hooks/useSystemAccent'
+import { useWindowActive } from '@/hooks/useWindowActive'
+import { DevPreview } from '@/dev/DevPreview'
 import type { PanelId } from '@shared/types'
+
+function subscribeHash(cb: () => void): () => void {
+  window.addEventListener('hashchange', cb)
+  return () => window.removeEventListener('hashchange', cb)
+}
+function getHash(): string { return window.location.hash }
+function useHash(): string {
+  return useSyncExternalStore(subscribeHash, getHash, () => '')
+}
 
 const PANEL_ORDER: PanelId[] = [
   'dashboard', 'agent', 'scheduler', 'moderation', 'events', 'reports', 'settings'
@@ -17,8 +29,16 @@ export function App(): React.ReactElement {
   const { setActivePanel, goBack, closeSecondary, secondaryPanel } = usePanelStore()
   const fetchAgentStatus = useAgentStore((s) => s.fetchStatus)
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
+  const hash = useHash()
+
+  useSystemAccent()
+  useWindowActive()
 
   useEffect(() => { fetchAgentStatus() }, [])
+
+  if (import.meta.env.DEV && hash === '#/dev') {
+    return <DevPreview />
+  }
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent): void => {
