@@ -30,15 +30,19 @@ import { evaluatePolicy, executePolicyAction } from './services/ai/content-polic
 import { executeContentAction } from './services/ai/content-mod.actions'
 import { getPolicy as getContentModPolicy } from './services/ai/content-moderation.repository'
 
+let mainWindow: BrowserWindow | null = null
+
 function createWindow(): void {
   const win = new BrowserWindow({
     width: 1280,
     height: 800,
-    minWidth: 960,
-    minHeight: 600,
+    minWidth: 920,
+    minHeight: 620,
     titleBarStyle: 'hiddenInset',
-    trafficLightPosition: { x: 12, y: 10 },
-    backgroundColor: '#0a0a0f',
+    trafficLightPosition: { x: 18, y: 18 },
+    backgroundColor: '#00000000',
+    vibrancy: 'under-window',
+    visualEffectState: 'followsWindowActiveState',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
@@ -47,11 +51,18 @@ function createWindow(): void {
     }
   })
 
+  mainWindow = win
+  win.on('closed', () => { mainWindow = null })
+
   if (process.env.ELECTRON_RENDERER_URL) {
     win.loadURL(process.env.ELECTRON_RENDERER_URL)
   } else {
     win.loadFile(join(__dirname, '../renderer/index.html'))
   }
+}
+
+export function getMainWindow(): BrowserWindow | null {
+  return mainWindow
 }
 
 app.whenReady().then(async () => {
