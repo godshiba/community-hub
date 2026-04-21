@@ -16,6 +16,7 @@ import { registerRoleHandlers } from './ipc/roles'
 import { registerContentModerationHandlers } from './ipc/content-moderation'
 import { registerKnowledgeHandlers } from './ipc/knowledge'
 import { registerAgentBrainHandlers } from './ipc/agent-brain'
+import { registerSystemHandlers, wireSystemEvents } from './ipc/system'
 import { checkMessage as checkSpam } from './services/spam/spam.engine'
 import { recordJoin as recordRaidJoin } from './services/spam/raid.detector'
 import { executeSpamAction, executeRaidActions } from './services/spam/raid.actions'
@@ -84,8 +85,12 @@ app.whenReady().then(async () => {
   registerContentModerationHandlers()
   registerKnowledgeHandlers()
   registerAgentBrainHandlers()
+  registerSystemHandlers()
   initAgentService()
   createWindow()
+
+  const win = getMainWindow()
+  if (win) wireSystemEvents(win)
 
   // Auto-connect platforms after window is up
   await manager.autoConnect()
