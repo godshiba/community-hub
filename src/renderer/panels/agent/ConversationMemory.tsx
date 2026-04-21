@@ -1,14 +1,22 @@
-import { useEffect, useState } from 'react'
-import { Search, User, Trash2, Clock, MessageSquare, Brain } from 'lucide-react'
+import { useEffect, useState, useCallback } from 'react'
+import { Search, User, Trash2, Clock, MessageSquare, Brain, Filter } from 'lucide-react'
 import { GlassCard } from '@/components/glass/GlassCard'
 import { useAgentBrainStore } from '@/stores/agent-brain.store'
 import { ReasoningInspector } from './ReasoningInspector'
-import type { ConversationTurn } from '@shared/agent-brain-types'
+import { FactEditor, SummaryEditor, MemoryStatsBar, TurnSelectionBar } from './MemoryEditors'
+import { UserRow, ConversationTurnRow } from './MemoryListItems'
+import type { IntentType, MemoryUserEntry } from '@shared/agent-brain-types'
+
+const INTENT_OPTIONS: readonly (IntentType | 'all')[] = [
+  'all', 'question', 'request', 'complaint', 'greeting', 'follow_up', 'off_topic', 'feedback'
+]
 
 export function ConversationMemory(): React.ReactElement {
   const {
     selectedMemory,
     memoryLoading,
+    memoryUsers,
+    memoryStats,
     userConversations,
     recentConversations,
     conversationsLoading,
@@ -17,21 +25,33 @@ export function ConversationMemory(): React.ReactElement {
     fetchUserMemory,
     fetchUserConversations,
     fetchRecentConversations,
+    fetchMemoryUsers,
+    fetchMemoryStats,
     clearUserMemory,
+    updateFacts,
+    updateSummary,
+    deleteTurns,
+    runCompaction,
     setSelectedTurnId,
     setSearchQuery
   } = useAgentBrainStore()
 
   const [searchInput, setSearchInput] = useState('')
   const [showConfirmClear, setShowConfirmClear] = useState(false)
+  const [intentFilter, setIntentFilter] = useState<IntentType | 'all'>('all')
+  const [selectedTurnIds, setSelectedTurnIds] = useState<ReadonlySet<number>>(new Set())
+  const [deleting, setDeleting] = useState(false)
+  const [compacting, setCompacting] = useState(false)
+  const [compactResult, setCompactResult] = useState<number | null>(null)
 
   useEffect(() => {
     fetchRecentConversations(30)
+    fetchMemoryUsers()
+    fetchMemoryStats()
   }, [])
 
   const handleSearch = (): void => {
     if (!searchInput.trim()) return
-    // Parse "platform:userId" format
     const parts = searchInput.split(':')
     if (parts.length === 2) {
       const [platform, userId] = parts
@@ -42,10 +62,47 @@ export function ConversationMemory(): React.ReactElement {
     }
   }
 
+  const handleUserSelect = (entry: MemoryUserEntry): void => {
+    fetchUserMemory(entry.platform, entry.platformUserId)
+    fetchUserConversations(entry.platform, entry.platformUserId)
+    setSearchQuery(`${entry.platform}:${entry.platformUserId}`)
+    setSelectedTurnIds(new Set())
+  }
+
   const handleClearMemory = async (): Promise<void> => {
     if (!selectedMemory) return
     await clearUserMemory(selectedMemory.platform, selectedMemory.platformUserId)
     setShowConfirmClear(false)
+  }
+
+  const handleToggleTurn = useCallback((turnId: number): void => {
+    setSelectedTurnIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(turnId)) {
+        next.delete(turnId)
+      } else {
+        next.add(turnId)
+      }
+      return next
+    })
+  }, [])
+
+  const handleDeleteTurns = async (): Promise<void> => {
+    if (selectedTurnIds.size === 0) return
+    setDeleting(true)
+    await deleteTurns([...selectedTurnIds])
+    setSelectedTurnIds(new Set())
+    setDeleting(false)
+  }
+
+  const handleCompact = async (): Promise<void> => {
+    setCompacting(true)
+    setCompactResult(null)
+    const result = await runCompaction()
+    if (result) {
+      setCompactResult(result.compacted)
+    }
+    setCompacting(false)
   }
 
   const selectedTurn = selectedTurnId
@@ -54,11 +111,43 @@ export function ConversationMemory(): React.ReactElement {
     : null
 
   const displayConversations = selectedMemory ? userConversations : recentConversations
+  const filteredConversations = intentFilter === 'all'
+    ? displayConversations
+    : displayConversations.filter((t) => t.intent === intentFilter)
 
   return (
     <div className="flex gap-3 h-full min-h-0">
-      {/* Left: Memory + Conversation List */}
-      <div className="w-1/2 flex flex-col gap-3 min-h-0">
+      {/* Left: Users + Memory + Conversations */}
+      <div className="w-1/2 flex flex-col gap-2 min-h-0">
+        {/* Stats Bar */}
+        {memoryStats && (
+          <MemoryStatsBar
+            totalUsers={memoryStats.totalUsers}
+            totalTurns={memoryStats.totalTurns}
+            averageTurnsPerUser={memoryStats.averageTurnsPerUser}
+            onCompact={handleCompact}
+            compacting={compacting}
+            compactResult={compactResult}
+          />
+        )}
+
+        {/* User List */}
+        {memoryUsers.length > 0 && (
+          <div className="max-h-32 overflow-y-auto border border-glass-border rounded bg-glass-surface">
+            {memoryUsers.map((entry) => (
+              <UserRow
+                key={entry.id}
+                entry={entry}
+                isActive={
+                  selectedMemory?.platform === entry.platform &&
+                  selectedMemory?.platformUserId === entry.platformUserId
+                }
+                onSelect={() => handleUserSelect(entry)}
+              />
+            ))}
+          </div>
+        )}
+
         {/* Search */}
         <div className="flex gap-2">
           <div className="relative flex-1">
@@ -139,29 +228,54 @@ export function ConversationMemory(): React.ReactElement {
               </div>
             )}
 
-            {selectedMemory.facts.length > 0 && (
-              <div className="space-y-1">
-                <div className="text-[10px] font-medium text-text-secondary flex items-center gap-1">
-                  <Brain className="size-2.5" />
-                  Learned Facts
-                </div>
-                <div className="flex flex-wrap gap-1">
-                  {selectedMemory.facts.map((fact, i) => (
-                    <span key={i} className="px-1.5 py-0.5 bg-accent/10 text-accent text-[10px] rounded">
-                      {fact}
-                    </span>
-                  ))}
-                </div>
+            {/* Editable Facts */}
+            <div className="space-y-1">
+              <div className="text-[10px] font-medium text-text-secondary flex items-center gap-1">
+                <Brain className="size-2.5" />
+                Learned Facts
               </div>
-            )}
+              <FactEditor
+                facts={selectedMemory.facts}
+                platform={selectedMemory.platform}
+                userId={selectedMemory.platformUserId}
+                onUpdate={updateFacts}
+              />
+            </div>
 
-            {selectedMemory.conversationSummary && (
-              <div className="text-[10px] text-text-muted bg-white/[0.03] rounded p-2">
-                <span className="font-medium text-text-secondary">Summary: </span>
-                {selectedMemory.conversationSummary}
-              </div>
-            )}
+            {/* Editable Summary */}
+            <SummaryEditor
+              summary={selectedMemory.conversationSummary}
+              platform={selectedMemory.platform}
+              userId={selectedMemory.platformUserId}
+              onUpdate={updateSummary}
+            />
           </GlassCard>
+        )}
+
+        {/* Intent Filter */}
+        <div className="flex items-center gap-2">
+          <Filter className="size-3 text-text-muted" />
+          <select
+            value={intentFilter}
+            onChange={(e) => setIntentFilter(e.target.value as IntentType | 'all')}
+            className="px-2 py-1 bg-glass-surface border border-glass-border rounded text-[10px] text-text-secondary focus:outline-none focus:ring-1 focus:ring-accent/50"
+          >
+            {INTENT_OPTIONS.map((opt) => (
+              <option key={opt} value={opt}>
+                {opt === 'all' ? 'All intents' : opt.replace(/_/g, ' ')}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Turn Selection Bar */}
+        {selectedTurnIds.size > 0 && (
+          <TurnSelectionBar
+            count={selectedTurnIds.size}
+            onDelete={handleDeleteTurns}
+            onClear={() => setSelectedTurnIds(new Set())}
+            deleting={deleting}
+          />
         )}
 
         {/* Conversation List */}
@@ -170,17 +284,19 @@ export function ConversationMemory(): React.ReactElement {
             <div className="flex items-center justify-center h-20 text-xs text-text-muted">
               Loading...
             </div>
-          ) : displayConversations.length === 0 ? (
+          ) : filteredConversations.length === 0 ? (
             <div className="flex items-center justify-center h-20 text-xs text-text-muted">
               {searchQuery ? 'No conversations found' : 'No recent conversations'}
             </div>
           ) : (
-            displayConversations.map((turn) => (
+            filteredConversations.map((turn) => (
               <ConversationTurnRow
                 key={turn.id}
                 turn={turn}
                 isSelected={turn.id === selectedTurnId}
+                isChecked={selectedTurnIds.has(turn.id)}
                 onSelect={() => setSelectedTurnId(turn.id)}
+                onToggleCheck={() => handleToggleTurn(turn.id)}
               />
             ))
           )}
@@ -195,73 +311,3 @@ export function ConversationMemory(): React.ReactElement {
   )
 }
 
-function ConversationTurnRow({
-  turn,
-  isSelected,
-  onSelect
-}: {
-  turn: ConversationTurn
-  isSelected: boolean
-  onSelect: () => void
-}): React.ReactElement {
-  return (
-    <div
-      onClick={onSelect}
-      className={`p-2.5 rounded cursor-pointer transition-colors ${
-        isSelected
-          ? 'bg-accent/10 border border-accent/20'
-          : 'hover:bg-white/[0.03] border border-transparent'
-      }`}
-    >
-      <div className="flex items-center justify-between mb-1">
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] text-text-muted capitalize">{turn.platform}</span>
-          {turn.intent && (
-            <IntentBadge intent={turn.intent} />
-          )}
-          {turn.confidence != null && (
-            <ConfidenceDot confidence={turn.confidence} />
-          )}
-        </div>
-        <span className="text-[10px] text-text-muted">
-          {new Date(turn.createdAt).toLocaleString()}
-        </span>
-      </div>
-      <div className="text-xs text-text-secondary truncate">{turn.userMessage}</div>
-      <div className="text-[10px] text-text-muted truncate mt-0.5">{turn.agentResponse}</div>
-    </div>
-  )
-}
-
-function IntentBadge({ intent }: { intent: string }): React.ReactElement {
-  const colors: Record<string, string> = {
-    question: 'text-blue-400 bg-blue-400/10',
-    request: 'text-purple-400 bg-purple-400/10',
-    complaint: 'text-red-400 bg-red-400/10',
-    greeting: 'text-green-400 bg-green-400/10',
-    follow_up: 'text-yellow-400 bg-yellow-400/10',
-    off_topic: 'text-text-muted bg-white/5',
-    feedback: 'text-cyan-400 bg-cyan-400/10'
-  }
-
-  return (
-    <span className={`px-1.5 py-0.5 rounded text-[10px] ${colors[intent] ?? 'text-text-muted bg-white/5'}`}>
-      {intent.replace(/_/g, ' ')}
-    </span>
-  )
-}
-
-function ConfidenceDot({ confidence }: { confidence: number }): React.ReactElement {
-  const color = confidence >= 0.8
-    ? 'bg-green-400'
-    : confidence >= 0.5
-      ? 'bg-yellow-400'
-      : 'bg-red-400'
-
-  return (
-    <div className="flex items-center gap-1">
-      <div className={`size-1.5 rounded-full ${color}`} />
-      <span className="text-[10px] text-text-muted">{(confidence * 100).toFixed(0)}%</span>
-    </div>
-  )
-}

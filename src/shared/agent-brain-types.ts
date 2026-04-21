@@ -102,3 +102,66 @@ export interface AssembledContext {
   channelContext: string | null
   availableActions: string
 }
+
+// ---------------------------------------------------------------------------
+// Brain Configuration (admin-tunable settings)
+// ---------------------------------------------------------------------------
+
+export interface BrainConfig {
+  maxActionRounds: number
+  confidenceThreshold: number
+  maxFactsPerUser: number
+  maxContextChars: number
+  compactionTurnThreshold: number
+  compactionBatchSize: number
+  compactionIntervalHours: number
+  maxSummaryLength: number
+  enabledActions: Record<AgentDecidedActionType, boolean>
+  userBlacklist: readonly string[] // "platform:userId" pairs
+  customGreetingWords: readonly string[]
+  customFollowUpPatterns: readonly string[]
+}
+
+export const DEFAULT_BRAIN_CONFIG: BrainConfig = {
+  maxActionRounds: 2,
+  confidenceThreshold: 0.7,
+  maxFactsPerUser: 20,
+  maxContextChars: 12000,
+  compactionTurnThreshold: 50,
+  compactionBatchSize: 40,
+  compactionIntervalHours: 6,
+  maxSummaryLength: 2000,
+  enabledActions: {
+    search_knowledge: true,
+    lookup_member: true,
+    escalate: true,
+    assign_role: true,
+    create_reminder: true,
+    tag_moderator: true,
+    none: true
+  },
+  userBlacklist: [],
+  customGreetingWords: [],
+  customFollowUpPatterns: []
+}
+
+// ---------------------------------------------------------------------------
+// Memory Stats & User List
+// ---------------------------------------------------------------------------
+
+export interface MemoryStats {
+  totalUsers: number
+  totalTurns: number
+  lastCompactionAt: string | null
+  averageTurnsPerUser: number
+}
+
+export interface MemoryUserEntry {
+  id: number
+  platform: Platform
+  platformUserId: string
+  username: string
+  interactionCount: number
+  lastInteraction: string
+  factsCount: number
+}

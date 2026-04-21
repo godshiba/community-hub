@@ -91,7 +91,8 @@ export async function processMessage(
     ctx,
     provider,
     profile,
-    assembled
+    assembled,
+    intent
   )
 
   // If a search_knowledge or lookup_member action was taken, we may have a refined response
@@ -138,6 +139,12 @@ export async function processMessage(
 
 /**
  * Handle simple intents (greeting, off_topic) with a single LLM call.
+ *
+ * Trade-off: greetings skip the full reasoning pipeline (no fact extraction
+ * from memory_updates). A greeting like "Hey, I'm a Python dev from Spain"
+ * won't have facts extracted here — they are learned from subsequent
+ * substantive messages that go through the full reasoning path. This keeps
+ * the simple path fast and cheap (single LLM call, no action execution).
  */
 async function handleSimpleIntent(
   ctx: ConversationContext,
@@ -271,22 +278,24 @@ async function executeActions(
   ctx: ConversationContext,
   provider: AiProvider,
   profile: AgentProfile,
-  assembled: ReturnType<typeof assembleContext>
+  assembled: ReturnType<typeof assembleContext>,
+  intent: IntentClassification
 ): Promise<ActionExecutionResult> {
   const executedActions: AgentDecidedAction[] = []
   let refinedResponse: string | null = null
   const knowledgeEntryIds: number[] = []
+  // Counts only LLM re-calls (search_knowledge), not cheap DB operations
   let rounds = 0
 
   for (const action of actions) {
     if (action.type === 'none') continue
     if (rounds >= MAX_ACTION_ROUNDS) break
-    rounds++
 
     const executed = { ...action, params: { ...action.params } }
 
     switch (action.type) {
       case 'search_knowledge': {
+        rounds++
         const query = typeof action.params.query === 'string'
           ? action.params.query
           : ctx.message
@@ -296,8 +305,8 @@ async function executeActions(
         executed.result = `Found ${knowledge.entries.length} entries`
 
         if (knowledge.entries.length > 0) {
-          // Re-call LLM with knowledge appended
-          const enrichedPrompt = `${buildReasoningPrompt(profile, { ...assembled, knowledgeContext: knowledgeBlock }, { intent: 'question', confidence: 0.8, needsKnowledge: true, needsUserHistory: false, isUrgent: false })}`
+          // Re-call LLM with knowledge appended, preserving original intent classification
+          const enrichedPrompt = buildReasoningPrompt(profile, { ...assembled, knowledgeContext: knowledgeBlock }, intent)
           try {
             const raw = await provider.complete(enrichedPrompt, `[${ctx.platform}] ${ctx.username}: ${ctx.message}`)
             const refined = parseReasoningResult(raw)

@@ -4,7 +4,9 @@ import type {
   UserMemory,
   ConversationTurn,
   IntentType,
-  AgentDecidedAction
+  AgentDecidedAction,
+  MemoryStats,
+  MemoryUserEntry
 } from '@shared/agent-brain-types'
 
 // ---------------------------------------------------------------------------
@@ -292,6 +294,66 @@ export function deleteTurns(ids: readonly number[]): void {
     const chunk = ids.slice(i, i + chunkSize)
     const placeholders = chunk.map(() => '?').join(',')
     db.prepare(`DELETE FROM conversation_turns WHERE id IN (${placeholders})`).run(...chunk)
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Memory Management
+// ---------------------------------------------------------------------------
+
+interface MemoryUserRow {
+  id: number
+  platform: string
+  platform_user_id: string
+  username: string
+  interaction_count: number
+  last_interaction: string
+  facts_count: number
+}
+
+export function listMemoryUsers(
+  limit = 50,
+  offset = 0,
+  sortBy: 'interactions' | 'lastSeen' = 'lastSeen'
+): readonly MemoryUserEntry[] {
+  const db = getDatabase()
+  const orderClause =
+    sortBy === 'interactions'
+      ? 'interaction_count DESC'
+      : 'last_interaction DESC'
+  const rows = db.prepare(`
+    SELECT id, platform, platform_user_id, username,
+           interaction_count, last_interaction,
+           json_array_length(facts) AS facts_count
+    FROM user_memory
+    ORDER BY ${orderClause}
+    LIMIT ? OFFSET ?
+  `).all(limit, offset) as MemoryUserRow[]
+
+  return rows.map((r) => ({
+    id: r.id,
+    platform: r.platform as Platform,
+    platformUserId: r.platform_user_id,
+    username: r.username,
+    interactionCount: r.interaction_count,
+    lastInteraction: r.last_interaction,
+    factsCount: r.facts_count
+  }))
+}
+
+export function getMemoryStats(): MemoryStats {
+  const db = getDatabase()
+  const userCount = (
+    db.prepare('SELECT COUNT(*) AS cnt FROM user_memory').get() as { cnt: number }
+  ).cnt
+  const turnCount = (
+    db.prepare('SELECT COUNT(*) AS cnt FROM conversation_turns').get() as { cnt: number }
+  ).cnt
+  return {
+    totalUsers: userCount,
+    totalTurns: turnCount,
+    lastCompactionAt: null,
+    averageTurnsPerUser: userCount > 0 ? Math.round((turnCount / userCount) * 10) / 10 : 0
   }
 }
 

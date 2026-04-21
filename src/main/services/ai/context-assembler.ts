@@ -137,25 +137,20 @@ function buildConversationHistory(
 }
 
 function buildAvailableActions(intent: IntentClassification): string {
+  // Always available: search, lookup, escalation, moderator tag, and no-op
   const actions: string[] = [
     '- search_knowledge: { "query": "..." } - search for more information',
-    '- lookup_member: {} - get this user\'s full community profile'
+    '- lookup_member: {} - get this user\'s full community profile',
+    '- escalate: { "reason": "..." } - escalate to a human moderator',
+    '- tag_moderator: { "reason": "..." } - ping a moderator in channel'
   ]
 
-  if (intent.isUrgent || intent.intent === 'complaint') {
-    actions.push('- escalate: { "reason": "..." } - escalate to a human moderator')
-    actions.push('- tag_moderator: { "reason": "..." } - ping a moderator in channel')
-  }
-
+  // Request-specific actions
   if (intent.intent === 'request') {
     actions.push('- assign_role: { "role": "..." } - assign a role to this user')
     actions.push('- create_reminder: { "message": "...", "hours": N } - schedule a follow-up')
   }
 
-  // Always allow escalation and reminders
-  if (intent.intent !== 'complaint' && !intent.isUrgent) {
-    actions.push('- escalate: { "reason": "..." } - escalate to a human moderator')
-  }
   actions.push('- none - just respond, no action needed')
 
   return actions.join('\n')

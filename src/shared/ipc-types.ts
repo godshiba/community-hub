@@ -98,7 +98,10 @@ import type {
 } from './knowledge-types'
 import type {
   UserMemory,
-  ConversationTurn
+  ConversationTurn,
+  BrainConfig,
+  MemoryStats,
+  MemoryUserEntry
 } from './agent-brain-types'
 
 /**
@@ -253,6 +256,16 @@ export interface IpcContract {
   'agent:getUserConversations': { request: { platform: string; userId: string; limit?: number }; response: readonly ConversationTurn[] }
   'agent:clearUserMemory': { request: { platform: string; userId: string }; response: void }
   'agent:getRecentConversations': { request: { limit?: number }; response: readonly ConversationTurn[] }
+
+  // Agent Brain Management — Phase 5b+ (v1.5.2)
+  'agent:updateFacts': { request: { platform: string; userId: string; facts: readonly string[] }; response: void }
+  'agent:updateSummary': { request: { platform: string; userId: string; summary: string }; response: void }
+  'agent:deleteTurns': { request: { ids: readonly number[] }; response: void }
+  'agent:listMemoryUsers': { request: { limit?: number; offset?: number; sortBy?: 'interactions' | 'lastSeen' }; response: readonly MemoryUserEntry[] }
+  'agent:getMemoryStats': { request: void; response: MemoryStats }
+  'agent:runCompaction': { request: void; response: { compacted: number } }
+  'agent:getBrainConfig': { request: void; response: BrainConfig }
+  'agent:updateBrainConfig': { request: Partial<BrainConfig>; response: BrainConfig }
 }
 
 export type IpcChannel = keyof IpcContract

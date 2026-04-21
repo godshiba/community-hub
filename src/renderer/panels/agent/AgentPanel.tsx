@@ -10,6 +10,7 @@ import { ApprovalQueue } from './ApprovalQueue'
 import { ConversationThread } from './ConversationThread'
 import { KnowledgeBasePanel } from './KnowledgeBasePanel'
 import { ConversationMemory } from './ConversationMemory'
+import { BrainSettings } from './BrainSettings'
 
 export function AgentPanel(): React.ReactElement {
   const {
@@ -71,6 +72,7 @@ export function AgentPanel(): React.ReactElement {
           <TabsTrigger value="terminal">Terminal</TabsTrigger>
           <TabsTrigger value="knowledge">Knowledge Base</TabsTrigger>
           <TabsTrigger value="memory">Memory</TabsTrigger>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="terminal" className="flex-1 min-h-0 flex flex-col gap-3 mt-3">
@@ -114,6 +116,10 @@ export function AgentPanel(): React.ReactElement {
 
         <TabsContent value="memory" className="flex-1 min-h-0 mt-3">
           <ConversationMemory />
+        </TabsContent>
+
+        <TabsContent value="settings" className="flex-1 min-h-0 mt-3">
+          <BrainSettings />
         </TabsContent>
       </Tabs>
     </GlassPanel>

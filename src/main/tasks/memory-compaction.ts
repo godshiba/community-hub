@@ -16,6 +16,10 @@ const TURNS_TO_SUMMARIZE = 40
 /** Max users to compact per run */
 const MAX_USERS_PER_RUN = 10
 
+// TODO: Replace with BrainConfig.maxSummaryLength once brain-config service is available
+/** Maximum character length for conversation summaries */
+const MAX_SUMMARY_LENGTH = 2000
+
 export async function runCompaction(): Promise<number> {
   const agent = getAgentService()
   if (!agent.isActive() || !agent.provider) return 0
@@ -50,9 +54,22 @@ export async function runCompaction(): Promise<number> {
       // Get existing summary and append
       const memory = memoryRepo.getUserMemory(user.platform, user.platformUserId)
       const existingSummary = memory?.conversationSummary ?? ''
-      const newSummary = existingSummary
+      let newSummary = existingSummary
         ? `${existingSummary}\n\n${summary}`
         : summary
+
+      // Cap summary length to prevent unbounded growth
+      if (newSummary.length > MAX_SUMMARY_LENGTH) {
+        try {
+          newSummary = await agent.provider.complete(
+            'You compress conversation summaries. Keep the most important facts, topics, and user preferences. Output only the compressed summary, nothing else.',
+            `Compress this summary to under ${Math.floor(MAX_SUMMARY_LENGTH / 2)} characters:\n\n${newSummary}`
+          )
+        } catch {
+          // LLM re-summarization failed; hard-truncate to cap
+          newSummary = newSummary.slice(0, MAX_SUMMARY_LENGTH) + '...'
+        }
+      }
 
       // Update summary and delete old turns
       memoryRepo.updateSummary(user.platform, user.platformUserId, newSummary)
