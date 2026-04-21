@@ -1,42 +1,136 @@
 @import 'tailwindcss';
 
-/* --- Dark Obsidian Theme Tokens --- */
+/* ============================================================
+   Apple-Native Design Tokens (Phase 0 — ui-upgrade)
+   Source of truth: docs/plan-v1/ui-upgrade.md § Design Tokens
+   ============================================================ */
 
 @theme {
-  /* Background */
-  --color-obsidian: #0a0a0f;
-  --color-obsidian-light: #12121f;
+  /* --- Foreground --- */
+  --color-fg-primary: rgba(255, 255, 255, 0.92);
+  --color-fg-secondary: rgba(255, 255, 255, 0.62);
+  --color-fg-tertiary: rgba(255, 255, 255, 0.38);
+  --color-fg-disabled: rgba(255, 255, 255, 0.22);
+  --color-fg-inverted: oklch(0.15 0 0);
 
-  /* Accent */
-  --color-accent: #6366f1;
-  --color-accent-hover: #8b5cf6;
+  /* --- Surfaces (semi-opaque layers atop window vibrancy) --- */
+  --color-surface-window: transparent;
+  --color-surface-sidebar: rgba(255, 255, 255, 0.04);
+  --color-surface-inspector: rgba(255, 255, 255, 0.06);
+  --color-surface-card: rgba(255, 255, 255, 0.04);
+  --color-surface-card-raised: rgba(255, 255, 255, 0.08);
+  --color-surface-card-elevated: rgba(255, 255, 255, 0.12);
+  --color-surface-input: rgba(0, 0, 0, 0.20);
 
-  /* Semantic */
-  --color-success: #22c55e;
-  --color-warning: #f59e0b;
-  --color-error: #ef4444;
+  /* --- Dividers --- */
+  --color-divider: rgba(255, 255, 255, 0.08);
+  --color-divider-strong: rgba(255, 255, 255, 0.14);
 
-  /* Platform */
+  /* --- Accent (piped from main process; graphite fallback) --- */
+  --accent-system: #5E9BFF;
+  --accent-graphite: rgba(255, 255, 255, 0.5);
+  --color-accent: var(--accent-system);
+  --color-accent-fill: color-mix(in oklch, var(--color-accent) 18%, transparent);
+  --color-accent-fill-hover: color-mix(in oklch, var(--color-accent) 28%, transparent);
+  --color-accent-hover: color-mix(in oklch, var(--color-accent) 92%, white 8%);
+  --color-accent-fg-on-fill: #ffffff;
+
+  /* --- Semantic --- */
+  --color-success: oklch(0.72 0.17 148);
+  --color-warning: oklch(0.78 0.16 78);
+  --color-error: oklch(0.68 0.20 26);
+  --color-destructive: oklch(0.65 0.22 26);
+
+  /* --- Platform --- */
   --color-discord: #5865F2;
   --color-telegram: #26A5E4;
 
-  /* Text */
+  /* --- Radii --- */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  /* --- Spacing (4px base) --- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* --- Shadows --- */
+  --shadow-popover: 0 8px 32px rgba(0, 0, 0, 0.32), 0 2px 6px rgba(0, 0, 0, 0.18);
+  --shadow-modal: 0 24px 64px rgba(0, 0, 0, 0.4), 0 6px 12px rgba(0, 0, 0, 0.24);
+  --shadow-toast: 0 4px 16px rgba(0, 0, 0, 0.28);
+
+  /* --- Motion --- */
+  --ease-standard: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-decelerate: cubic-bezier(0, 0, 0, 1);
+  --ease-accelerate: cubic-bezier(0.4, 0, 1, 1);
+  --duration-instant: 80ms;
+  --duration-fast: 140ms;
+  --duration-standard: 220ms;
+  --duration-slow: 360ms;
+
+  /* --- Z-index scale --- */
+  --z-content: 0;
+  --z-sticky: 10;
+  --z-popover: 50;
+  --z-toast: 80;
+  --z-modal: 100;
+  --z-palette: 110;
+
+  /* --- Typography --- */
+  --font-sans: -apple-system, 'SF Pro Text', 'SF Pro Display', system-ui, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* --- Legacy tokens (kept until Phase 2 removes dependents) --- */
+  --color-obsidian: #0a0a0f;
+  --color-obsidian-light: #12121f;
+  --color-accent-hover-legacy: #8b5cf6;
   --color-text-primary: rgba(255, 255, 255, 0.87);
   --color-text-secondary: rgba(255, 255, 255, 0.50);
   --color-text-muted: rgba(255, 255, 255, 0.30);
-
-  /* Glass borders */
   --color-glass-border: rgba(255, 255, 255, 0.06);
   --color-glass-border-light: rgba(255, 255, 255, 0.08);
-
-  /* Radius */
   --radius-panel: 12px;
   --radius-card: 8px;
   --radius-input: 6px;
   --radius-badge: 4px;
 }
 
-/* --- Glass Surface Utilities (C.4: upgraded opacity scale) --- */
+/* Focus ring (keyboard-only) — not exposed via @theme because color-mix
+   at-var-ref fails in @theme; declare on :root instead. */
+:root {
+  --ring-focus: 0 0 0 3px color-mix(in oklch, var(--color-accent) 38%, transparent);
+  --ring-focus-inset: inset 0 0 0 2px var(--color-accent);
+}
+
+/* Graphite fallback: when system accent is "Graphite" the main process
+   returns null; useSystemAccent sets [data-accent="graphite"] on <html>. */
+html[data-accent='graphite'] {
+  --color-accent: var(--accent-graphite);
+}
+
+/* Reduced motion: collapse durations. Components still guard via useReducedMotion()
+   for Framer Motion springs. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-instant: 0ms;
+    --duration-fast: 0ms;
+    --duration-standard: 0ms;
+    --duration-slow: 0ms;
+  }
+}
+
+/* --- Legacy glass surface utilities (kept until Phase 2) --- */
 
 @utility bg-glass-surface {
   background: rgba(255, 255, 255, 0.04);
@@ -143,27 +237,25 @@ body,
   height: 100%;
   width: 100%;
   overflow: hidden;
-  background: linear-gradient(135deg, #0a0a0f 0%, #12121f 50%, #0a0a0f 100%);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  color: rgba(255, 255, 255, 0.87);
+  /* Transparent so NSVisualEffectView window vibrancy is visible. Legacy
+     gradient is preserved as a subtle fallback behind vibrancy for rare
+     cases where vibrancy is unavailable (non-darwin dev builds). */
+  background: transparent;
+  font-family: var(--font-sans);
+  color: var(--color-fg-primary);
+  font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Scrollbar styling */
-::-webkit-scrollbar {
-  width: 6px;
+/* Inactive-window dimming. Main process emits system:windowFocusChanged;
+   useWindowActive toggles this attribute. */
+html[data-window-inactive='true'] {
+  --color-accent: var(--color-fg-tertiary);
 }
 
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
+/* Scrollbar styling (will be replaced by overlay-style scrollbars in Phase 7) */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
