@@ -219,6 +219,10 @@ html[data-accent='graphite'] {
   to { opacity: 1; }
 }
 
+@keyframes button-spin {
+  to { transform: rotate(360deg); }
+}
+
 @keyframes skeleton-shimmer {
   0% { background-position: 100% 0; }
   100% { background-position: -100% 0; }
@@ -263,6 +267,75 @@ body,
    useWindowActive toggles this attribute. */
 html[data-window-inactive='true'] {
   --color-accent: var(--color-fg-tertiary);
+}
+
+/* --- ui-native Button variants (hover/press/focus need real pseudo-states) --- */
+
+.ui-native-button:focus-visible {
+  box-shadow: var(--ring-focus);
+}
+
+.ui-native-button:active:not(:disabled) {
+  transform: translateY(0.5px);
+}
+
+.ui-native-button--primary {
+  background: var(--color-accent);
+  color: var(--color-accent-fg-on-fill);
+  border-color: color-mix(in oklch, var(--color-accent) 70%, black);
+}
+.ui-native-button--primary:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+}
+.ui-native-button--primary:active:not(:disabled) {
+  background: color-mix(in oklch, var(--color-accent) 88%, black);
+}
+
+.ui-native-button--secondary {
+  background: var(--color-surface-card-raised);
+  color: var(--color-fg-primary);
+  border-color: var(--color-divider);
+}
+.ui-native-button--secondary:hover:not(:disabled) {
+  background: var(--color-surface-card-elevated);
+}
+.ui-native-button--secondary:active:not(:disabled) {
+  background: var(--color-surface-card);
+}
+
+.ui-native-button--plain {
+  background: transparent;
+  color: var(--color-fg-primary);
+}
+.ui-native-button--plain:hover:not(:disabled) {
+  background: var(--color-surface-card);
+}
+.ui-native-button--plain:active:not(:disabled) {
+  background: var(--color-surface-card-raised);
+}
+
+.ui-native-button--destructive {
+  background: var(--color-destructive);
+  color: #ffffff;
+  border-color: color-mix(in oklch, var(--color-destructive) 70%, black);
+}
+.ui-native-button--destructive:hover:not(:disabled) {
+  background: color-mix(in oklch, var(--color-destructive) 92%, white);
+}
+.ui-native-button--destructive:active:not(:disabled) {
+  background: color-mix(in oklch, var(--color-destructive) 88%, black);
+}
+
+.ui-native-button--icon {
+  background: transparent;
+  color: var(--color-fg-secondary);
+}
+.ui-native-button--icon:hover:not(:disabled) {
+  background: var(--color-surface-card-raised);
+  color: var(--color-fg-primary);
+}
+.ui-native-button--icon:active:not(:disabled) {
+  background: var(--color-surface-card);
 }
 
 /* Scrollbar styling (will be replaced by overlay-style scrollbars in Phase 7) */
