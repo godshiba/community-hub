@@ -269,6 +269,16 @@ html[data-window-inactive='true'] {
   --color-accent: var(--color-fg-tertiary);
 }
 
+/* --- ui-native Stepper (paired up/down buttons) --- */
+
+.ui-native-stepper-btn:hover:not(:disabled) {
+  background: var(--color-surface-card-elevated);
+  color: var(--color-fg-primary);
+}
+.ui-native-stepper-btn:active:not(:disabled) {
+  background: var(--color-surface-card);
+}
+
 /* --- ui-native form field (shared shell styling for inputs) --- */
 
 .ui-native-field:hover:not(:has(input:disabled)):not(:has(input:read-only)) {
