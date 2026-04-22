@@ -269,6 +269,12 @@ html[data-window-inactive='true'] {
   --color-accent: var(--color-fg-tertiary);
 }
 
+/* --- ui-native Toggle (Apple switch) --- */
+
+.ui-native-toggle:focus-visible {
+  box-shadow: var(--ring-focus);
+}
+
 /* --- ui-native Stepper (paired up/down buttons) --- */
 
 .ui-native-stepper-btn:hover:not(:disabled) {
