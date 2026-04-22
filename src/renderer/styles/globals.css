@@ -275,6 +275,15 @@ html[data-window-inactive='true'] {
   box-shadow: var(--ring-focus);
 }
 
+/* --- ui-native Checkbox --- */
+
+.ui-native-checkbox:focus-visible {
+  box-shadow: var(--ring-focus);
+}
+.ui-native-checkbox:hover:not(:disabled) {
+  border-color: var(--color-accent);
+}
+
 /* --- ui-native Stepper (paired up/down buttons) --- */
 
 .ui-native-stepper-btn:hover:not(:disabled) {
