@@ -269,6 +269,22 @@ html[data-window-inactive='true'] {
   --color-accent: var(--color-fg-tertiary);
 }
 
+/* --- ui-native form field (shared shell styling for inputs) --- */
+
+.ui-native-field:hover:not(:has(input:disabled)):not(:has(input:read-only)) {
+  border-color: var(--color-divider-strong);
+}
+
+.ui-native-field:focus-within {
+  border-color: var(--color-accent) !important;
+  box-shadow: var(--ring-focus), inset 0 1px 0 rgba(0,0,0,0.35) !important;
+}
+
+.ui-native-field--error:focus-within {
+  border-color: var(--color-error) !important;
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--color-error) 38%, transparent), inset 0 1px 0 rgba(0,0,0,0.35) !important;
+}
+
 /* --- ui-native Button variants (hover/press/focus need real pseudo-states) --- */
 
 .ui-native-button:focus-visible {
