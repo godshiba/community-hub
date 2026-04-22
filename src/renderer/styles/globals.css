@@ -284,6 +284,15 @@ html[data-window-inactive='true'] {
   border-color: var(--color-accent);
 }
 
+/* --- ui-native Radio --- */
+
+.ui-native-radio:focus-visible {
+  box-shadow: var(--ring-focus);
+}
+.ui-native-radio:hover:not(:disabled) {
+  border-color: var(--color-accent);
+}
+
 /* --- ui-native Stepper (paired up/down buttons) --- */
 
 .ui-native-stepper-btn:hover:not(:disabled) {
