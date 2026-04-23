@@ -305,6 +305,47 @@ html[data-window-inactive='true'] {
   color: var(--color-accent);
 }
 
+/* --- ui-native Menu (Context / Dropdown) --- */
+
+.ui-native-menu-item[data-highlighted] {
+  background: var(--color-accent-fill);
+}
+.ui-native-menu-item[data-highlighted][data-state='open'] {
+  background: var(--color-accent-fill);
+}
+.ui-native-menu-item[data-disabled] {
+  opacity: 0.38;
+  pointer-events: none;
+}
+
+/* --- ui-native ListRow --- */
+
+.ui-native-list-row:hover:not([data-disabled]):not([data-selected]) {
+  background: var(--color-surface-card);
+}
+.ui-native-list-row:focus-visible {
+  box-shadow: var(--ring-focus);
+}
+.ui-native-list-row[data-selected] {
+  background: var(--color-accent-fill);
+}
+
+/* --- ui-native Tooltip / Popover accessibility focus --- */
+
+.ui-native-tooltip-content:focus-visible,
+.ui-native-popover-content:focus-visible {
+  outline: none;
+}
+
+/* --- ui-native Disclosure --- */
+
+.ui-native-disclosure-trigger:hover:not(:disabled) {
+  background: var(--color-surface-card);
+}
+.ui-native-disclosure-trigger:focus-visible {
+  box-shadow: var(--ring-focus);
+}
+
 /* --- ui-native Slider --- */
 
 .ui-native-slider-thumb:focus-visible {
