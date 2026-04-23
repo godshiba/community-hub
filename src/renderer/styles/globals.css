@@ -346,6 +346,13 @@ html[data-window-inactive='true'] {
   box-shadow: var(--ring-focus);
 }
 
+/* --- ui-native ProgressBar --- */
+
+@keyframes ui-native-progress-indeterminate {
+  from { left: -40%; }
+  to { left: 100%; }
+}
+
 /* --- ui-native Slider --- */
 
 .ui-native-slider-thumb:focus-visible {
