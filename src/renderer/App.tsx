@@ -10,6 +10,7 @@ import { useAgentStore } from '@/stores/agent.store'
 import { useSystemAccent } from '@/hooks/useSystemAccent'
 import { useWindowActive } from '@/hooks/useWindowActive'
 import { DevPreview } from '@/dev/DevPreview'
+import { PrimitiveGallery } from '@/dev/PrimitiveGallery'
 import type { PanelId } from '@shared/types'
 
 function subscribeHash(cb: () => void): () => void {
@@ -38,6 +39,10 @@ export function App(): React.ReactElement {
 
   if (import.meta.env.DEV && hash === '#/dev') {
     return <DevPreview />
+  }
+
+  if (import.meta.env.DEV && hash === '#/dev/primitives') {
+    return <PrimitiveGallery />
   }
 
   useEffect(() => {
