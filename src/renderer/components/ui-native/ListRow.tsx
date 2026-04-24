@@ -91,7 +91,10 @@ export const ListRow = forwardRef<HTMLDivElement, ListRowProps>(function ListRow
     <div
       ref={ref}
       role={resolvedRole}
-      aria-selected={interactive ? selected : undefined}
+      aria-pressed={interactive && resolvedRole === 'button' ? selected : undefined}
+      aria-selected={
+        interactive && resolvedRole !== 'button' ? selected : undefined
+      }
       aria-disabled={disabled || undefined}
       data-selected={selected ? '' : undefined}
       data-disabled={disabled ? '' : undefined}

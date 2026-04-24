@@ -57,7 +57,7 @@ export const Avatar = memo(function Avatar({
   const showImage = src && !failed
 
   return (
-    <span className={className} style={wrapper} aria-label={name ?? 'Avatar'}>
+    <span className={className} style={wrapper} role="img" aria-label={name ?? 'Avatar'}>
       {showImage ? (
         <img
           src={src}
