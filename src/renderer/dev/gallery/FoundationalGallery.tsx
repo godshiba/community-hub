@@ -38,12 +38,12 @@ export function FoundationalGallery(): React.ReactElement {
       <GallerySection id="divider" title="Divider">
         <GalleryRow label="Hairline">
           <div style={{ width: 260 }}>
-            <Divider variant="hairline" />
+            <Divider weight="hairline" />
           </div>
         </GalleryRow>
         <GalleryRow label="Strong">
           <div style={{ width: 260 }}>
-            <Divider variant="strong" />
+            <Divider weight="strong" />
           </div>
         </GalleryRow>
         <GalleryRow label="Vertical">
@@ -64,8 +64,8 @@ export function FoundationalGallery(): React.ReactElement {
           <StatusDot tone="accent" />
         </GalleryRow>
         <GalleryRow label="Pulsing">
-          <StatusDot tone="success" pulsing />
-          <StatusDot tone="warning" pulsing />
+          <StatusDot tone="success" pulse />
+          <StatusDot tone="warning" pulse />
         </GalleryRow>
       </GallerySection>
 
@@ -111,9 +111,9 @@ export function FoundationalGallery(): React.ReactElement {
           <Avatar name="Carol Danvers" />
         </GalleryRow>
         <GalleryRow label="Sizes">
-          <Avatar name="Small" size="sm" />
-          <Avatar name="Medium" size="md" />
-          <Avatar name="Large" size="lg" />
+          <Avatar name="Small" size={20} />
+          <Avatar name="Medium" size={28} />
+          <Avatar name="Large" size={40} />
         </GalleryRow>
       </GallerySection>
 

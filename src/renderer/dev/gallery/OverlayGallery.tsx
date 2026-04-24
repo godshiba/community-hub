@@ -194,7 +194,7 @@ export function OverlayGallery(): React.ReactElement {
           }}
         >
           <ListRow
-            leading={<Avatar name="Alice Liddell" size="sm" />}
+            leading={<Avatar name="Alice Liddell" size={24} />}
             title="Alice Liddell"
             subtitle="alice@example.com"
             trailing={<Pill variant="discord">Discord</Pill>}
@@ -202,7 +202,7 @@ export function OverlayGallery(): React.ReactElement {
             onSelect={() => setSelected('row-1')}
           />
           <ListRow
-            leading={<Avatar name="Bob Ross" size="sm" />}
+            leading={<Avatar name="Bob Ross" size={24} />}
             title="Bob Ross"
             subtitle="painter since yesterday"
             trailing={<Pill variant="telegram">Telegram</Pill>}

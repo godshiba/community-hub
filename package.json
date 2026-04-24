@@ -55,6 +55,9 @@
   "devDependencies": {
     "@electron/rebuild": "^4.0.3",
     "@tailwindcss/vite": "^4.2.2",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^22.0.0",
     "@types/react": "^19.2.14",
@@ -65,6 +68,7 @@
     "electron-builder": "^25.1.8",
     "electron-vite": "^5.0.0",
     "eslint": "^10.1.0",
+    "happy-dom": "^20.9.0",
     "prettier": "^3.8.1",
     "tailwindcss": "^4.2.2",
     "typescript": "^5.7.0",

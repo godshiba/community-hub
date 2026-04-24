@@ -1,5 +1,4 @@
 import {
-  Activity,
   ArrowClockwise,
   ArrowLeft,
   ArrowsCounterClockwise,
@@ -13,8 +12,8 @@ import {
   CaretLeft,
   CaretRight,
   CaretUp,
-  Chart,
   ChartBar,
+  ChartLine,
   Check,
   CheckCircle,
   Clock,
@@ -39,6 +38,7 @@ import {
   Plug,
   PlugsConnected,
   Plus,
+  Pulse,
   Robot,
   ShieldCheck,
   ShieldSlash,
@@ -73,7 +73,7 @@ import type { Icon } from '@phosphor-icons/react'
  * name directly and delete the Lucide import.
  */
 export const IconMap = {
-  Activity,
+  Activity: Pulse,
   AlertCircle: WarningCircle,
   AlertTriangle: Warning,
   ArrowLeft,
@@ -95,7 +95,7 @@ export const IconMap = {
   Download,
   Eye,
   EyeOff: EyeSlash,
-  FileBarChart: Chart,
+  FileBarChart: ChartLine,
   FileText,
   Filter: Funnel,
   Flag: Tag,

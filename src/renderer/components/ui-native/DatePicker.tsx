@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
-import { DayPicker } from 'react-day-picker'
+import { DayPicker, type Matcher } from 'react-day-picker'
 import 'react-day-picker/style.css'
 import { cn } from '@renderer/lib/utils'
 import { Button } from './Button'
@@ -68,8 +68,8 @@ export function DatePicker({
     return formatDate(value, locale)
   }, [value, placeholder, locale])
 
-  const disabledMatcher = useMemo(() => {
-    const matchers: Array<{ before?: Date; after?: Date }> = []
+  const disabledMatcher = useMemo<Matcher[] | undefined>(() => {
+    const matchers: Matcher[] = []
     if (minDate) matchers.push({ before: minDate })
     if (maxDate) matchers.push({ after: maxDate })
     return matchers.length ? matchers : undefined

@@ -103,9 +103,9 @@ export function FormGallery(): React.ReactElement {
           <TextField value="Readonly" onChange={() => undefined} readOnly />
         </GalleryRow>
         <GalleryRow label="Sizes">
-          <TextField size="sm" value={text} onChange={(e) => setText(e.target.value)} />
-          <TextField size="md" value={text} onChange={(e) => setText(e.target.value)} />
-          <TextField size="lg" value={text} onChange={(e) => setText(e.target.value)} />
+          <TextField inputSize="sm" value={text} onChange={(e) => setText(e.target.value)} />
+          <TextField inputSize="md" value={text} onChange={(e) => setText(e.target.value)} />
+          <TextField inputSize="lg" value={text} onChange={(e) => setText(e.target.value)} />
         </GalleryRow>
       </GallerySection>
 

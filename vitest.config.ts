@@ -4,13 +4,12 @@ import { resolve } from 'path'
 export default defineConfig({
   test: {
     globals: true,
-    environment: 'node',
-    include: ['src/**/*.test.ts'],
     coverage: {
       provider: 'v8',
       include: [
         'src/main/services/**/*.ts',
-        'src/renderer/stores/**/*.ts'
+        'src/renderer/stores/**/*.ts',
+        'src/renderer/components/ui-native/**/*.{ts,tsx}'
       ],
       exclude: [
         'src/main/services/database.service.ts',
@@ -24,7 +23,8 @@ export default defineConfig({
         'src/main/services/ai/provider.interface.ts',
         'src/main/services/ai/provider.factory.ts',
         'src/main/services/ai/profile.service.ts',
-        'src/main/services/ai/prompts/**'
+        'src/main/services/ai/prompts/**',
+        'src/renderer/components/ui-native/**/*.test.tsx'
       ],
       thresholds: {
         statements: 80,
@@ -33,7 +33,26 @@ export default defineConfig({
         lines: 80
       }
     },
-    setupFiles: ['src/test/setup.ts']
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: 'node',
+          environment: 'node',
+          include: ['src/**/*.test.ts'],
+          setupFiles: ['src/test/setup.ts']
+        }
+      },
+      {
+        extends: true,
+        test: {
+          name: 'dom',
+          environment: 'happy-dom',
+          include: ['src/renderer/**/*.test.tsx'],
+          setupFiles: ['src/test/dom-setup.ts']
+        }
+      }
+    ]
   },
   resolve: {
     alias: {
