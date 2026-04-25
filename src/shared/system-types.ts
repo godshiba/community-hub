@@ -5,6 +5,18 @@
 
 export type PlatformName = 'darwin' | 'win32' | 'linux'
 
+export type MenuActionType =
+  | 'navigate'
+  | 'toggleSidebar'
+  | 'toggleInspector'
+  | 'openCommandPalette'
+  | 'syncNow'
+
+export interface MenuAction {
+  type: MenuActionType
+  payload?: string
+}
+
 /** Map of system events pushed from main to renderer. */
 export interface SystemEventMap {
   /** Accent color changed in System Settings. `null` = Graphite (multicolor). */
@@ -13,6 +25,8 @@ export interface SystemEventMap {
   'system:windowFocusChanged': boolean
   /** Fullscreen state changed. `true` = entered fullscreen. */
   'system:fullscreenChanged': boolean
+  /** App menu action dispatched from native menu bar. */
+  'menu:action': MenuAction
 }
 
 export type SystemEvent = keyof SystemEventMap
