@@ -5,8 +5,6 @@ describe('panel.store', () => {
   beforeEach(() => {
     usePanelStore.setState({
       activePanel: 'dashboard',
-      secondaryPanel: null,
-      splitRatio: 0.6,
       panelHistory: []
     })
   })
@@ -20,26 +18,6 @@ describe('panel.store', () => {
     const state = usePanelStore.getState()
     expect(state.activePanel).toBe('scheduler')
     expect(state.panelHistory).toEqual(['dashboard'])
-    expect(state.secondaryPanel).toBeNull()
-  })
-
-  it('opens and closes secondary panel', () => {
-    usePanelStore.getState().openSecondary('settings')
-    expect(usePanelStore.getState().secondaryPanel).toBe('settings')
-
-    usePanelStore.getState().closeSecondary()
-    expect(usePanelStore.getState().secondaryPanel).toBeNull()
-  })
-
-  it('clamps split ratio between 0.2 and 0.8', () => {
-    usePanelStore.getState().setSplitRatio(0.1)
-    expect(usePanelStore.getState().splitRatio).toBe(0.2)
-
-    usePanelStore.getState().setSplitRatio(0.95)
-    expect(usePanelStore.getState().splitRatio).toBe(0.8)
-
-    usePanelStore.getState().setSplitRatio(0.5)
-    expect(usePanelStore.getState().splitRatio).toBe(0.5)
   })
 
   it('goes back through history', () => {
@@ -63,11 +41,5 @@ describe('panel.store', () => {
       usePanelStore.getState().setActivePanel(i % 2 === 0 ? 'scheduler' : 'dashboard')
     }
     expect(usePanelStore.getState().panelHistory.length).toBeLessThanOrEqual(20)
-  })
-
-  it('closes secondary panel when switching active', () => {
-    usePanelStore.getState().openSecondary('settings')
-    usePanelStore.getState().setActivePanel('events')
-    expect(usePanelStore.getState().secondaryPanel).toBeNull()
   })
 })
