@@ -39,18 +39,18 @@ export function buildMenu(win: BrowserWindow): Menu {
         {
           label: 'New Post',
           accelerator: 'CmdOrCtrl+N',
-          click: () => send(win, { type: 'navigate', payload: 'scheduler' })
+          click: () => send(win, { type: 'newPost' })
         },
         {
           label: 'New Event',
           accelerator: 'Shift+CmdOrCtrl+N',
-          click: () => send(win, { type: 'navigate', payload: 'events' })
+          click: () => send(win, { type: 'newEvent' })
         },
         { type: 'separator' },
         {
           label: 'Generate Report...',
           accelerator: 'CmdOrCtrl+R',
-          click: () => send(win, { type: 'navigate', payload: 'reports' })
+          click: () => send(win, { type: 'generateReport' })
         },
         {
           label: 'Sync Now',
@@ -117,7 +117,7 @@ export function buildMenu(win: BrowserWindow): Menu {
         {
           label: 'Keyboard Shortcuts',
           accelerator: 'CmdOrCtrl+/',
-          click: () => send(win, { type: 'openCommandPalette' })
+          click: () => send(win, { type: 'openShortcutsSheet' })
         }
       ]
     }

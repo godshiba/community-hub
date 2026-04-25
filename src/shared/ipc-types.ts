@@ -26,6 +26,7 @@ import type {
   MembersFilter,
   MembersPage,
   MemberDetail,
+  CommunityMember,
   WarnPayload,
   BanPayload,
   NotePayload,
@@ -141,6 +142,7 @@ export interface IpcContract {
   'moderation:updateNotes': { request: NotePayload; response: void }
   'moderation:syncMembers': { request: void; response: { synced: number } }
   'moderation:exportMembers': { request: MembersFilter; response: ModerationExportResult }
+  'moderation:searchMembers': { request: { query: string; limit?: number }; response: readonly CommunityMember[] }
 
   // Events — typed in Phase 6
   'events:create': { request: EventPayload; response: CommunityEvent }

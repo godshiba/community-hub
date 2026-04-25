@@ -10,7 +10,12 @@ export type MenuActionType =
   | 'toggleSidebar'
   | 'toggleInspector'
   | 'openCommandPalette'
+  | 'openShortcutsSheet'
   | 'syncNow'
+  | 'newPost'
+  | 'newEvent'
+  | 'generateReport'
+  | 'focusSearch'
 
 export interface MenuAction {
   type: MenuActionType

@@ -107,6 +107,11 @@ export function registerModerationHandlers(): void {
   registerHandler('moderation:exportMembers', (filter) => {
     return repo.exportMembers(filter)
   })
+
+  registerHandler('moderation:searchMembers', ({ query, limit = 8 }) => {
+    const page = repo.getMembers({ search: query, page: 1, pageSize: limit })
+    return page.members
+  })
 }
 
 // ---------------------------------------------------------------------------

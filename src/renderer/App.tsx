@@ -1,6 +1,8 @@
 import { useState, useSyncExternalStore } from 'react'
 import { Shell } from '@/components/shell/Shell'
-import { CommandPalette } from '@/components/shared/CommandPalette'
+import { CommandPalette } from '@/components/shell/CommandPalette'
+import { KeyboardShortcutsSheet } from '@/components/shell/KeyboardShortcutsSheet'
+import { TooltipProvider } from '@/components/ui-native/Tooltip'
 import { useAgentStore } from '@/stores/agent.store'
 import { useSystemAccent } from '@/hooks/useSystemAccent'
 import { useWindowActive } from '@/hooks/useWindowActive'
@@ -18,13 +20,13 @@ function useHash(): string {
 
 export function App(): React.ReactElement {
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
+  const [shortcutsOpen, setShortcutsOpen] = useState(false)
   const hash = useHash()
 
   useSystemAccent()
   useWindowActive()
 
   const fetchAgentStatus = useAgentStore((s) => s.fetchStatus)
-  // Kick off agent status on mount — agentStore initialises lazily
   useState(() => { fetchAgentStatus() })
 
   if (import.meta.env.DEV && hash === '#/dev') {
@@ -36,12 +38,19 @@ export function App(): React.ReactElement {
   }
 
   return (
-    <>
-      <Shell onSearchClick={() => setCommandPaletteOpen(true)} />
+    <TooltipProvider>
+      <Shell
+        onSearchClick={() => setCommandPaletteOpen(true)}
+        onShortcutsClick={() => setShortcutsOpen(true)}
+      />
       <CommandPalette
         open={commandPaletteOpen}
         onClose={() => setCommandPaletteOpen(false)}
       />
-    </>
+      <KeyboardShortcutsSheet
+        open={shortcutsOpen}
+        onOpenChange={setShortcutsOpen}
+      />
+    </TooltipProvider>
   )
 }

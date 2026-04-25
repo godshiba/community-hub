@@ -18,9 +18,10 @@ const PANEL_ORDER: PanelId[] = [
 
 interface ShellProps {
   onSearchClick: () => void
+  onShortcutsClick: () => void
 }
 
-export function Shell({ onSearchClick }: ShellProps): React.ReactElement {
+export function Shell({ onSearchClick, onShortcutsClick }: ShellProps): React.ReactElement {
   const toolbarStore = useRef(createToolbarStore()).current
   const { activePanel, setActivePanel } = usePanelStore()
   const { toggleSidebar, toggleInspector } = useShellStore()
@@ -39,18 +40,41 @@ export function Shell({ onSearchClick }: ShellProps): React.ReactElement {
   // Menu bar → renderer actions
   useEffect(() => {
     const unsub = window.api.on('menu:action', (action: MenuAction) => {
-      if (action.type === 'navigate' && action.payload) {
-        setActivePanel(action.payload as PanelId)
-      } else if (action.type === 'toggleSidebar') {
-        toggleSidebar()
-      } else if (action.type === 'toggleInspector') {
-        toggleInspector(activePanel)
-      } else if (action.type === 'openCommandPalette') {
-        onSearchClick()
+      switch (action.type) {
+        case 'navigate':
+          if (action.payload) setActivePanel(action.payload as PanelId)
+          break
+        case 'toggleSidebar':
+          toggleSidebar()
+          break
+        case 'toggleInspector':
+          toggleInspector(activePanel)
+          break
+        case 'openCommandPalette':
+          onSearchClick()
+          break
+        case 'openShortcutsSheet':
+          onShortcutsClick()
+          break
+        case 'newPost':
+          setActivePanel('scheduler')
+          break
+        case 'newEvent':
+          setActivePanel('events')
+          break
+        case 'generateReport':
+          setActivePanel('reports')
+          break
+        case 'syncNow':
+          window.api.invoke('moderation:syncMembers', undefined).catch(() => {/* best-effort */})
+          break
+        case 'focusSearch':
+          window.dispatchEvent(new CustomEvent('panel:focusSearch'))
+          break
       }
     })
     return unsub
-  }, [activePanel, setActivePanel, toggleSidebar, toggleInspector, onSearchClick])
+  }, [activePanel, setActivePanel, toggleSidebar, toggleInspector, onSearchClick, onShortcutsClick])
 
   // ⌘1..⌘7 panel navigation
   useEffect(() => {
@@ -58,8 +82,7 @@ export function Shell({ onSearchClick }: ShellProps): React.ReactElement {
       if (!(e.metaKey || e.ctrlKey)) return
       if (e.key >= '1' && e.key <= '7') {
         e.preventDefault()
-        const idx = parseInt(e.key) - 1
-        const target = PANEL_ORDER[idx]
+        const target = PANEL_ORDER[parseInt(e.key) - 1]
         if (target) setActivePanel(target)
       }
     }
@@ -67,16 +90,98 @@ export function Shell({ onSearchClick }: ShellProps): React.ReactElement {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [setActivePanel])
 
-  // ⌘B sidebar, ⌥⌘I inspector
+  // Shell-level shortcuts
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent): void => {
       const mod = e.metaKey || e.ctrlKey
-      if (mod && e.key === 'b') { e.preventDefault(); toggleSidebar() }
-      if (mod && e.altKey && e.key === 'i') { e.preventDefault(); toggleInspector(activePanel) }
+
+      // ⌘B — Toggle sidebar
+      if (mod && !e.altKey && !e.shiftKey && e.key === 'b') {
+        e.preventDefault()
+        toggleSidebar()
+        return
+      }
+      // ⌥⌘I — Toggle inspector
+      if (mod && e.altKey && !e.shiftKey && e.key === 'i') {
+        e.preventDefault()
+        toggleInspector(activePanel)
+        return
+      }
+      // ⌘K — Command palette
+      if (mod && !e.altKey && !e.shiftKey && e.key === 'k') {
+        e.preventDefault()
+        onSearchClick()
+        return
+      }
+      // ⌘/ — Keyboard shortcuts sheet
+      if (mod && !e.altKey && !e.shiftKey && e.key === '/') {
+        e.preventDefault()
+        onShortcutsClick()
+        return
+      }
+      // ⌘N — New post (navigate to Scheduler)
+      if (mod && !e.altKey && !e.shiftKey && e.key === 'n') {
+        e.preventDefault()
+        setActivePanel('scheduler')
+        return
+      }
+      // ⇧⌘N — New event (navigate to Events)
+      if (mod && !e.altKey && e.shiftKey && e.key === 'N') {
+        e.preventDefault()
+        setActivePanel('events')
+        return
+      }
+      // ⌘R — Generate report (navigate to Reports)
+      if (mod && !e.altKey && !e.shiftKey && e.key === 'r') {
+        e.preventDefault()
+        setActivePanel('reports')
+        return
+      }
+      // ⌥⌘S — Sync now
+      if (mod && e.altKey && !e.shiftKey && e.key === 's') {
+        e.preventDefault()
+        window.api.invoke('moderation:syncMembers', undefined).catch(() => {/* best-effort */})
+        return
+      }
+      // ⌘F — Focus search in current panel
+      if (mod && !e.altKey && !e.shiftKey && e.key === 'f') {
+        e.preventDefault()
+        window.dispatchEvent(new CustomEvent('panel:focusSearch'))
+        return
+      }
+      // ⌘A — Select all rows (panels handle this via panel:selectAll)
+      if (mod && !e.altKey && !e.shiftKey && e.key === 'a') {
+        // Only intercept when a list has focus; otherwise let browser default
+        const active = document.activeElement
+        const isInput = active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement
+        if (!isInput) {
+          e.preventDefault()
+          window.dispatchEvent(new CustomEvent('panel:selectAll'))
+        }
+        return
+      }
+      // ⇧⌘A — Deselect all rows
+      if (mod && !e.altKey && e.shiftKey && e.key === 'A') {
+        e.preventDefault()
+        window.dispatchEvent(new CustomEvent('panel:deselectAll'))
+        return
+      }
+      // ⌘↵ — Open detail takeover for selected row
+      if (mod && !e.altKey && !e.shiftKey && e.key === 'Enter') {
+        e.preventDefault()
+        window.dispatchEvent(new CustomEvent('panel:openDetail'))
+        return
+      }
+      // ⌃↵ — Open context menu on focused row
+      if (e.ctrlKey && !e.metaKey && !e.altKey && e.key === 'Enter') {
+        e.preventDefault()
+        window.dispatchEvent(new CustomEvent('panel:openContextMenu'))
+        return
+      }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [activePanel, toggleSidebar, toggleInspector])
+  }, [activePanel, toggleSidebar, toggleInspector, onSearchClick, onShortcutsClick, setActivePanel])
 
   const ActivePanel = PANEL_REGISTRY[activePanel]
 
@@ -89,7 +194,6 @@ export function Shell({ onSearchClick }: ShellProps): React.ReactElement {
           <div className="flex flex-1 overflow-hidden">
             <SourceList />
 
-            {/* Main content area */}
             <div
               key={activePanel}
               className="flex-1 overflow-y-auto overflow-x-hidden"

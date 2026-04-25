@@ -2,17 +2,18 @@ import { useSyncExternalStore, useContext } from 'react'
 import { SidebarSimple, MagnifyingGlass } from '@phosphor-icons/react'
 import { usePanelStore } from '@/stores/panel.store'
 import { useShellStore } from '@/stores/shell.store'
+import { Tooltip } from '@/components/ui-native/Tooltip'
 import { ToolbarContext } from './toolbarContext'
 import { cn } from '@/lib/utils'
 
 const PANEL_TITLES: Record<string, string> = {
-  dashboard: 'Dashboard',
-  agent: 'Agent',
-  scheduler: 'Scheduler',
+  dashboard:  'Dashboard',
+  agent:      'Agent',
+  scheduler:  'Scheduler',
   moderation: 'Moderation',
-  events: 'Events',
-  reports: 'Reports',
-  settings: 'Settings'
+  events:     'Events',
+  reports:    'Reports',
+  settings:   'Settings'
 }
 
 interface ToolbarProps {
@@ -48,19 +49,21 @@ export function Toolbar({ onSearchClick, isFullscreen }: ToolbarProps): React.Re
         className="ml-1"
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
       >
-        <button
-          onClick={toggleSidebar}
-          className={cn(
-            'p-1.5 rounded transition-colors',
-            sidebarVisible
-              ? 'text-[var(--color-fg-tertiary)] hover:text-[var(--color-fg-secondary)] hover:bg-white/[0.06]'
-              : 'text-[var(--color-accent)]'
-          )}
-          aria-label={sidebarVisible ? 'Collapse sidebar' : 'Expand sidebar'}
-          title="Toggle sidebar (⌘B)"
-        >
-          <SidebarSimple size={18} />
-        </button>
+        <Tooltip label="Toggle sidebar" shortcut={['⌘', 'B']} side="bottom">
+          <button
+            onClick={toggleSidebar}
+            className={cn(
+              'p-1.5 rounded transition-colors',
+              sidebarVisible
+                ? 'text-[var(--color-fg-tertiary)] hover:text-[var(--color-fg-secondary)] hover:bg-white/[0.06]'
+                : 'text-[var(--color-accent)]'
+            )}
+            aria-label={sidebarVisible ? 'Collapse sidebar' : 'Expand sidebar'}
+            aria-pressed={!sidebarVisible}
+          >
+            <SidebarSimple size={18} />
+          </button>
+        </Tooltip>
       </div>
 
       {/* Panel title */}
@@ -80,38 +83,40 @@ export function Toolbar({ onSearchClick, isFullscreen }: ToolbarProps): React.Re
         {config.actions}
 
         {/* Search pill */}
-        <button
-          onClick={onSearchClick}
-          className={cn(
-            'flex items-center gap-2 h-[30px] pl-2.5 pr-3 w-[260px]',
-            'rounded-[var(--radius-md)] bg-black/20 hover:bg-black/30',
-            'text-[var(--color-fg-tertiary)] transition-colors',
-            'border border-[var(--color-divider)]'
-          )}
-          aria-label="Open command palette"
-          title="Command palette (⌘K)"
-        >
-          <MagnifyingGlass size={13} />
-          <span className="text-[13px] flex-1 text-left">Search...</span>
-          <span className="text-[11px] font-medium opacity-60">⌘K</span>
-        </button>
+        <Tooltip label="Command palette" shortcut={['⌘', 'K']} side="bottom">
+          <button
+            onClick={onSearchClick}
+            className={cn(
+              'flex items-center gap-2 h-[30px] pl-2.5 pr-3 w-[260px]',
+              'rounded-[var(--radius-md)] bg-black/20 hover:bg-black/30',
+              'text-[var(--color-fg-tertiary)] transition-colors',
+              'border border-[var(--color-divider)]'
+            )}
+            aria-label="Open command palette"
+          >
+            <MagnifyingGlass size={13} />
+            <span className="text-[13px] flex-1 text-left">Search...</span>
+            <span className="text-[11px] font-medium opacity-60">⌘K</span>
+          </button>
+        </Tooltip>
 
         {/* Inspector toggle — only shown when panel declares an inspector */}
         {inspectorEnabled && (
-          <button
-            onClick={() => toggleInspector(activePanel)}
-            className={cn(
-              'p-1.5 rounded transition-colors',
-              inspectorOpen
-                ? 'text-[var(--color-accent)] bg-[var(--color-accent-fill)]'
-                : 'text-[var(--color-fg-tertiary)] hover:text-[var(--color-fg-secondary)] hover:bg-white/[0.06]'
-            )}
-            aria-label="Toggle inspector"
-            aria-pressed={inspectorOpen}
-            title="Toggle inspector (⌥⌘I)"
-          >
-            <SidebarSimple size={18} style={{ transform: 'scaleX(-1)' }} />
-          </button>
+          <Tooltip label="Toggle inspector" shortcut={['⌥', '⌘', 'I']} side="bottom">
+            <button
+              onClick={() => toggleInspector(activePanel)}
+              className={cn(
+                'p-1.5 rounded transition-colors',
+                inspectorOpen
+                  ? 'text-[var(--color-accent)] bg-[var(--color-accent-fill)]'
+                  : 'text-[var(--color-fg-tertiary)] hover:text-[var(--color-fg-secondary)] hover:bg-white/[0.06]'
+              )}
+              aria-label="Toggle inspector"
+              aria-pressed={inspectorOpen}
+            >
+              <SidebarSimple size={18} style={{ transform: 'scaleX(-1)' }} />
+            </button>
+          </Tooltip>
         )}
       </div>
     </div>
