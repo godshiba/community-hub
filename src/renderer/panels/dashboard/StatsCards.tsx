@@ -2,6 +2,7 @@ import { memo, type CSSProperties } from 'react'
 import { TrendUp, TrendDown, Users, Pulse, Lightning } from '@phosphor-icons/react'
 import type { Icon } from '@phosphor-icons/react'
 import { Surface } from '@/components/ui-native/Surface'
+import { Sparkline } from '@/components/charts/Sparkline'
 import type { DashboardStats } from '@shared/analytics-types'
 
 interface StatsCardsProps {
@@ -32,7 +33,16 @@ const CARD: CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
   gap: 6,
-  minHeight: 110
+  minHeight: 110,
+  position: 'relative'
+}
+
+const SPARK_WRAP: CSSProperties = {
+  position: 'absolute',
+  bottom: 12,
+  right: 12,
+  pointerEvents: 'none',
+  opacity: 0.85
 }
 
 const HEADER: CSSProperties = {
@@ -93,6 +103,17 @@ export const StatsCards = memo(function StatsCards({ stats }: StatsCardsProps): 
               <span>{isPositive ? '+' : ''}{card.trend}%</span>
               <span style={TREND_NOTE}>vs prev period</span>
             </div>
+            {card.sparkline && card.sparkline.length > 1 && (
+              <div style={SPARK_WRAP}>
+                <Sparkline
+                  data={card.sparkline}
+                  width={64}
+                  height={20}
+                  stroke={trendColor}
+                  ariaLabel={`${card.label} trend`}
+                />
+              </div>
+            )}
           </Surface>
         )
       })}

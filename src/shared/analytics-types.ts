@@ -16,6 +16,8 @@ export interface StatsCard {
   readonly previousValue: number
   readonly trend: number   // percentage change
   readonly unit?: string
+  /** Daily series of recent values (oldest → newest) for the stat-card sparkline. */
+  readonly sparkline?: readonly number[]
 }
 
 export interface DashboardStats {

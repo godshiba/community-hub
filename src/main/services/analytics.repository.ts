@@ -25,10 +25,47 @@ function buildStatsCard(
   label: string,
   current: number,
   previous: number,
+  sparkline: readonly number[],
   unit?: string
 ): StatsCard {
   const trend = previous > 0 ? ((current - previous) / previous) * 100 : 0
-  return { label, value: current, previousValue: previous, trend: Math.round(trend * 10) / 10, unit }
+  return {
+    label,
+    value: current,
+    previousValue: previous,
+    trend: Math.round(trend * 10) / 10,
+    unit,
+    sparkline
+  }
+}
+
+const SPARKLINE_LIMIT = 14
+
+/**
+ * Daily series of `metric` for `platform`, oldest → newest, length ≤ SPARKLINE_LIMIT.
+ * Latest snapshot per day for snapshot-style metrics, MAX for cumulative ones.
+ */
+function dailySeries(
+  platform: string,
+  metric: string,
+  rangeStart: string,
+  rangeEnd: string
+): readonly number[] {
+  const db = getDatabase()
+  const rows = db.prepare(`
+    SELECT date(timestamp) as date, MAX(metric_value) as value
+    FROM platform_stats
+    WHERE platform = ? AND metric_name = ?
+      AND timestamp BETWEEN ? AND ?
+    GROUP BY date(timestamp)
+    ORDER BY date(timestamp) DESC
+    LIMIT ?
+  `).all(platform, metric, rangeStart, rangeEnd, SPARKLINE_LIMIT) as Array<{
+    date: string
+    value: number
+  }>
+  // Re-order ascending (oldest → newest) for the sparkline path direction
+  return rows.map((r) => r.value).reverse()
 }
 
 /**
@@ -105,20 +142,39 @@ export function getDashboardStats(req: StatsRequest): DashboardStats {
       ? Math.round(((currentMembers - prevMembers) / prevMembers) * 1000) / 10
       : 0
 
+  // Sparkline range: span both current and previous periods so the line has
+  // history to draw against — capped to SPARKLINE_LIMIT days by the helper.
+  const memberSeries = dailySeries(p, 'member_count', prevStart, end)
+  const onlineSeries = dailySeries(p, 'online_count', prevStart, end)
+  const messageSeries = dailySeries(p, 'message_count', prevStart, end)
+  // Growth-rate sparkline derived from the member series day-over-day delta %.
+  const growthRateSeries = memberSeries.map((value, idx) => {
+    if (idx === 0) return 0
+    const prev = memberSeries[idx - 1] ?? 0
+    return prev > 0 ? Math.round(((value - prev) / prev) * 1000) / 10 : 0
+  })
+  // Engagement-rate sparkline = messages / members per day (best-effort).
+  const engagementSeries = messageSeries.map((m, i) => {
+    const members = memberSeries[i] ?? 0
+    return members > 0 ? Math.round((m / members) * 1000) / 10 : 0
+  })
+
   return {
-    totalMembers: buildStatsCard('Total Members', currentMembers, prevMembers),
+    totalMembers: buildStatsCard('Total Members', currentMembers, prevMembers, memberSeries),
     growthRate: {
       label: 'Growth Rate',
       value: growthRateValue,
       previousValue: 0,
       trend: growthRateValue,
-      unit: '%'
+      unit: '%',
+      sparkline: growthRateSeries
     },
-    activeUsers: buildStatsCard('Active Users', currentOnline, prevOnline),
+    activeUsers: buildStatsCard('Active Users', currentOnline, prevOnline, onlineSeries),
     engagementRate: buildStatsCard(
       'Engagement Rate',
       Math.round(engagement * 10) / 10,
       Math.round(prevEngagement * 10) / 10,
+      engagementSeries,
       '%'
     )
   }
