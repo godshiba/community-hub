@@ -1,55 +1,63 @@
-import { useState } from 'react'
-import { GlassCard } from '@/components/glass/GlassCard'
-import { GlassModal } from '@/components/glass/GlassModal'
+import { useState, type CSSProperties } from 'react'
 import { useModerationStore } from '@/stores/moderation.store'
+import { Button } from '@/components/ui-native/Button'
+import { Sheet } from '@/components/ui-native/Sheet'
+import { TextArea } from '@/components/ui-native/TextArea'
+import { Pill } from '@/components/ui-native/Pill'
+import { Surface } from '@/components/ui-native/Surface'
 import type { BulkActionResult } from '@shared/moderation-types'
 
 type BulkAction = 'warn' | 'ban' | 'kick' | null
 
+const BAR: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 'var(--space-2)',
+  paddingInline: 'var(--space-3)',
+  paddingBlock: 'var(--space-2)',
+  marginBottom: 'var(--space-2)'
+}
+
 export function BulkActionToolbar(): React.ReactElement | null {
-  const { selectedIds, clearSelection, bulkWarn, bulkBan, bulkKick, bulkLoading, exportSelectedCsv } = useModerationStore()
+  const selectedIds = useModerationStore((s) => s.selectedIds)
+  const clearSelection = useModerationStore((s) => s.clearSelection)
+  const bulkWarn = useModerationStore((s) => s.bulkWarn)
+  const bulkBan = useModerationStore((s) => s.bulkBan)
+  const bulkKick = useModerationStore((s) => s.bulkKick)
+  const bulkLoading = useModerationStore((s) => s.bulkLoading)
+  const exportSelectedCsv = useModerationStore((s) => s.exportSelectedCsv)
+
   const [activeAction, setActiveAction] = useState<BulkAction>(null)
   const [reason, setReason] = useState('')
   const [result, setResult] = useState<BulkActionResult | null>(null)
   const [actionCount, setActionCount] = useState(0)
 
-  // Stay visible while a dialog is open (action or result), even after selection is cleared
   if (selectedIds.size === 0 && activeAction === null && result === null) return null
 
   const count = selectedIds.size || actionCount
 
-  function closeDialog(): void {
+  function close(): void {
     setActiveAction(null)
     setReason('')
     setResult(null)
     setActionCount(0)
   }
 
-  async function handleConfirm(): Promise<void> {
+  async function confirm(): Promise<void> {
     if (!activeAction || !reason.trim()) return
-
-    // Capture count before the store clears selection
     setActionCount(selectedIds.size)
-
     try {
-      let res: BulkActionResult
-      if (activeAction === 'warn') {
-        res = await bulkWarn(reason.trim())
-      } else if (activeAction === 'ban') {
-        res = await bulkBan(reason.trim())
-      } else {
-        res = await bulkKick(reason.trim())
-      }
+      const fn = activeAction === 'warn' ? bulkWarn : activeAction === 'ban' ? bulkBan : bulkKick
+      const res = await fn(reason.trim())
       setResult(res)
     } catch {
-      // Error handled in store
+      // surfaced via store error
     }
   }
 
-  function handleExport(): void {
+  function exportCsv(): void {
     const csv = exportSelectedCsv()
     if (!csv) return
-
     const blob = new Blob([csv], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -59,122 +67,79 @@ export function BulkActionToolbar(): React.ReactElement | null {
     setTimeout(() => URL.revokeObjectURL(url), 200)
   }
 
-  const actionLabels: Record<string, { label: string; color: string; bg: string }> = {
-    warn: { label: 'Warn', color: 'text-yellow-400', bg: 'bg-yellow-400/20 hover:bg-yellow-400/30' },
-    ban: { label: 'Ban', color: 'text-red-400', bg: 'bg-red-400/20 hover:bg-red-400/30' },
-    kick: { label: 'Kick', color: 'text-orange-400', bg: 'bg-orange-400/20 hover:bg-orange-400/30' }
-  }
+  const actionLabel = activeAction === 'warn' ? 'Warn' : activeAction === 'ban' ? 'Ban' : 'Kick'
 
   return (
     <>
-      <GlassCard className="px-3 py-2 flex items-center gap-2">
-        <span className="text-xs text-accent font-medium">{count} selected</span>
-        <div className="h-4 w-px bg-glass-border" />
+      <Surface variant="raised" radius="md" bordered style={BAR}>
+        <Pill variant="accent" size="md">{count} selected</Pill>
+        <Button size="sm" variant="secondary" onClick={() => setActiveAction('warn')} disabled={bulkLoading}>Bulk warn…</Button>
+        <Button size="sm" variant="secondary" onClick={() => setActiveAction('kick')} disabled={bulkLoading}>Bulk kick…</Button>
+        <Button size="sm" variant="destructive" onClick={() => setActiveAction('ban')} disabled={bulkLoading}>Bulk ban…</Button>
+        <Button size="sm" variant="plain" onClick={exportCsv}>Export CSV</Button>
+        <Button size="sm" variant="plain" onClick={clearSelection} style={{ marginLeft: 'auto' }}>Clear</Button>
+      </Surface>
 
-        <button
-          onClick={() => setActiveAction('warn')}
-          disabled={bulkLoading}
-          className="px-2 py-1 text-xs text-yellow-400 bg-yellow-400/10 rounded hover:bg-yellow-400/20 transition-colors disabled:opacity-50"
-        >
-          Bulk Warn
-        </button>
-        <button
-          onClick={() => setActiveAction('kick')}
-          disabled={bulkLoading}
-          className="px-2 py-1 text-xs text-orange-400 bg-orange-400/10 rounded hover:bg-orange-400/20 transition-colors disabled:opacity-50"
-        >
-          Bulk Kick
-        </button>
-        <button
-          onClick={() => setActiveAction('ban')}
-          disabled={bulkLoading}
-          className="px-2 py-1 text-xs text-red-400 bg-red-400/10 rounded hover:bg-red-400/20 transition-colors disabled:opacity-50"
-        >
-          Bulk Ban
-        </button>
-
-        <div className="h-4 w-px bg-glass-border" />
-
-        <button
-          onClick={handleExport}
-          className="px-2 py-1 text-xs text-text-secondary bg-glass-surface rounded hover:bg-white/10 transition-colors"
-        >
-          Export CSV
-        </button>
-
-        <button
-          onClick={clearSelection}
-          className="px-2 py-1 text-xs text-text-muted hover:text-text-secondary transition-colors ml-auto"
-        >
-          Clear
-        </button>
-      </GlassCard>
-
-      {/* Confirmation dialog */}
-      <GlassModal open={activeAction !== null && result === null} onClose={closeDialog}>
-        {activeAction && (
+      <Sheet
+        open={activeAction !== null && result === null}
+        onOpenChange={(open) => { if (!open) close() }}
+        title={`${actionLabel} ${count} member${count === 1 ? '' : 's'}`}
+        description={`This action will be applied to all ${count} selected member${count === 1 ? '' : 's'} and logged in the audit trail.`}
+        width="sm"
+        footer={
           <>
-            <h3 className="text-sm font-semibold text-text-primary mb-2">
-              <span className={actionLabels[activeAction].color}>{actionLabels[activeAction].label}</span>{' '}
-              {count} member{count !== 1 ? 's' : ''}
-            </h3>
-            <p className="text-xs text-text-muted mb-3">
-              This action will be applied to all {count} selected members and logged individually in the audit trail.
-            </p>
-            <textarea
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="Reason (required)..."
-              className="w-full px-3 py-2 text-xs bg-glass-surface border border-glass-border rounded text-text-primary placeholder:text-text-muted resize-none"
-              rows={3}
-              autoFocus
-            />
-            <div className="flex justify-end gap-2 mt-3">
-              <button
-                onClick={closeDialog}
-                className="px-3 py-1.5 text-xs text-text-muted hover:text-text-secondary transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConfirm}
-                disabled={!reason.trim() || bulkLoading}
-                className={`px-3 py-1.5 text-xs font-medium ${actionLabels[activeAction].color} ${actionLabels[activeAction].bg} rounded transition-colors disabled:opacity-50`}
-              >
-                {bulkLoading ? 'Processing...' : `${actionLabels[activeAction].label} ${count} Members`}
-              </button>
-            </div>
+            <Button variant="plain" onClick={close}>Cancel</Button>
+            <Button
+              variant={activeAction === 'ban' ? 'destructive' : 'primary'}
+              onClick={confirm}
+              isLoading={bulkLoading}
+              disabled={!reason.trim()}
+            >
+              {`${actionLabel} ${count} member${count === 1 ? '' : 's'}`}
+            </Button>
           </>
-        )}
-      </GlassModal>
+        }
+      >
+        <TextArea
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          placeholder="Reason (required)…"
+          rows={3}
+          autoFocus
+          aria-label="Reason"
+        />
+      </Sheet>
 
-      {/* Result dialog */}
-      <GlassModal open={result !== null} onClose={closeDialog}>
+      <Sheet
+        open={result !== null}
+        onOpenChange={(open) => { if (!open) close() }}
+        title="Bulk action complete"
+        width="sm"
+        footer={<Button variant="primary" onClick={close}>Done</Button>}
+      >
         {result && (
-          <>
-            <h3 className="text-sm font-semibold text-text-primary mb-2">Bulk Action Complete</h3>
-            <div className="space-y-1 text-xs">
-              <p className="text-green-400">{result.succeeded} succeeded</p>
-              {result.failed > 0 && <p className="text-red-400">{result.failed} failed</p>}
-              {result.errors.length > 0 && (
-                <div className="mt-2 max-h-32 overflow-y-auto space-y-0.5">
-                  {result.errors.map((e, i) => (
-                    <p key={i} className="text-text-muted">{e}</p>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className="flex justify-end mt-3">
-              <button
-                onClick={closeDialog}
-                className="px-3 py-1.5 text-xs font-medium bg-accent/20 text-accent rounded hover:bg-accent/30 transition-colors"
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 13 }}>
+            <div style={{ color: 'var(--color-success)' }}>{result.succeeded} succeeded</div>
+            {result.failed > 0 && <div style={{ color: 'var(--color-error)' }}>{result.failed} failed</div>}
+            {result.errors.length > 0 && (
+              <div
+                style={{
+                  marginTop: 6,
+                  maxHeight: 160,
+                  overflowY: 'auto',
+                  fontSize: 12,
+                  color: 'var(--color-fg-tertiary)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 2
+                }}
               >
-                Done
-              </button>
-            </div>
-          </>
+                {result.errors.map((e, i) => <div key={i}>{e}</div>)}
+              </div>
+            )}
+          </div>
         )}
-      </GlassModal>
+      </Sheet>
     </>
   )
 }

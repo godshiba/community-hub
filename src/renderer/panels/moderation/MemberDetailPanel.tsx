@@ -1,5 +1,4 @@
 import { useState, useEffect, memo } from 'react'
-import { GlassCard } from '@/components/glass/GlassCard'
 import { useModerationStore } from '@/stores/moderation.store'
 import { useRolesStore } from '@/stores/roles.store'
 import type { AuditLogEntry, AuditActionType, RoleAssignment } from '@shared/moderation-types'
@@ -42,9 +41,9 @@ export const MemberDetailPanel = memo(function MemberDetailPanel({ onWarn, onBan
 
   if (detailLoading) {
     return (
-      <GlassCard className="p-4 h-full flex items-center justify-center">
+      <div className="p-4 h-full flex items-center justify-center">
         <span className="text-xs text-text-muted">Loading...</span>
-      </GlassCard>
+      </div>
     )
   }
 
@@ -63,7 +62,7 @@ export const MemberDetailPanel = memo(function MemberDetailPanel({ onWarn, onBan
   }
 
   return (
-    <GlassCard className="p-4 h-full overflow-y-auto space-y-4">
+    <div className="p-4 h-full overflow-y-auto space-y-4">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
@@ -271,6 +270,6 @@ export const MemberDetailPanel = memo(function MemberDetailPanel({ onWarn, onBan
           </div>
         )}
       </div>
-    </GlassCard>
+    </div>
   )
 })
