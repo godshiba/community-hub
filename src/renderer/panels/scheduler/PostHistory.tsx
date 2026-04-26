@@ -1,68 +1,71 @@
-import { memo } from 'react'
-import { GlassCard } from '@/components/glass/GlassCard'
-import { CheckCircle, XCircle, History } from 'lucide-react'
+import { memo, type CSSProperties } from 'react'
+import { ArrowsCounterClockwise, CheckCircle, XCircle } from '@phosphor-icons/react'
 import { useSchedulerStore } from '@/stores/scheduler.store'
+import { Surface } from '@/components/ui-native/Surface'
+import { ListRow } from '@/components/ui-native/ListRow'
+import { Pill } from '@/components/ui-native/Pill'
+import { EmptyState } from '@/components/ui-native/EmptyState'
 import type { PostHistoryEntry } from '@shared/scheduler-types'
 
+interface PostHistoryProps {
+  selectedId: number | null
+  onSelect: (id: number) => void
+}
+
+const TRAILING: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 8,
+  fontSize: 12,
+  color: 'var(--color-fg-tertiary)'
+}
+
 function formatTime(iso: string | null): string {
-  if (!iso) return '--'
+  if (!iso) return '—'
   return new Date(iso).toLocaleString(undefined, {
     month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
   })
 }
 
-export const PostHistory = memo(function PostHistory(): React.ReactElement {
-  const { history } = useSchedulerStore()
+export const PostHistory = memo(function PostHistory({ selectedId, onSelect }: PostHistoryProps): React.ReactElement {
+  const history = useSchedulerStore((s) => s.history)
 
   if (history.length === 0) {
     return (
-      <GlassCard className="p-4">
-        <div className="flex flex-col items-center justify-center py-8 text-text-muted">
-          <History className="size-8 mb-2 opacity-40" />
-          <p className="text-xs">No send history yet</p>
-        </div>
-      </GlassCard>
+      <Surface variant="raised" radius="lg" bordered style={{ padding: 'var(--space-4)' }}>
+        <EmptyState
+          size="md"
+          icon={<ArrowsCounterClockwise size={40} />}
+          title="No send history yet"
+          subtitle="Posts you send will appear here once delivery has been attempted."
+        />
+      </Surface>
     )
   }
 
   return (
-    <GlassCard className="p-4 space-y-1">
-      {/* Header */}
-      <div className="grid grid-cols-[60px_80px_1fr_140px] gap-2 text-xs text-text-muted pb-2 border-b border-glass-border">
-        <span>Post</span>
-        <span>Platform</span>
-        <span>Result</span>
-        <span>Sent At</span>
-      </div>
-
-      {/* Rows */}
+    <Surface variant="raised" radius="lg" bordered style={{ padding: 'var(--space-2)', display: 'flex', flexDirection: 'column', gap: 2 }}>
       {history.map((entry: PostHistoryEntry) => (
-        <div
+        <ListRow
           key={entry.id}
-          className="grid grid-cols-[60px_80px_1fr_140px] gap-2 text-xs items-center py-1.5 border-b border-glass-border/30"
-        >
-          <span className="text-text-muted">#{entry.postId}</span>
-
-          <span
-            className={`text-[10px] px-1.5 py-0.5 rounded w-fit ${
-              entry.platform === 'discord' ? 'bg-discord/20 text-discord' : 'bg-telegram/20 text-telegram'
-            }`}
-          >
-            {entry.platform === 'discord' ? 'Discord' : 'Telegram'}
-          </span>
-
-          <div className="flex items-center gap-1.5">
-            {entry.success
-              ? <CheckCircle className="size-3 text-success" />
-              : <XCircle className="size-3 text-error" />}
-            <span className={entry.success ? 'text-success' : 'text-error'}>
-              {entry.success ? 'Sent' : entry.errorText ?? 'Failed'}
+          density="comfortable"
+          selected={selectedId === entry.id}
+          onSelect={() => onSelect(entry.id)}
+          leading={entry.success
+            ? <CheckCircle size={16} weight="fill" color="var(--color-success)" />
+            : <XCircle size={16} weight="fill" color="var(--color-error)" />}
+          title={`Post #${entry.postId}`}
+          subtitle={entry.success ? 'Delivered' : (entry.errorText ?? 'Failed')}
+          trailing={
+            <span style={TRAILING}>
+              <Pill size="sm" variant={entry.platform === 'discord' ? 'discord' : 'telegram'}>
+                {entry.platform === 'discord' ? 'Discord' : 'Telegram'}
+              </Pill>
+              <span>{formatTime(entry.sentAt)}</span>
             </span>
-          </div>
-
-          <span className="text-text-secondary">{formatTime(entry.sentAt)}</span>
-        </div>
+          }
+        />
       ))}
-    </GlassCard>
+    </Surface>
   )
 })

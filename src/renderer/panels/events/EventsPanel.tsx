@@ -37,6 +37,12 @@ export function EventsPanel(): React.ReactElement {
 
   useEffect(() => { void fetchEvents() }, [fetchEvents])
 
+  useEffect(() => {
+    const onNewEvent = (): void => openForm()
+    window.addEventListener('panel:newEvent', onNewEvent)
+    return () => window.removeEventListener('panel:newEvent', onNewEvent)
+  }, [openForm])
+
   usePanelToolbar({
     title: 'Events',
     inspector: {

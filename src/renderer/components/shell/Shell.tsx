@@ -58,9 +58,11 @@ export function Shell({ onSearchClick, onShortcutsClick }: ShellProps): React.Re
           break
         case 'newPost':
           setActivePanel('scheduler')
+          window.dispatchEvent(new CustomEvent('panel:newPost'))
           break
         case 'newEvent':
           setActivePanel('events')
+          window.dispatchEvent(new CustomEvent('panel:newEvent'))
           break
         case 'generateReport':
           setActivePanel('reports')
@@ -119,16 +121,18 @@ export function Shell({ onSearchClick, onShortcutsClick }: ShellProps): React.Re
         onShortcutsClick()
         return
       }
-      // ⌘N — New post (navigate to Scheduler)
+      // ⌘N — New post (navigate to Scheduler + open editor)
       if (mod && !e.altKey && !e.shiftKey && e.key === 'n') {
         e.preventDefault()
         setActivePanel('scheduler')
+        window.dispatchEvent(new CustomEvent('panel:newPost'))
         return
       }
-      // ⇧⌘N — New event (navigate to Events)
+      // ⇧⌘N — New event (navigate to Events + open form)
       if (mod && !e.altKey && e.shiftKey && e.key === 'N') {
         e.preventDefault()
         setActivePanel('events')
+        window.dispatchEvent(new CustomEvent('panel:newEvent'))
         return
       }
       // ⌘R — Generate report (navigate to Reports)

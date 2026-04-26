@@ -1,172 +1,185 @@
-import { useState, useEffect, memo } from 'react'
-import { GlassCard } from '@/components/glass/GlassCard'
-import { Button } from '@/components/ui/button'
-import { Send, Clock, Save } from 'lucide-react'
+import { useState, useEffect, type CSSProperties } from 'react'
+import { Clock, FloppyDisk, PaperPlaneTilt } from '@phosphor-icons/react'
 import { useSchedulerStore } from '@/stores/scheduler.store'
+import { Sheet } from '@/components/ui-native/Sheet'
+import { TextField } from '@/components/ui-native/TextField'
+import { TextArea } from '@/components/ui-native/TextArea'
+import { Select } from '@/components/ui-native/Select'
+import { Button } from '@/components/ui-native/Button'
+import { FormRow } from '@/components/ui-native/FormRow'
+import { Toggle } from '@/components/ui-native/Toggle'
 import type { Platform } from '@shared/settings-types'
 import type { ChannelInfo, PostPayload } from '@shared/scheduler-types'
 
-const PLATFORM_OPTIONS: Array<{ value: Platform; label: string; color: string }> = [
-  { value: 'discord', label: 'Discord', color: 'text-discord' },
-  { value: 'telegram', label: 'Telegram', color: 'text-telegram' }
-]
+interface PostEditorProps {
+  open: boolean
+  onClose: () => void
+}
 
-export const PostEditor = memo(function PostEditor(): React.ReactElement {
-  const { channels, fetchChannels, createPost, loading } = useSchedulerStore()
+const CHAR_COUNT_STYLE: CSSProperties = {
+  textAlign: 'right',
+  fontSize: 11,
+  color: 'var(--color-fg-tertiary)',
+  marginTop: -4
+}
+
+export function PostEditor({ open, onClose }: PostEditorProps): React.ReactElement {
+  const channels      = useSchedulerStore((s) => s.channels)
+  const fetchChannels = useSchedulerStore((s) => s.fetchChannels)
+  const createPost    = useSchedulerStore((s) => s.createPost)
+  const sendNow       = useSchedulerStore((s) => s.sendNow)
+  const loading       = useSchedulerStore((s) => s.loading)
 
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
-  const [platforms, setPlatforms] = useState<Platform[]>([])
+  const [platforms, setPlatforms] = useState<Record<Platform, boolean>>({ discord: false, telegram: false })
   const [channelIds, setChannelIds] = useState<Record<Platform, string>>({ discord: '', telegram: '' })
   const [scheduledTime, setScheduledTime] = useState('')
 
   useEffect(() => {
-    fetchChannels()
-  }, [])
+    if (open) void fetchChannels()
+  }, [open, fetchChannels])
 
-  const channelsFor = (platform: Platform): readonly ChannelInfo[] =>
-    channels.filter((c) => c.platform === platform)
-
-  function togglePlatform(p: Platform): void {
-    setPlatforms((prev) =>
-      prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]
-    )
-  }
-
-  function resetForm(): void {
-    setTitle('')
-    setContent('')
-    setPlatforms([])
+  function reset(): void {
+    setTitle(''); setContent('')
+    setPlatforms({ discord: false, telegram: false })
     setChannelIds({ discord: '', telegram: '' })
     setScheduledTime('')
   }
 
-  async function handleSubmit(mode: 'draft' | 'schedule' | 'send'): Promise<void> {
-    if (!content.trim() || platforms.length === 0) return
+  function close(): void { reset(); onClose() }
 
+  function channelOptions(platform: Platform): { value: string; label: string }[] {
+    return channels
+      .filter((c: ChannelInfo) => c.platform === platform)
+      .map((ch) => ({ value: ch.id, label: ch.guildName ? `${ch.guildName} / #${ch.name}` : ch.name }))
+  }
+
+  function selectedPlatforms(): Platform[] {
+    return (Object.keys(platforms) as Platform[]).filter((p) => platforms[p])
+  }
+
+  async function submit(mode: 'draft' | 'schedule' | 'send'): Promise<void> {
+    const list = selectedPlatforms()
+    if (!content.trim() || list.length === 0) return
     const payload: PostPayload = {
       title: title.trim(),
       content: content.trim(),
-      platforms,
+      platforms: list,
       channelIds,
       scheduledTime: mode === 'schedule' && scheduledTime ? new Date(scheduledTime).toISOString() : null
     }
-
     const post = await createPost(payload)
     if (!post) return
-
-    if (mode === 'send') {
-      await useSchedulerStore.getState().sendNow(post.id)
-    }
-
-    resetForm()
+    if (mode === 'send') await sendNow(post.id)
+    close()
   }
 
+  const canSubmit = content.trim().length > 0 && selectedPlatforms().length > 0
+
   return (
-    <GlassCard className="p-4 space-y-4">
-      <h3 className="text-sm font-medium text-text-primary">New Post</h3>
-
-      {/* Title */}
-      <input
-        type="text"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        placeholder="Post title (optional)"
-        className="w-full bg-glass-surface border border-glass-border rounded-md px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent"
-      />
-
-      {/* Content */}
-      <textarea
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        placeholder="Write your message..."
-        rows={6}
-        className="w-full bg-glass-surface border border-glass-border rounded-md px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent resize-none"
-      />
-      <div className="flex justify-end">
-        <span className="text-xs text-text-muted">{content.length} chars</span>
-      </div>
-
-      {/* Platform toggles + channel selectors */}
-      <div className="space-y-3">
-        {PLATFORM_OPTIONS.map((p) => (
-          <div key={p.value} className="flex items-center gap-3">
-            <button
-              onClick={() => togglePlatform(p.value)}
-              className={`px-3 py-1 text-xs font-medium rounded-md border transition-colors ${
-                platforms.includes(p.value)
-                  ? `bg-accent/20 ${p.color} border-accent/40`
-                  : 'text-text-muted border-glass-border hover:text-text-secondary'
-              }`}
+    <Sheet
+      open={open}
+      onOpenChange={(o) => { if (!o) close() }}
+      title="New post"
+      width="md"
+      ariaLabel="New post"
+      footer={
+        <>
+          <Button variant="plain" onClick={close}>Cancel</Button>
+          <Button
+            variant="secondary"
+            size="md"
+            leading={<FloppyDisk size={13} />}
+            onClick={() => { void submit('draft') }}
+            disabled={!canSubmit}
+            isLoading={loading}
+          >
+            Save draft
+          </Button>
+          {scheduledTime && (
+            <Button
+              variant="secondary"
+              size="md"
+              leading={<Clock size={13} />}
+              onClick={() => { void submit('schedule') }}
+              disabled={!canSubmit}
+              isLoading={loading}
             >
-              {p.label}
-            </button>
+              Schedule
+            </Button>
+          )}
+          <Button
+            variant="primary"
+            size="md"
+            leading={<PaperPlaneTilt size={13} />}
+            onClick={() => { void submit('send') }}
+            disabled={!canSubmit}
+            isLoading={loading}
+          >
+            Send now
+          </Button>
+        </>
+      }
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <FormRow label="Title" optional>
+          <TextField value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Optional title" />
+        </FormRow>
 
-            {platforms.includes(p.value) && (
-              <select
-                value={channelIds[p.value]}
-                onChange={(e) => setChannelIds((prev) => ({ ...prev, [p.value]: e.target.value }))}
-                className="flex-1 bg-glass-surface border border-glass-border rounded-md px-2 py-1 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-accent"
-              >
-                <option value="">Select channel...</option>
-                {channelsFor(p.value).map((ch) => (
-                  <option key={ch.id} value={ch.id}>
-                    {ch.guildName ? `${ch.guildName} / #${ch.name}` : ch.name}
-                  </option>
-                ))}
-              </select>
+        <FormRow label="Content" required>
+          <TextArea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder="Write your message…"
+            minRows={6}
+          />
+        </FormRow>
+        <div style={CHAR_COUNT_STYLE}>{content.length} chars</div>
+
+        <FormRow label="Platforms" required>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {(['discord', 'telegram'] as const).map((p) => (
+              <div key={p} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <Toggle
+                  checked={platforms[p]}
+                  onChange={(v) => setPlatforms((prev) => ({ ...prev, [p]: v }))}
+                  label={p === 'discord' ? 'Discord' : 'Telegram'}
+                />
+                <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-fg-primary)', minWidth: 64 }}>
+                  {p === 'discord' ? 'Discord' : 'Telegram'}
+                </span>
+                {platforms[p] && (
+                  <Select
+                    size="sm"
+                    value={channelIds[p] || null}
+                    onChange={(v) => setChannelIds((prev) => ({ ...prev, [p]: v }))}
+                    options={channelOptions(p)}
+                    placeholder="Select channel…"
+                    fullWidth
+                    ariaLabel={`${p} channel`}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        </FormRow>
+
+        <FormRow label="Schedule" optional>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <TextField
+              type="datetime-local"
+              value={scheduledTime}
+              onChange={(e) => setScheduledTime(e.target.value)}
+              fullWidth={false}
+              containerStyle={{ flex: 1 }}
+            />
+            {scheduledTime && (
+              <Button variant="plain" size="sm" onClick={() => setScheduledTime('')}>Clear</Button>
             )}
           </div>
-        ))}
+        </FormRow>
       </div>
-
-      {/* Schedule time */}
-      <div className="flex items-center gap-2">
-        <Clock className="size-3.5 text-text-muted" />
-        <input
-          type="datetime-local"
-          value={scheduledTime}
-          onChange={(e) => setScheduledTime(e.target.value)}
-          className="bg-glass-surface border border-glass-border rounded-md px-2 py-1 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-accent"
-        />
-        {scheduledTime && (
-          <button onClick={() => setScheduledTime('')} className="text-xs text-text-muted hover:text-error">
-            Clear
-          </button>
-        )}
-      </div>
-
-      {/* Action buttons */}
-      <div className="flex items-center gap-2 pt-1">
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => handleSubmit('draft')}
-          disabled={loading || !content.trim() || platforms.length === 0}
-        >
-          <Save className="size-3.5" /> Save Draft
-        </Button>
-
-        {scheduledTime && (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => handleSubmit('schedule')}
-            disabled={loading || !content.trim() || platforms.length === 0}
-          >
-            <Clock className="size-3.5" /> Schedule
-          </Button>
-        )}
-
-        <Button
-          size="sm"
-          onClick={() => handleSubmit('send')}
-          disabled={loading || !content.trim() || platforms.length === 0}
-          className="bg-accent/20 text-accent border border-accent/40 hover:bg-accent/30"
-        >
-          <Send className="size-3.5" /> Send Now
-        </Button>
-      </div>
-    </GlassCard>
+    </Sheet>
   )
-})
+}
