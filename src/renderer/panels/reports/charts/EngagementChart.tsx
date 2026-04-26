@@ -1,7 +1,14 @@
 import { memo } from 'react'
+import { Bar, BarChart, Cell } from 'recharts'
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell
-} from 'recharts'
+  BAR_RADIUS,
+  CHART_COLORS,
+  ChartTheme,
+  ThemedGrid,
+  ThemedTooltip,
+  ThemedXAxis,
+  ThemedYAxis
+} from '@/components/charts/ChartTheme'
 
 interface EngagementChartProps {
   discord: number
@@ -12,41 +19,37 @@ export const EngagementChart = memo(function EngagementChart(
   { discord, telegram }: EngagementChartProps
 ): React.ReactElement {
   const data = [
-    { platform: 'Discord', messages: discord, fill: '#5865F2' },
-    { platform: 'Telegram', messages: telegram, fill: '#26A5E4' }
+    { platform: 'Discord',  messages: discord,  fill: CHART_COLORS.platform.discord  },
+    { platform: 'Telegram', messages: telegram, fill: CHART_COLORS.platform.telegram }
   ]
 
   return (
-    <div className="h-40">
-      <p className="text-xs text-text-muted mb-2">Platform Comparison (Messages)</p>
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-          <XAxis
-            dataKey="platform"
-            stroke="rgba(255,255,255,0.3)"
-            tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 11 }}
-          />
-          <YAxis
-            stroke="rgba(255,255,255,0.3)"
-            tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 11 }}
-          />
-          <Tooltip
-            contentStyle={{
-              background: 'rgba(15, 15, 25, 0.9)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: 8,
-              color: '#fff',
-              fontSize: 12
-            }}
-          />
-          <Bar dataKey="messages" radius={[4, 4, 0, 0]}>
+    <div>
+      <p
+        style={{
+          fontSize: 11,
+          fontWeight: 500,
+          letterSpacing: '0.04em',
+          textTransform: 'uppercase',
+          color: 'var(--color-fg-tertiary)',
+          margin: '0 0 8px'
+        }}
+      >
+        Platform comparison (messages)
+      </p>
+      <ChartTheme height={160}>
+        <BarChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -16 }}>
+          <ThemedGrid />
+          <ThemedXAxis dataKey="platform" />
+          <ThemedYAxis />
+          <ThemedTooltip valueFormatter={(v) => Number(v).toLocaleString()} />
+          <Bar dataKey="messages" radius={[BAR_RADIUS, BAR_RADIUS, 0, 0]}>
             {data.map((entry) => (
               <Cell key={entry.platform} fill={entry.fill} />
             ))}
           </Bar>
         </BarChart>
-      </ResponsiveContainer>
+      </ChartTheme>
     </div>
   )
 })
