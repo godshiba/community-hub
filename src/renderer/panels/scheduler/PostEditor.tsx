@@ -3,11 +3,11 @@ import { Clock, FloppyDisk, PaperPlaneTilt } from '@phosphor-icons/react'
 import { useSchedulerStore } from '@/stores/scheduler.store'
 import { Sheet } from '@/components/ui-native/Sheet'
 import { TextField } from '@/components/ui-native/TextField'
-import { TextArea } from '@/components/ui-native/TextArea'
 import { Select } from '@/components/ui-native/Select'
 import { Button } from '@/components/ui-native/Button'
 import { FormRow } from '@/components/ui-native/FormRow'
 import { Toggle } from '@/components/ui-native/Toggle'
+import { Editor } from '@/components/editor/Editor'
 import type { Platform } from '@shared/settings-types'
 import type { ChannelInfo, PostPayload } from '@shared/scheduler-types'
 
@@ -128,11 +128,11 @@ export function PostEditor({ open, onClose }: PostEditorProps): React.ReactEleme
         </FormRow>
 
         <FormRow label="Content" required>
-          <TextArea
+          <Editor
             value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="Write your message…"
-            minRows={6}
+            onChange={setContent}
+            placeholder="Write your message… **bold**, *italic*, `code`, lists, links."
+            ariaLabel="Post content"
           />
         </FormRow>
         <div style={CHAR_COUNT_STYLE}>{content.length} chars</div>

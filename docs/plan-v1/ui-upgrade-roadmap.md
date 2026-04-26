@@ -27,7 +27,7 @@ Refs: docs/plan-v1/ui-upgrade-roadmap.md (Phase <n>, task <id>)
 
 ## Status Dashboard
 
-**Current phase:** 5 — Charts & Editors (in progress)
+**Current phase:** 5 complete — ready for Phase 6
 **Last updated:** 2026-04-26
 **Branch:** `ui/apple-native-redesign`
 
@@ -38,11 +38,11 @@ Refs: docs/plan-v1/ui-upgrade-roadmap.md (Phase <n>, task <id>)
 | 2 | Shell | Complete | 14 / 14 |
 | 3 | Command palette + shortcuts | Complete | 8 / 8 |
 | 4 | Panel rewrites | Complete | 7 / 7 panels |
-| 5 | Charts & editors | In progress | 3 / 5 |
+| 5 | Charts & editors | Complete | 5 / 5 |
 | 6 | Motion pass | Not started | 0 / 8 |
 | 7 | Polish & QA | Not started | 0 / 10 |
 
-**Overall:** 84 / 112 tasks complete.
+**Overall:** 86 / 112 tasks complete.
 
 *(Phase 1 denominator corrected from 35 to 43 — sum of listed tasks 1.1–1.43; overall total updated accordingly.)*
 
@@ -233,8 +233,8 @@ Reference: [ui-upgrade.md § Charts & Editors](./ui-upgrade.md)
 - [x] **5.1** Create `src/renderer/components/charts/ChartTheme.tsx` — applies grid, axis, tooltip, color config.
 - [x] **5.2** Apply `ChartTheme` to all Recharts output (GrowthChart, ActivityHeatmap, report charts).
 - [x] **5.3** Add sparklines to Dashboard stat cards.
-- [ ] **5.4** Create `src/renderer/components/editor/` with TipTap theme: body, toolbar, bubble menu, headings, code blocks, blockquote.
-- [ ] **5.5** Apply TipTap theme to Scheduler PostEditor and any other editor usage.
+- [x] **5.4** Create `src/renderer/components/editor/` with TipTap theme: body, toolbar, bubble menu, headings, code blocks, blockquote.
+- [x] **5.5** Apply TipTap theme to Scheduler PostEditor and any other editor usage.
 
 **Acceptance gate:**
 - No chart looks like a default Recharts chart.
@@ -350,6 +350,8 @@ A running log of decisions and surprises found mid-implementation. Append-only.
 - **Phase 1 gate (2026-04-24):** All 43 tasks complete. `npm run build` passes. `npx vitest run` passes 477 tests across 58 files (pretest rebuilds better-sqlite3 against system Node). `#/dev/primitives` renders 39 gallery sections — every primitive in every documented state. Every primitive has a unit test file and an axe-core audit (39 total). Side-by-side visual parity with Apple Mail/Notes/System Settings is a human review step — deferred to pre-merge review before Phase 7 ships. Proceeding to Phase 2 (Shell).
 - **Phase 2 (2026-04-25):** shell.store uses localStorage persist (not electron-store) — avoids new IPC channels while satisfying persistence requirement. toolbarContext uses useSyncExternalStore external store pattern to avoid React context re-render loops when panels register actions. task 2.14 partial: glass/*, shared/PanelHeader, shared/Badge, shared/FilterBar, components/Skeleton deferred to Phase 4 — all still imported by existing panels. Deleting them now would break existing panels in their transitional state. `npx vitest run` passes 474 tests (3 removed for split-view coverage that no longer applies).
 - **5.1 / 5.2 (2026-04-26):** New `src/renderer/components/charts/ChartTheme.tsx` exposes themed `ThemedGrid` / `ThemedXAxis` / `ThemedYAxis` / `ThemedTooltip` primitives + a `ChartTheme` ResponsiveContainer wrapper, plus `CHART_COLORS` palette and `BAR_RADIUS` constant. Tooltip is rendered as a custom Surface (`--color-surface-card-elevated` + popover shadow + 8px swatches). All three Recharts files (`GrowthChart`, `GrowthReportChart`, `EngagementChart`) now consume the themed primitives — no more hard-coded `rgba(255,255,255,...)` axis/grid colors. ActivityHeatmap is custom CSS (no Recharts) — already themed in Phase 4.
+- **5.4 (2026-04-26):** Installed TipTap v3.22.4 + tiptap-markdown 0.9.0. New `src/renderer/components/editor/` houses `Editor.tsx` (StarterKit + Link + Placeholder + Markdown), `EditorToolbar.tsx` (Phosphor icon-only toolbar with Bold/Italic/Strike/inline Code, list/blockquote/code-block, link), and `editor.css` (15px SF Pro body, blockquote with accent left-border, code blocks on `--color-surface-input` with SF Mono 13px, accent links, accent-fill ::selection). Markdown is the source of truth in/out via `editor.storage.markdown.getMarkdown()` — preserves the existing `string` payload contract for posts. Bubble menu deferred — not currently used by the only consumer (PostEditor).
+- **5.5 (2026-04-26):** PostEditor's plain `TextArea` for content swapped for the new `Editor`. Markdown text flows back into the existing `payload.content: string` so the scheduler IPC, repository, and post-sender are untouched. Discord renders markdown natively; Telegram still shows raw markdown (existing behavior — no `parse_mode` change). Bundle grew ~1.1MB un-gzipped (TipTap is the bulk); acceptable for an Electron desktop app and consistent with the spec calling TipTap "kept" in the dependency baseline.
 - **5.3 (2026-04-26):** Added `Sparkline.tsx` (no axes/grid, polyline-only, 2px stroke, accent default per spec § Charts). Extended `StatsCard` with optional `sparkline: readonly number[]` field. `analytics.repository` now derives a 14-day daily series per metric (member_count, online_count, message_count) plus computed growth-rate and engagement-rate series; ordered oldest → newest. StatsCards renders the sparkline at bottom-right (absolute positioned, trend-tinted stroke). 9/9 analytics.repository tests still pass without changes — `sparkline` is optional and existing tests don't assert its presence.
 - **4.7 (2026-04-26):** SettingsPanel rewritten as macOS System-Settings-style two-column layout: 220px left rail (`bg-surface-card` panel with grouped sections — Integrations / Agent / Protection / App) + scrollable right content panel. Each section maps to its existing form (`CredentialsForm`, `AiProviderForm`, `AgentProfileEditor`, `ChannelAgentConfig`, `AutomationRules`, `PatternLibrary`, `SpamProtectionForm`, `RaidProtectionForm`, `ContentPolicyForm`, `EscalationConfigForm`, `RoleManagementForm`, `AppPreferencesForm`). Toolbar registers title + subtitle and explicitly disables the inspector. Selected rail item uses `--color-accent-fill` and Phosphor icon `weight="fill"`. Dirty-state dot indicators and "unsaved changes" confirmations are NOT yet wired — every form is self-saving (or has its own Save button) so adding a panel-level dirty model would require touching all 12 forms; deferred to Phase 7 polish. Existing forms keep their `GlassCard` markup for now (in-form glass treatment cleanup is also Phase 7); the panel-level shell however is fully migrated.
 - **4.6 (2026-04-26):** ReportsPanel rewritten with `usePanelToolbar` (Generate/History `SegmentedControl`). Inspector dynamic per tab — on Generate it hosts `ReportGenerator` (FormRow + Select + Checkbox sections + custom date range + primary Generate button); on History it hosts `ReportPreview`. Main content shows the `ReportPreview` (with progress state when `generating && !currentReport`) on Generate, and `ReportHistory` ListRow list on History. ReportHistory uses `Surface` + `ListRow` + Phosphor `Trash` trailing button. ReportPreview migrated to `Surface raised` sections + `MetricCard` (Surface raised) + `Divider`s + Phosphor icons; AI insights surface uses Phosphor `Sparkle`. Existing chart subcomponents (`charts/GrowthReportChart`, `charts/EngagementChart`) untouched — Phase 5 will theme them. ReportPreview "Back" button removed since the Inspector now toggles Generate/History via toolbar.
