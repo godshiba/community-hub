@@ -30,6 +30,11 @@
     "@google/generative-ai": "^0.24.1",
     "@phosphor-icons/react": "^2.1.10",
     "@tanstack/react-virtual": "^3.13.24",
+    "@tiptap/extension-link": "^3.22.4",
+    "@tiptap/extension-placeholder": "^3.22.4",
+    "@tiptap/pm": "^3.22.4",
+    "@tiptap/react": "^3.22.4",
+    "@tiptap/starter-kit": "^3.22.4",
     "@types/papaparse": "^5.5.2",
     "better-sqlite3": "^12.8.0",
     "class-variance-authority": "^0.7.1",
@@ -50,6 +55,7 @@
     "recharts": "^3.8.1",
     "tailwind-merge": "^3.5.0",
     "telegraf": "^4.16.3",
+    "tiptap-markdown": "^0.9.0",
     "zustand": "^5.0.12"
   },
   "devDependencies": {
