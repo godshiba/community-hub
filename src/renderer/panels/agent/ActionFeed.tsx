@@ -1,8 +1,14 @@
-import { memo } from 'react'
-import { MessageSquare, Flag, UserPlus, Clock, Shield, AlertTriangle } from 'lucide-react'
+import { memo, type CSSProperties } from 'react'
+import {
+  Bell, Tag, UserPlus, Clock, ShieldCheck, Warning, Robot
+} from '@phosphor-icons/react'
+import type { Icon } from '@phosphor-icons/react'
 import type { AgentAction, AgentActionType, AgentActionStatus } from '@shared/agent-types'
-import { cn } from '@/lib/utils'
-import { SkeletonCard } from '@/components/Skeleton'
+import { Surface } from '@/components/ui-native/Surface'
+import { ListRow } from '@/components/ui-native/ListRow'
+import { Pill } from '@/components/ui-native/Pill'
+import { Skeleton } from '@/components/ui-native/Skeleton'
+import { EmptyState } from '@/components/ui-native/EmptyState'
 
 interface ActionFeedProps {
   actions: readonly AgentAction[]
@@ -11,109 +17,106 @@ interface ActionFeedProps {
   onSelect: (id: number) => void
 }
 
-const TYPE_ICONS: Record<AgentActionType, React.ComponentType<{ className?: string }>> = {
-  replied: MessageSquare,
-  flagged: Flag,
-  welcomed: UserPlus,
+const TYPE_ICONS: Record<AgentActionType, Icon> = {
+  replied:   Bell,
+  flagged:   Tag,
+  welcomed:  UserPlus,
   scheduled: Clock,
-  moderated: Shield,
-  escalated: AlertTriangle
+  moderated: ShieldCheck,
+  escalated: Warning
 }
 
 const TYPE_COLORS: Record<AgentActionType, string> = {
-  replied: 'text-blue-400 bg-blue-400/10',
-  flagged: 'text-orange-400 bg-orange-400/10',
-  welcomed: 'text-green-400 bg-green-400/10',
-  scheduled: 'text-purple-400 bg-purple-400/10',
-  moderated: 'text-red-400 bg-red-400/10',
-  escalated: 'text-yellow-400 bg-yellow-400/10'
+  replied:   'var(--color-accent)',
+  flagged:   'var(--color-warning)',
+  welcomed:  'var(--color-success)',
+  scheduled: 'var(--color-accent)',
+  moderated: 'var(--color-error)',
+  escalated: 'var(--color-warning)'
 }
 
-const STATUS_DOTS: Record<AgentActionStatus, string> = {
-  completed: 'bg-green-400',
-  pending: 'bg-yellow-400',
-  approved: 'bg-blue-400',
-  rejected: 'bg-red-400',
-  edited: 'bg-purple-400'
+const STATUS_PILL: Record<AgentActionStatus, { variant: 'neutral' | 'accent' | 'success' | 'warning' | 'error'; label: string }> = {
+  completed: { variant: 'success', label: 'done'    },
+  pending:   { variant: 'warning', label: 'pending' },
+  approved:  { variant: 'accent',  label: 'approved' },
+  rejected:  { variant: 'error',   label: 'rejected' },
+  edited:    { variant: 'accent',  label: 'edited'  }
+}
+
+const TRAILING: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 6,
+  fontSize: 11,
+  color: 'var(--color-fg-tertiary)'
+}
+
+function formatTime(iso: string): string {
+  const date = new Date(iso)
+  const diff = Date.now() - date.getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins}m`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours}h`
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
 export const ActionFeed = memo(function ActionFeed({ actions, loading, selectedId, onSelect }: ActionFeedProps): React.ReactElement {
   if (loading && actions.length === 0) {
     return (
-      <div className="space-y-1">
-        {Array.from({ length: 4 }, (_, i) => <SkeletonCard key={i} />)}
-      </div>
+      <Surface variant="raised" radius="lg" bordered style={{ padding: 'var(--space-3)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Skeleton key={i} variant="rect" height={48} />
+        ))}
+      </Surface>
     )
   }
 
   if (actions.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-32 text-text-muted">
-        <Shield className="size-6 mb-2 opacity-40" />
-        <p className="text-xs">No agent actions yet</p>
-      </div>
+      <Surface variant="raised" radius="lg" bordered style={{ padding: 'var(--space-4)' }}>
+        <EmptyState
+          size="md"
+          icon={<Robot size={40} />}
+          title="No agent actions yet"
+          subtitle="Once the agent runs, replies, flags, or moderations will appear here."
+        />
+      </Surface>
     )
   }
 
   return (
-    <div className="space-y-1 overflow-y-auto">
+    <Surface variant="raised" radius="lg" bordered style={{ padding: 'var(--space-2)', display: 'flex', flexDirection: 'column', gap: 2 }}>
       {actions.map((action) => {
         const Icon = TYPE_ICONS[action.actionType]
-        const colorClass = TYPE_COLORS[action.actionType]
-        const dotClass = STATUS_DOTS[action.status]
-
+        const color = TYPE_COLORS[action.actionType]
+        const status = STATUS_PILL[action.status]
         return (
-          <button
+          <ListRow
             key={action.id}
-            onClick={() => onSelect(action.id)}
-            className={cn(
-              'w-full text-left px-3 py-2 rounded transition-colors flex items-start gap-2.5',
-              selectedId === action.id
-                ? 'bg-accent/10 border border-accent/20'
-                : 'hover:bg-white/[0.04]'
-            )}
-          >
-            <div className={cn('p-1 rounded mt-0.5', colorClass)}>
-              <Icon className="size-3" />
-            </div>
-
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs font-medium text-text-primary capitalize">
-                  {action.actionType}
-                </span>
-                <span className="text-[10px] text-text-muted">{action.platform}</span>
-                <div className={cn('size-1.5 rounded-full ml-auto', dotClass)} title={action.status} />
-              </div>
-
-              {action.input && (
-                <p className="text-[11px] text-text-secondary mt-0.5 truncate">
-                  {action.input}
-                </p>
-              )}
-
-              <span className="text-[10px] text-text-muted">
-                {formatTime(action.createdAt)}
+            density="comfortable"
+            selected={selectedId === action.id}
+            onSelect={() => onSelect(action.id)}
+            leading={<Icon size={16} weight="regular" color={color} />}
+            title={
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, textTransform: 'capitalize' }}>
+                {action.actionType}
+                <Pill size="sm" variant={status.variant}>{status.label}</Pill>
               </span>
-            </div>
-          </button>
+            }
+            subtitle={action.input ?? action.output ?? ''}
+            trailing={
+              <span style={TRAILING}>
+                <Pill size="sm" variant={action.platform === 'discord' ? 'discord' : 'telegram'}>
+                  {action.platform === 'discord' ? 'DC' : 'TG'}
+                </Pill>
+                <span style={{ fontVariantNumeric: 'tabular-nums' }}>{formatTime(action.createdAt)}</span>
+              </span>
+            }
+          />
         )
       })}
-    </div>
+    </Surface>
   )
 })
-
-function formatTime(iso: string): string {
-  const date = new Date(iso)
-  const now = new Date()
-  const diff = now.getTime() - date.getTime()
-  const mins = Math.floor(diff / 60000)
-
-  if (mins < 1) return 'just now'
-  if (mins < 60) return `${mins}m ago`
-
-  const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours}h ago`
-
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-}

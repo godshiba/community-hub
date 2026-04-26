@@ -1,7 +1,7 @@
-import { memo } from 'react'
+import { memo, type CSSProperties } from 'react'
 import type { AgentActionType, AgentActionStatus } from '@shared/agent-types'
 import type { Platform } from '@shared/settings-types'
-import { cn } from '@/lib/utils'
+import { Select } from '@/components/ui-native/Select'
 
 interface ActionFiltersProps {
   filterType: AgentActionType | undefined
@@ -12,78 +12,65 @@ interface ActionFiltersProps {
   onStatusChange: (status: AgentActionStatus | undefined) => void
 }
 
-const ACTION_TYPES: AgentActionType[] = ['replied', 'flagged', 'welcomed', 'scheduled', 'moderated', 'escalated']
-const STATUSES: AgentActionStatus[] = ['completed', 'pending', 'approved', 'rejected', 'edited']
-const PLATFORMS: Platform[] = ['discord', 'telegram']
+const TYPE_OPTIONS = [
+  { value: 'all',       label: 'All types'  },
+  { value: 'replied',   label: 'Replied'    },
+  { value: 'flagged',   label: 'Flagged'    },
+  { value: 'welcomed',  label: 'Welcomed'   },
+  { value: 'scheduled', label: 'Scheduled'  },
+  { value: 'moderated', label: 'Moderated'  },
+  { value: 'escalated', label: 'Escalated'  }
+] as const
+
+const PLATFORM_OPTIONS = [
+  { value: 'all',      label: 'All platforms' },
+  { value: 'discord',  label: 'Discord'  },
+  { value: 'telegram', label: 'Telegram' }
+] as const
+
+const STATUS_OPTIONS = [
+  { value: 'all',       label: 'All status' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'pending',   label: 'Pending'   },
+  { value: 'approved',  label: 'Approved'  },
+  { value: 'rejected',  label: 'Rejected'  },
+  { value: 'edited',    label: 'Edited'    }
+] as const
+
+const ROW: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 'var(--space-2)',
+  flexWrap: 'wrap'
+}
 
 export const ActionFilters = memo(function ActionFilters({
-  filterType,
-  filterPlatform,
-  filterStatus,
-  onTypeChange,
-  onPlatformChange,
-  onStatusChange
+  filterType, filterPlatform, filterStatus,
+  onTypeChange, onPlatformChange, onStatusChange
 }: ActionFiltersProps): React.ReactElement {
   return (
-    <div className="flex items-center gap-2 flex-wrap">
-      <FilterGroup
-        label="Type"
-        options={ACTION_TYPES}
-        value={filterType}
-        onChange={onTypeChange}
+    <div style={ROW}>
+      <Select
+        size="sm"
+        ariaLabel="Type filter"
+        value={filterType ?? 'all'}
+        onChange={(v) => onTypeChange(v === 'all' ? undefined : (v as AgentActionType))}
+        options={TYPE_OPTIONS}
       />
-      <FilterGroup
-        label="Platform"
-        options={PLATFORMS}
-        value={filterPlatform}
-        onChange={onPlatformChange}
+      <Select
+        size="sm"
+        ariaLabel="Platform filter"
+        value={filterPlatform ?? 'all'}
+        onChange={(v) => onPlatformChange(v === 'all' ? undefined : (v as Platform))}
+        options={PLATFORM_OPTIONS}
       />
-      <FilterGroup
-        label="Status"
-        options={STATUSES}
-        value={filterStatus}
-        onChange={onStatusChange}
+      <Select
+        size="sm"
+        ariaLabel="Status filter"
+        value={filterStatus ?? 'all'}
+        onChange={(v) => onStatusChange(v === 'all' ? undefined : (v as AgentActionStatus))}
+        options={STATUS_OPTIONS}
       />
     </div>
   )
 })
-
-interface FilterGroupProps<T extends string> {
-  label: string
-  options: T[]
-  value: T | undefined
-  onChange: (value: T | undefined) => void
-}
-
-function FilterGroup<T extends string>({ label, options, value, onChange }: FilterGroupProps<T>): React.ReactElement {
-  return (
-    <div className="flex items-center gap-1">
-      <span className="text-[10px] text-text-muted">{label}:</span>
-      <button
-        onClick={() => onChange(undefined)}
-        className={cn(
-          'px-1.5 py-0.5 text-[10px] rounded transition-colors',
-          value === undefined
-            ? 'bg-accent/20 text-accent'
-            : 'text-text-muted hover:text-text-secondary'
-        )}
-      >
-        All
-      </button>
-      {options.map((opt) => (
-        <button
-          key={opt}
-          onClick={() => onChange(value === opt ? undefined : opt)}
-          className={cn(
-            'px-1.5 py-0.5 text-[10px] rounded capitalize transition-colors',
-            value === opt
-              ? 'bg-accent/20 text-accent'
-              : 'text-text-muted hover:text-text-secondary'
-          )}
-        >
-          {opt}
-        </button>
-      ))}
-    </div>
-  )
-}

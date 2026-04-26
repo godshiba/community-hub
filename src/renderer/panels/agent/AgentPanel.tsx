@@ -1,81 +1,163 @@
-import { useEffect, useState } from 'react'
-import { GlassPanel } from '@/components/glass/GlassPanel'
+import { useEffect, useState, type CSSProperties } from 'react'
+import { Pulse, Robot } from '@phosphor-icons/react'
+import { usePanelToolbar } from '@/hooks/usePanelToolbar'
 import { useAgentStore } from '@/stores/agent.store'
-import { PanelHeader } from '@/components/shared/PanelHeader'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { AgentControls } from './AgentControls'
+import { Toggle } from '@/components/ui-native/Toggle'
+import { Pill } from '@/components/ui-native/Pill'
+import { Tooltip } from '@/components/ui-native/Tooltip'
+import { SegmentedControl } from '@/components/ui-native/SegmentedControl'
+import { EmptyState } from '@/components/ui-native/EmptyState'
+import { Button } from '@/components/ui-native/Button'
+import { HeroTitle } from '@/components/shell/HeroTitle'
 import { ActionFeed } from './ActionFeed'
 import { ActionFilters } from './ActionFilters'
 import { ApprovalQueue } from './ApprovalQueue'
-import { ConversationThread } from './ConversationThread'
+import { ActionDetail } from './ActionDetail'
 import { KnowledgeBasePanel } from './KnowledgeBasePanel'
 import { ConversationMemory } from './ConversationMemory'
 import { BrainSettings } from './BrainSettings'
+import { usePanelStore } from '@/stores/panel.store'
+
+type AgentTab = 'terminal' | 'knowledge' | 'memory' | 'settings'
+
+const TAB_OPTIONS = [
+  { value: 'terminal',  label: 'Terminal'  },
+  { value: 'knowledge', label: 'Knowledge' },
+  { value: 'memory',    label: 'Memory'    },
+  { value: 'settings',  label: 'Settings'  }
+] as const satisfies ReadonlyArray<{ value: AgentTab; label: string }>
+
+const CONTAINER: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 'var(--space-4)',
+  padding: 'var(--space-6)',
+  paddingTop: 'var(--space-3)',
+  height: '100%',
+  minHeight: 0,
+  maxWidth: 1400,
+  width: '100%',
+  marginInline: 'auto'
+}
+
+const STATUS_META: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 6,
+  fontSize: 12,
+  color: 'var(--color-fg-tertiary)'
+}
 
 export function AgentPanel(): React.ReactElement {
-  const {
-    status,
-    actions,
-    actionsLoading,
-    filterType,
-    filterPlatform,
-    filterStatus,
-    fetchStatus,
-    fetchActions,
-    setFilterType,
-    setFilterPlatform,
-    setFilterStatus,
-    approveAction,
-    rejectAction,
-    editAction,
-    pause,
-    resume
-  } = useAgentStore()
+  const status         = useAgentStore((s) => s.status)
+  const actions        = useAgentStore((s) => s.actions)
+  const actionsLoading = useAgentStore((s) => s.actionsLoading)
+  const filterType     = useAgentStore((s) => s.filterType)
+  const filterPlatform = useAgentStore((s) => s.filterPlatform)
+  const filterStatus   = useAgentStore((s) => s.filterStatus)
+  const fetchStatus    = useAgentStore((s) => s.fetchStatus)
+  const fetchActions   = useAgentStore((s) => s.fetchActions)
+  const setFilterType     = useAgentStore((s) => s.setFilterType)
+  const setFilterPlatform = useAgentStore((s) => s.setFilterPlatform)
+  const setFilterStatus   = useAgentStore((s) => s.setFilterStatus)
+  const approveAction  = useAgentStore((s) => s.approveAction)
+  const rejectAction   = useAgentStore((s) => s.rejectAction)
+  const editAction     = useAgentStore((s) => s.editAction)
+  const pause          = useAgentStore((s) => s.pause)
+  const resume         = useAgentStore((s) => s.resume)
+  const setActivePanel = usePanelStore((s) => s.setActivePanel)
 
+  const [tab, setTab] = useState<AgentTab>('terminal')
   const [selectedActionId, setSelectedActionId] = useState<number | null>(null)
 
   useEffect(() => {
-    fetchStatus()
-    fetchActions()
+    void fetchStatus()
+    void fetchActions()
     const interval = setInterval(() => {
-      fetchStatus()
-      fetchActions()
-    }, 10000)
+      void fetchStatus()
+      void fetchActions()
+    }, 10_000)
     return () => clearInterval(interval)
-  }, [])
+  }, [fetchStatus, fetchActions])
 
+  const state = status?.state ?? 'unavailable'
+  const isRunning = state === 'running'
+  const pending = status?.pendingApproval ?? 0
   const selectedAction = actions.find((a) => a.id === selectedActionId) ?? null
 
-  if (status?.state === 'unavailable') {
+  function scrollToApprovals(): void {
+    setTab('terminal')
+    setTimeout(() => {
+      document.getElementById('approval-queue')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 50)
+  }
+
+  usePanelToolbar({
+    title: 'Agent',
+    inspector: {
+      enabled: true,
+      renderEmpty: () => <ActionDetail action={selectedAction} />
+    },
+    actions: state === 'unavailable' ? null : (
+      <>
+        {pending > 0 && (
+          <button
+            onClick={scrollToApprovals}
+            style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}
+            aria-label={`${pending} pending approvals`}
+          >
+            <Pill size="sm" variant="warning">{pending} pending</Pill>
+          </button>
+        )}
+        <span style={STATUS_META}>
+          <Pulse size={12} />
+          {status?.actionsToday ?? 0} today
+        </span>
+        <Toggle
+          checked={isRunning}
+          onChange={(next) => { void (next ? resume() : pause()) }}
+          label={isRunning ? 'Pause agent' : 'Resume agent'}
+        />
+        <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--color-fg-secondary)' }}>
+          {isRunning ? 'Active' : 'Paused'}
+        </span>
+      </>
+    )
+  })
+
+  if (state === 'unavailable') {
     return (
-      <GlassPanel className="p-6 flex items-center justify-center h-full">
-        <div className="text-center">
-          <p className="text-sm text-text-secondary">No AI provider configured</p>
-          <p className="text-xs text-text-muted mt-1">
-            Go to Settings and configure an AI provider to enable the agent
-          </p>
-        </div>
-      </GlassPanel>
+      <div style={CONTAINER}>
+        <HeroTitle title="Agent" />
+        <EmptyState
+          size="lg"
+          icon={<Robot size={56} />}
+          title="No AI provider configured"
+          subtitle="Configure a Claude, OpenAI, Grok, or Gemini provider in Settings to enable the agent."
+          action={
+            <Button variant="primary" onClick={() => setActivePanel('settings')}>
+              Open Settings
+            </Button>
+          }
+        />
+      </div>
     )
   }
 
   return (
-    <GlassPanel className="p-4 overflow-hidden h-full flex flex-col">
-      <PanelHeader
-        title="Agent Terminal"
-        subtitle="AI agent actions, knowledge base, and controls"
-        actions={<AgentControls status={status} onPause={pause} onResume={resume} />}
+    <div style={CONTAINER}>
+      <HeroTitle title="Agent" subtitle={status?.provider ? `Provider: ${status.provider}` : undefined} />
+
+      <SegmentedControl
+        size="sm"
+        ariaLabel="Agent section"
+        options={TAB_OPTIONS}
+        value={tab}
+        onChange={(v) => setTab(v)}
       />
 
-      <Tabs defaultValue="terminal" className="flex-1 flex flex-col min-h-0 mt-3">
-        <TabsList className="bg-glass-surface border-glass shrink-0">
-          <TabsTrigger value="terminal">Terminal</TabsTrigger>
-          <TabsTrigger value="knowledge">Knowledge Base</TabsTrigger>
-          <TabsTrigger value="memory">Memory</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="terminal" className="flex-1 min-h-0 flex flex-col gap-3 mt-3">
+      {tab === 'terminal' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', flex: 1, minHeight: 0, overflowY: 'auto' }}>
           <ActionFilters
             filterType={filterType}
             filterPlatform={filterPlatform}
@@ -84,44 +166,24 @@ export function AgentPanel(): React.ReactElement {
             onPlatformChange={setFilterPlatform}
             onStatusChange={setFilterStatus}
           />
+          <ApprovalQueue
+            actions={[...actions]}
+            onApprove={approveAction}
+            onReject={rejectAction}
+            onEdit={editAction}
+          />
+          <ActionFeed
+            actions={actions}
+            loading={actionsLoading}
+            selectedId={selectedActionId}
+            onSelect={setSelectedActionId}
+          />
+        </div>
+      )}
 
-          <div className="flex gap-3 flex-1 min-h-0">
-            <div className="w-1/2 flex flex-col gap-3 overflow-hidden">
-              <ApprovalQueue
-                actions={[...actions]}
-                onApprove={approveAction}
-                onReject={rejectAction}
-                onEdit={editAction}
-              />
-
-              <div className="flex-1 min-h-0 overflow-y-auto">
-                <ActionFeed
-                  actions={actions}
-                  loading={actionsLoading}
-                  selectedId={selectedActionId}
-                  onSelect={setSelectedActionId}
-                />
-              </div>
-            </div>
-
-            <div className="w-1/2 border-l border-glass-border overflow-y-auto">
-              <ConversationThread action={selectedAction} />
-            </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="knowledge" className="flex-1 min-h-0 mt-3">
-          <KnowledgeBasePanel />
-        </TabsContent>
-
-        <TabsContent value="memory" className="flex-1 min-h-0 mt-3">
-          <ConversationMemory />
-        </TabsContent>
-
-        <TabsContent value="settings" className="flex-1 min-h-0 mt-3">
-          <BrainSettings />
-        </TabsContent>
-      </Tabs>
-    </GlassPanel>
+      {tab === 'knowledge' && <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}><KnowledgeBasePanel /></div>}
+      {tab === 'memory'    && <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}><ConversationMemory /></div>}
+      {tab === 'settings'  && <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}><BrainSettings /></div>}
+    </div>
   )
 }

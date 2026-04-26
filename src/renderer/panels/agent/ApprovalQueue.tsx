@@ -1,6 +1,10 @@
-import { useState, memo } from 'react'
-import { Check, X, Pencil, Inbox } from 'lucide-react'
+import { useState, memo, type CSSProperties } from 'react'
+import { Check, PencilSimple, Tray, X } from '@phosphor-icons/react'
 import type { AgentAction } from '@shared/agent-types'
+import { Surface } from '@/components/ui-native/Surface'
+import { Button } from '@/components/ui-native/Button'
+import { TextArea } from '@/components/ui-native/TextArea'
+import { EmptyState } from '@/components/ui-native/EmptyState'
 
 interface ApprovalQueueProps {
   actions: readonly AgentAction[]
@@ -9,23 +13,51 @@ interface ApprovalQueueProps {
   onEdit: (id: number, output: string) => void
 }
 
-export const ApprovalQueue = memo(function ApprovalQueue({ actions, onApprove, onReject, onEdit }: ApprovalQueueProps): React.ReactElement {
+const ROOT: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 8,
+  padding: 'var(--space-3)'
+}
+
+const HEADER: CSSProperties = {
+  fontSize: 11,
+  fontWeight: 500,
+  letterSpacing: '0.04em',
+  textTransform: 'uppercase',
+  color: 'var(--color-fg-tertiary)'
+}
+
+const ITEM: CSSProperties = {
+  padding: 10,
+  borderRadius: 'var(--radius-md)',
+  background: 'color-mix(in oklch, var(--color-warning) 8%, transparent)',
+  border: '1px solid color-mix(in oklch, var(--color-warning) 22%, transparent)',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 8
+}
+
+export const ApprovalQueue = memo(function ApprovalQueue({
+  actions, onApprove, onReject, onEdit
+}: ApprovalQueueProps): React.ReactElement {
   const pending = actions.filter((a) => a.status === 'pending')
 
   if (pending.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-6 text-text-muted">
-        <Inbox className="size-6 mb-2 opacity-40" />
-        <p className="text-xs">No items pending approval</p>
-      </div>
+      <Surface variant="raised" radius="lg" bordered style={{ padding: 'var(--space-3)' }}>
+        <EmptyState
+          size="sm"
+          icon={<Tray size={28} />}
+          title="No items pending approval"
+        />
+      </Surface>
     )
   }
 
   return (
-    <div className="space-y-2">
-      <h3 className="text-xs font-medium text-text-secondary uppercase tracking-wider">
-        Pending Approval ({pending.length})
-      </h3>
+    <Surface variant="raised" radius="lg" bordered id="approval-queue" style={ROOT}>
+      <div style={HEADER}>Pending approval ({pending.length})</div>
       {pending.map((action) => (
         <ApprovalItem
           key={action.id}
@@ -35,7 +67,7 @@ export const ApprovalQueue = memo(function ApprovalQueue({ actions, onApprove, o
           onEdit={(output) => onEdit(action.id, output)}
         />
       ))}
-    </div>
+    </Surface>
   )
 })
 
@@ -50,68 +82,44 @@ function ApprovalItem({ action, onApprove, onReject, onEdit }: ApprovalItemProps
   const [editing, setEditing] = useState(false)
   const [editText, setEditText] = useState(action.output ?? '')
 
-  const handleSave = (): void => {
-    onEdit(editText)
-    setEditing(false)
-  }
-
   return (
-    <div className="p-3 bg-yellow-400/5 border border-yellow-400/15 rounded space-y-2">
+    <div style={ITEM}>
       {action.input && (
-        <div className="text-[11px] text-text-secondary">
-          <span className="text-text-muted">Input:</span> {action.input}
+        <div style={{ fontSize: 12, color: 'var(--color-fg-secondary)' }}>
+          <span style={{ color: 'var(--color-fg-tertiary)' }}>Input:</span> {action.input}
         </div>
       )}
 
       {editing ? (
-        <div className="space-y-2">
-          <textarea
+        <>
+          <TextArea
             value={editText}
             onChange={(e) => setEditText(e.target.value)}
-            className="w-full bg-glass-surface border border-glass-border rounded px-2 py-1.5 text-xs text-text-primary resize-none focus:outline-none focus:border-accent/50"
-            rows={3}
+            minRows={3}
+            aria-label="Edit response"
           />
-          <div className="flex gap-1">
-            <button
-              onClick={handleSave}
-              className="px-2 py-1 text-[10px] font-medium bg-accent/20 text-accent rounded hover:bg-accent/30 transition-colors"
-            >
-              Save & Approve
-            </button>
-            <button
-              onClick={() => setEditing(false)}
-              className="px-2 py-1 text-[10px] font-medium text-text-muted hover:text-text-secondary transition-colors"
-            >
-              Cancel
-            </button>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <Button size="sm" variant="primary" onClick={() => { onEdit(editText); setEditing(false) }}>
+              Save & approve
+            </Button>
+            <Button size="sm" variant="plain" onClick={() => setEditing(false)}>Cancel</Button>
           </div>
-        </div>
+        </>
       ) : (
         <>
-          <div className="text-xs text-text-primary">{action.output}</div>
-
-          <div className="flex gap-1">
-            <button
-              onClick={onApprove}
-              className="p-1.5 text-green-400 hover:bg-green-400/10 rounded transition-colors"
-              title="Approve"
-            >
-              <Check className="size-3.5" />
-            </button>
-            <button
-              onClick={() => setEditing(true)}
-              className="p-1.5 text-blue-400 hover:bg-blue-400/10 rounded transition-colors"
-              title="Edit"
-            >
-              <Pencil className="size-3.5" />
-            </button>
-            <button
-              onClick={onReject}
-              className="p-1.5 text-red-400 hover:bg-red-400/10 rounded transition-colors"
-              title="Reject"
-            >
-              <X className="size-3.5" />
-            </button>
+          <div style={{ fontSize: 12, color: 'var(--color-fg-primary)', whiteSpace: 'pre-wrap' }}>
+            {action.output}
+          </div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <Button size="sm" variant="primary" leading={<Check size={12} weight="bold" />} onClick={onApprove}>
+              Approve
+            </Button>
+            <Button size="sm" variant="secondary" leading={<PencilSimple size={12} weight="bold" />} onClick={() => setEditing(true)}>
+              Edit
+            </Button>
+            <Button size="sm" variant="destructive" leading={<X size={12} weight="bold" />} onClick={onReject}>
+              Reject
+            </Button>
           </div>
         </>
       )}
