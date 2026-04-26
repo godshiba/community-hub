@@ -27,8 +27,8 @@ Refs: docs/plan-v1/ui-upgrade-roadmap.md (Phase <n>, task <id>)
 
 ## Status Dashboard
 
-**Current phase:** 3 complete — ready for Phase 4
-**Last updated:** 2026-04-25
+**Current phase:** 4 — Panel rewrites (in progress)
+**Last updated:** 2026-04-26
 **Branch:** `ui/apple-native-redesign`
 
 | Phase | Name | Status | Progress |
@@ -37,12 +37,12 @@ Refs: docs/plan-v1/ui-upgrade-roadmap.md (Phase <n>, task <id>)
 | 1 | ui-native primitives | Complete | 43 / 43 |
 | 2 | Shell | Complete | 14 / 14 |
 | 3 | Command palette + shortcuts | Complete | 8 / 8 |
-| 4 | Panel rewrites | Not started | 0 / 7 panels |
+| 4 | Panel rewrites | In progress | 1 / 7 panels |
 | 5 | Charts & editors | Not started | 0 / 5 |
 | 6 | Motion pass | Not started | 0 / 8 |
 | 7 | Polish & QA | Not started | 0 / 10 |
 
-**Overall:** 74 / 112 tasks complete.
+**Overall:** 75 / 112 tasks complete.
 
 *(Phase 1 denominator corrected from 35 to 43 — sum of listed tasks 1.1–1.43; overall total updated accordingly.)*
 
@@ -208,7 +208,7 @@ One panel per commit. Each panel uses the [Migration Checklist](#migration-check
 
 Reference: [ui-upgrade.md § Panel Redesign](./ui-upgrade.md)
 
-- [ ] **4.1** Dashboard — hero title, stat cards with sparklines, growth chart, heatmap + contributors grid, toolbar actions.
+- [x] **4.1** Dashboard — hero title, stat cards with sparklines, growth chart, heatmap + contributors grid, toolbar actions.
 - [ ] **4.2** Moderation — FilterBar, virtualized ListRow list, inspector with MemberSummary, detail takeover, bulk-select, right-click menu.
 - [ ] **4.3** Events — List/Calendar toggle, EventDetail inspector, calendar grid with event pills.
 - [ ] **4.4** Scheduler — Queue/History toggle, PostPreview inspector, drag-reorder queue.
@@ -349,4 +349,5 @@ A running log of decisions and surprises found mid-implementation. Append-only.
 - **1.42 (2026-04-24):** axe-core surfaced three real a11y bugs: (1) `Avatar` needed `role="img"` to justify its `aria-label` (span-without-role + aria-label is axe-prohibited); (2) `ListRow` used `aria-selected` on `role="button"` which aria-allowed-attr flags — switched to `aria-pressed` for the default button role, `aria-selected` only when caller overrides role to option; (3) `Toggle` needs either a `label` prop or wrapping `<label>` — documented via the axe test. Also disabled axe's `aria-hidden-focus` for Sheet/Alert/Toast — known Radix focus-trap sentinel false positive under happy-dom.
 - **Phase 1 gate (2026-04-24):** All 43 tasks complete. `npm run build` passes. `npx vitest run` passes 477 tests across 58 files (pretest rebuilds better-sqlite3 against system Node). `#/dev/primitives` renders 39 gallery sections — every primitive in every documented state. Every primitive has a unit test file and an axe-core audit (39 total). Side-by-side visual parity with Apple Mail/Notes/System Settings is a human review step — deferred to pre-merge review before Phase 7 ships. Proceeding to Phase 2 (Shell).
 - **Phase 2 (2026-04-25):** shell.store uses localStorage persist (not electron-store) — avoids new IPC channels while satisfying persistence requirement. toolbarContext uses useSyncExternalStore external store pattern to avoid React context re-render loops when panels register actions. task 2.14 partial: glass/*, shared/PanelHeader, shared/Badge, shared/FilterBar, components/Skeleton deferred to Phase 4 — all still imported by existing panels. Deleting them now would break existing panels in their transitional state. `npx vitest run` passes 474 tests (3 removed for split-view coverage that no longer applies).
+- **4.1 (2026-04-26):** Created `src/renderer/components/shell/HeroTitle.tsx` (34px hero per spec § Typography). Sparklines listed in 4.1 description are owned by Phase 5.3 — deferred per phase-order discipline; stat cards leave space for them but render the trend row only. GrowthChart/ActivityHeatmap/TopContributors all migrated from `GlassCard` to `Surface variant="raised" bordered`. TopContributors switched to `ListRow` rows with `Avatar` + platform `Pill`. Toolbar uses `usePanelToolbar`; inspector explicitly disabled per spec. Existing `analytics:exportStats` IPC contract untouched.
 - **Phase 3 (2026-04-25):** CommandPalette uses Radix Dialog directly (not Sheet component) to achieve non-centered positioning (20% from top) that Sheet doesn't support. `shared/CommandPalette.tsx` and `shared/command-items.ts` deleted — replaced by `shell/CommandPalette.tsx` and `shell/command-items.ts`. `moderation:searchMembers` added to ipc-types + moderation handler — delegates to existing `getMembers` with search filter. "Toggle Agent" palette action navigates to agent panel (full toggle awaits Phase 4 panel rewrite). `TooltipProvider` added at App root. New `MenuActionType` values added: `openShortcutsSheet`, `newPost`, `newEvent`, `generateReport`, `focusSearch`. Panel-specific shortcuts (⌘A, ⇧⌘A, ⌘↵, ⌫, ↑↓, ⌃↵) dispatch DOM custom events (`panel:selectAll`, `panel:deselectAll`, `panel:openDetail`, `panel:openContextMenu`) for Phase 4 panels to subscribe to.

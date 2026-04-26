@@ -1,5 +1,5 @@
-import { Fragment, memo } from 'react'
-import { GlassCard } from '@/components/glass/GlassCard'
+import { Fragment, memo, type CSSProperties } from 'react'
+import { Surface } from '@/components/ui-native/Surface'
 import type { HeatmapCell } from '@shared/analytics-types'
 
 interface ActivityHeatmapProps {
@@ -9,51 +9,87 @@ interface ActivityHeatmapProps {
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const HOURS = Array.from({ length: 24 }, (_, i) => i)
 
-function getIntensity(value: number, max: number): string {
-  if (max === 0 || value === 0) return 'bg-glass-surface'
-  const ratio = value / max
-  if (ratio > 0.75) return 'bg-accent/60'
-  if (ratio > 0.5) return 'bg-accent/40'
-  if (ratio > 0.25) return 'bg-accent/20'
-  return 'bg-accent/10'
+function intensity(value: number, max: number): { background: string; opacity: number } {
+  if (max === 0 || value === 0) {
+    return { background: 'rgba(255,255,255,0.04)', opacity: 1 }
+  }
+  const ratio = Math.max(0.08, Math.min(1, value / max))
+  return {
+    background: 'var(--color-accent)',
+    opacity: ratio * 0.85 + 0.05
+  }
+}
+
+const CARD: CSSProperties = {
+  padding: 'var(--space-4)',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 'var(--space-3)'
+}
+
+const TITLE: CSSProperties = {
+  fontSize: 13,
+  fontWeight: 600,
+  color: 'var(--color-fg-primary)',
+  margin: 0
+}
+
+const GRID: CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: '40px repeat(24, minmax(0, 1fr))',
+  gap: 2
+}
+
+const HOUR_LABEL: CSSProperties = {
+  fontSize: 9,
+  color: 'var(--color-fg-tertiary)',
+  textAlign: 'center',
+  fontVariantNumeric: 'tabular-nums'
+}
+
+const DAY_LABEL: CSSProperties = {
+  fontSize: 11,
+  color: 'var(--color-fg-tertiary)',
+  display: 'flex',
+  alignItems: 'center',
+  paddingRight: 6
 }
 
 export const ActivityHeatmap = memo(function ActivityHeatmap({ data }: ActivityHeatmapProps): React.ReactElement {
   const cellMap = new Map<string, number>()
   let maxValue = 0
-
   for (const cell of data) {
-    const key = `${cell.day}-${cell.hour}`
-    cellMap.set(key, cell.value)
+    cellMap.set(`${cell.day}-${cell.hour}`, cell.value)
     if (cell.value > maxValue) maxValue = cell.value
   }
 
   return (
-    <GlassCard className="p-4">
-      <h3 className="text-sm font-medium text-text-primary mb-4">Activity Heatmap</h3>
-      <div className="overflow-x-auto">
-        <div className="grid gap-0.5" style={{ gridTemplateColumns: `48px repeat(24, 1fr)` }}>
-          {/* Hour labels */}
+    <Surface variant="raised" radius="lg" bordered style={CARD}>
+      <h3 style={TITLE}>Activity Heatmap</h3>
+      <div style={{ overflowX: 'auto' }}>
+        <div style={GRID}>
           <div />
           {HOURS.map((h) => (
-            <div key={h} className="text-[9px] text-text-muted text-center">
-              {h.toString().padStart(2, '0')}
-            </div>
+            <div key={h} style={HOUR_LABEL}>{h.toString().padStart(2, '0')}</div>
           ))}
 
-          {/* Day rows */}
           {DAYS.map((dayLabel, dayIdx) => (
-            <Fragment key={dayIdx}>
-              <div className="text-xs text-text-muted flex items-center">
-                {dayLabel}
-              </div>
+            <Fragment key={dayLabel}>
+              <div style={DAY_LABEL}>{dayLabel}</div>
               {HOURS.map((hour) => {
                 const value = cellMap.get(`${dayIdx}-${hour}`) ?? 0
+                const style = intensity(value, maxValue)
                 return (
                   <div
                     key={`${dayIdx}-${hour}`}
-                    className={`aspect-square rounded-sm ${getIntensity(value, maxValue)} transition-colors`}
-                    title={`${dayLabel} ${hour}:00 — ${value} messages`}
+                    title={`${dayLabel} ${hour.toString().padStart(2, '0')}:00 — ${value} messages`}
+                    style={{
+                      aspectRatio: '1 / 1',
+                      borderRadius: 'var(--radius-xs)',
+                      background: style.background,
+                      opacity: style.opacity,
+                      transition: 'opacity var(--duration-fast) var(--ease-standard)'
+                    }}
                   />
                 )
               })}
@@ -61,6 +97,6 @@ export const ActivityHeatmap = memo(function ActivityHeatmap({ data }: ActivityH
           ))}
         </div>
       </div>
-    </GlassCard>
+    </Surface>
   )
 })

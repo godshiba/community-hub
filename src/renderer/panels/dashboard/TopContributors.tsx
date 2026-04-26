@@ -1,56 +1,95 @@
-import { memo } from 'react'
-import { GlassCard } from '@/components/glass/GlassCard'
-import { Users } from 'lucide-react'
+import { memo, type CSSProperties } from 'react'
+import { Users } from '@phosphor-icons/react'
+import { Surface } from '@/components/ui-native/Surface'
+import { ListRow } from '@/components/ui-native/ListRow'
+import { Avatar } from '@/components/ui-native/Avatar'
+import { Pill } from '@/components/ui-native/Pill'
+import { EmptyState } from '@/components/ui-native/EmptyState'
 import type { Contributor } from '@shared/analytics-types'
 
 interface TopContributorsProps {
   data: readonly Contributor[]
 }
 
-export const TopContributors = memo(function TopContributors({ data }: TopContributorsProps): React.ReactElement {
-  if (data.length === 0) {
-    return (
-      <GlassCard className="p-4">
-        <h3 className="text-sm font-medium text-text-primary mb-4">Top Contributors</h3>
-        <div className="flex flex-col items-center justify-center py-8 text-text-muted">
-          <Users className="size-8 mb-2 opacity-40" />
-          <p className="text-xs">Contributor data will appear after moderation module is active</p>
-        </div>
-      </GlassCard>
-    )
-  }
+const CARD: CSSProperties = {
+  padding: 'var(--space-4)',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 'var(--space-3)'
+}
 
+const TITLE: CSSProperties = {
+  fontSize: 13,
+  fontWeight: 600,
+  color: 'var(--color-fg-primary)',
+  margin: 0
+}
+
+const RANK: CSSProperties = {
+  width: 22,
+  fontSize: 12,
+  fontVariantNumeric: 'tabular-nums',
+  color: 'var(--color-fg-tertiary)',
+  textAlign: 'right'
+}
+
+const SCORE: CSSProperties = {
+  fontSize: 12,
+  fontVariantNumeric: 'tabular-nums',
+  color: 'var(--color-accent)',
+  fontWeight: 500,
+  minWidth: 36,
+  textAlign: 'right'
+}
+
+const COUNT: CSSProperties = {
+  fontSize: 12,
+  fontVariantNumeric: 'tabular-nums',
+  color: 'var(--color-fg-secondary)',
+  minWidth: 64,
+  textAlign: 'right'
+}
+
+export const TopContributors = memo(function TopContributors({ data }: TopContributorsProps): React.ReactElement {
   return (
-    <GlassCard className="p-4">
-      <h3 className="text-sm font-medium text-text-primary mb-4">Top Contributors</h3>
-      <div className="space-y-2">
-        <div className="grid grid-cols-[32px_1fr_80px_80px_60px] gap-2 text-xs text-text-muted pb-2 border-b border-glass-border">
-          <span>#</span>
-          <span>Name</span>
-          <span className="text-right">Platform</span>
-          <span className="text-right">Messages</span>
-          <span className="text-right">Score</span>
+    <Surface variant="raised" radius="lg" bordered style={CARD}>
+      <h3 style={TITLE}>Top Contributors</h3>
+      {data.length === 0 ? (
+        <EmptyState
+          size="sm"
+          icon={<Users size={28} />}
+          title="No contributors yet"
+          subtitle="Contributor data will appear after the moderation module syncs members."
+        />
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {data.map((c, i) => (
+            <ListRow
+              key={c.id}
+              density="compact"
+              interactive={false}
+              leading={
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                  <span style={RANK}>{i + 1}</span>
+                  <Avatar src={c.avatar} name={c.name} size={22} />
+                </span>
+              }
+              title={c.name}
+              trailing={
+                <>
+                  <Pill size="sm" variant={c.platform === 'discord' ? 'discord' : 'telegram'}>
+                    {c.platform === 'discord' ? 'Discord' : 'Telegram'}
+                  </Pill>
+                  <span style={COUNT} title={`${c.messageCount.toLocaleString()} messages`}>
+                    {c.messageCount.toLocaleString()}
+                  </span>
+                  <span style={SCORE}>{c.score}</span>
+                </>
+              }
+            />
+          ))}
         </div>
-        {data.map((c, i) => (
-          <div
-            key={c.id}
-            className="grid grid-cols-[32px_1fr_80px_80px_60px] gap-2 text-xs items-center"
-          >
-            <span className="text-text-muted">{i + 1}</span>
-            <div className="flex items-center gap-2 min-w-0">
-              {c.avatar
-                ? <img src={c.avatar} alt="" className="size-5 rounded-full" />
-                : <div className="size-5 rounded-full bg-glass-surface" />}
-              <span className="text-text-primary truncate">{c.name}</span>
-            </div>
-            <span className={`text-right ${c.platform === 'discord' ? 'text-discord' : 'text-telegram'}`}>
-              {c.platform === 'discord' ? 'Discord' : 'Telegram'}
-            </span>
-            <span className="text-right text-text-secondary">{c.messageCount.toLocaleString()}</span>
-            <span className="text-right text-accent">{c.score}</span>
-          </div>
-        ))}
-      </div>
-    </GlassCard>
+      )}
+    </Surface>
   )
 })
