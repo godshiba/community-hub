@@ -1,144 +1,130 @@
-import { GlassCard } from '@/components/glass/GlassCard'
+import { type CSSProperties } from 'react'
+import { ChartBar, SpinnerGap } from '@phosphor-icons/react'
 import { useReportsStore } from '@/stores/reports.store'
-import { Loader2, BarChart3 } from 'lucide-react'
+import { Button } from '@/components/ui-native/Button'
+import { Select } from '@/components/ui-native/Select'
+import { TextField } from '@/components/ui-native/TextField'
+import { Checkbox } from '@/components/ui-native/Checkbox'
+import { FormRow } from '@/components/ui-native/FormRow'
+import { Divider } from '@/components/ui-native/Divider'
 import type { MetricCategory, ReportPeriod, ReportPlatformFilter } from '@shared/reports-types'
 
-const PERIODS: { value: ReportPeriod; label: string }[] = [
-  { value: '7d', label: '7 Days' },
-  { value: '14d', label: '14 Days' },
-  { value: '30d', label: '30 Days' },
-  { value: '90d', label: '90 Days' },
-  { value: 'custom', label: 'Custom' }
-]
+const PERIOD_OPTIONS = [
+  { value: '7d',     label: '7 days'   },
+  { value: '14d',    label: '14 days'  },
+  { value: '30d',    label: '30 days'  },
+  { value: '90d',    label: '90 days'  },
+  { value: 'custom', label: 'Custom range' }
+] as const satisfies ReadonlyArray<{ value: ReportPeriod; label: string }>
 
-const PLATFORMS: { value: ReportPlatformFilter; label: string }[] = [
-  { value: 'all', label: 'All Platforms' },
-  { value: 'discord', label: 'Discord' },
+const PLATFORM_OPTIONS = [
+  { value: 'all',      label: 'All platforms' },
+  { value: 'discord',  label: 'Discord'  },
   { value: 'telegram', label: 'Telegram' }
+] as const satisfies ReadonlyArray<{ value: ReportPlatformFilter; label: string }>
+
+const METRICS: ReadonlyArray<{ value: MetricCategory; label: string; description: string }> = [
+  { value: 'growth',     label: 'Growth',     description: 'Member counts and growth rate' },
+  { value: 'engagement', label: 'Engagement', description: 'Active users, messages per user' },
+  { value: 'retention',  label: 'Retention',  description: 'Retention and churn' },
+  { value: 'moderation', label: 'Moderation', description: 'Warnings, bans, resolutions' },
+  { value: 'events',     label: 'Events',     description: 'Events held, RSVPs, attendance' }
 ]
 
-const METRICS: { value: MetricCategory; label: string; description: string }[] = [
-  { value: 'growth', label: 'Growth', description: 'Member count trends and growth rate' },
-  { value: 'engagement', label: 'Engagement', description: 'Active users and messages per user' },
-  { value: 'retention', label: 'Retention', description: 'Retention and churn rates' },
-  { value: 'moderation', label: 'Moderation', description: 'Warnings, bans, and resolutions' },
-  { value: 'events', label: 'Events', description: 'Events held, RSVPs, attendance' }
-]
+const ROOT: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 14,
+  padding: 'var(--space-4)'
+}
+
+const METRIC_ROW: CSSProperties = {
+  display: 'flex',
+  alignItems: 'flex-start',
+  gap: 10,
+  padding: 'var(--space-2)',
+  borderRadius: 'var(--radius-sm)',
+  cursor: 'pointer'
+}
 
 export function ReportGenerator(): React.ReactElement {
-  const {
-    period, platformFilter, selectedMetrics,
-    customStart, customEnd, generating,
-    setPeriod, setPlatformFilter, toggleMetric,
-    setCustomRange, generate
-  } = useReportsStore()
+  const period           = useReportsStore((s) => s.period)
+  const platformFilter   = useReportsStore((s) => s.platformFilter)
+  const selectedMetrics  = useReportsStore((s) => s.selectedMetrics)
+  const customStart      = useReportsStore((s) => s.customStart)
+  const customEnd        = useReportsStore((s) => s.customEnd)
+  const generating       = useReportsStore((s) => s.generating)
+  const setPeriod        = useReportsStore((s) => s.setPeriod)
+  const setPlatformFilter = useReportsStore((s) => s.setPlatformFilter)
+  const toggleMetric     = useReportsStore((s) => s.toggleMetric)
+  const setCustomRange   = useReportsStore((s) => s.setCustomRange)
+  const generate         = useReportsStore((s) => s.generate)
 
   return (
-    <div className="space-y-4">
-      <GlassCard className="p-4 space-y-4">
-        <h3 className="text-sm font-medium text-text-primary">Report Period</h3>
-        <div className="flex flex-wrap gap-2">
-          {PERIODS.map((p) => (
-            <button
-              key={p.value}
-              onClick={() => setPeriod(p.value)}
-              className={`px-3 py-1.5 text-xs rounded transition-colors ${
-                period === p.value
-                  ? 'bg-accent/20 text-accent font-medium'
-                  : 'bg-glass-surface text-text-muted hover:text-text-secondary'
-              }`}
-            >
-              {p.label}
-            </button>
-          ))}
+    <div style={ROOT}>
+      <FormRow label="Time period">
+        <Select
+          value={period}
+          onChange={(v) => setPeriod(v as ReportPeriod)}
+          options={PERIOD_OPTIONS}
+          fullWidth
+        />
+      </FormRow>
+
+      {period === 'custom' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <FormRow label="Start">
+            <TextField type="date" value={customStart} onChange={(e) => setCustomRange(e.target.value, customEnd)} />
+          </FormRow>
+          <FormRow label="End">
+            <TextField type="date" value={customEnd} onChange={(e) => setCustomRange(customStart, e.target.value)} />
+          </FormRow>
         </div>
+      )}
 
-        {period === 'custom' && (
-          <div className="flex gap-3">
-            <div className="flex-1">
-              <label className="block text-xs text-text-muted mb-1">Start</label>
-              <input
-                type="date"
-                value={customStart}
-                onChange={(e) => setCustomRange(e.target.value, customEnd)}
-                className="w-full bg-glass-surface border-glass rounded px-2 py-1.5 text-xs text-text-primary"
-              />
-            </div>
-            <div className="flex-1">
-              <label className="block text-xs text-text-muted mb-1">End</label>
-              <input
-                type="date"
-                value={customEnd}
-                onChange={(e) => setCustomRange(customStart, e.target.value)}
-                className="w-full bg-glass-surface border-glass rounded px-2 py-1.5 text-xs text-text-primary"
-              />
-            </div>
-          </div>
-        )}
-      </GlassCard>
+      <FormRow label="Platform">
+        <Select
+          value={platformFilter}
+          onChange={(v) => setPlatformFilter(v as ReportPlatformFilter)}
+          options={PLATFORM_OPTIONS}
+          fullWidth
+        />
+      </FormRow>
 
-      <GlassCard className="p-4 space-y-4">
-        <h3 className="text-sm font-medium text-text-primary">Platform</h3>
-        <div className="flex gap-2">
-          {PLATFORMS.map((p) => (
-            <button
-              key={p.value}
-              onClick={() => setPlatformFilter(p.value)}
-              className={`px-3 py-1.5 text-xs rounded transition-colors ${
-                platformFilter === p.value
-                  ? 'bg-accent/20 text-accent font-medium'
-                  : 'bg-glass-surface text-text-muted hover:text-text-secondary'
-              }`}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-      </GlassCard>
+      <Divider />
 
-      <GlassCard className="p-4 space-y-4">
-        <h3 className="text-sm font-medium text-text-primary">Metrics</h3>
-        <div className="space-y-2">
+      <FormRow label="Sections">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           {METRICS.map((m) => {
             const checked = selectedMetrics.includes(m.value)
             return (
-              <label
-                key={m.value}
-                className="flex items-start gap-3 p-2 rounded hover:bg-glass-surface cursor-pointer transition-colors"
-              >
-                <input
-                  type="checkbox"
+              <label key={m.value} style={METRIC_ROW}>
+                <Checkbox
                   checked={checked}
                   onChange={() => toggleMetric(m.value)}
-                  className="mt-0.5 accent-accent"
+                  label={m.label}
                 />
-                <div>
-                  <span className="text-xs font-medium text-text-primary">{m.label}</span>
-                  <p className="text-xs text-text-muted">{m.description}</p>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-fg-primary)' }}>{m.label}</div>
+                  <div style={{ fontSize: 11, color: 'var(--color-fg-tertiary)', marginTop: 2 }}>{m.description}</div>
                 </div>
               </label>
             )
           })}
         </div>
-      </GlassCard>
+      </FormRow>
 
-      <button
-        onClick={generate}
-        disabled={generating || selectedMetrics.length === 0}
-        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium bg-accent/20 text-accent rounded hover:bg-accent/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+      <Button
+        variant="primary"
+        size="md"
+        onClick={() => { void generate() }}
+        disabled={selectedMetrics.length === 0 || generating}
+        isLoading={generating}
+        fullWidth
+        leading={generating ? <SpinnerGap size={14} /> : <ChartBar size={14} weight="bold" />}
       >
-        {generating ? (
-          <>
-            <Loader2 className="size-4 animate-spin" />
-            Generating...
-          </>
-        ) : (
-          <>
-            <BarChart3 className="size-4" />
-            Generate Report
-          </>
-        )}
-      </button>
+        {generating ? 'Generating…' : 'Generate report'}
+      </Button>
     </div>
   )
 }

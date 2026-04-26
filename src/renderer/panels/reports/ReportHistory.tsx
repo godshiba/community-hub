@@ -1,69 +1,78 @@
 import { useEffect, memo } from 'react'
-import { GlassCard } from '@/components/glass/GlassCard'
+import { FileText, Trash } from '@phosphor-icons/react'
 import { useReportsStore } from '@/stores/reports.store'
-import { FileText, Trash2, Loader2 } from 'lucide-react'
+import { Surface } from '@/components/ui-native/Surface'
+import { ListRow } from '@/components/ui-native/ListRow'
+import { EmptyState } from '@/components/ui-native/EmptyState'
+import { Skeleton } from '@/components/ui-native/Skeleton'
 
 export const ReportHistory = memo(function ReportHistory(): React.ReactElement {
-  const { reports, historyLoading, fetchHistory, viewReport, deleteReport } = useReportsStore()
+  const reports        = useReportsStore((s) => s.reports)
+  const historyLoading = useReportsStore((s) => s.historyLoading)
+  const fetchHistory   = useReportsStore((s) => s.fetchHistory)
+  const viewReport     = useReportsStore((s) => s.viewReport)
+  const deleteReport   = useReportsStore((s) => s.deleteReport)
+  const currentReport  = useReportsStore((s) => s.currentReport)
 
-  useEffect(() => { fetchHistory() }, [])
+  useEffect(() => { void fetchHistory() }, [fetchHistory])
 
-  if (historyLoading) {
+  if (historyLoading && reports.length === 0) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="size-5 animate-spin text-text-muted" />
-      </div>
+      <Surface variant="raised" radius="lg" bordered style={{ padding: 'var(--space-3)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} variant="rect" height={48} />)}
+      </Surface>
     )
   }
 
   if (reports.length === 0) {
     return (
-      <GlassCard className="p-6 text-center">
-        <FileText className="size-8 text-text-muted mx-auto mb-2" />
-        <p className="text-sm text-text-muted">No reports generated yet</p>
-        <p className="text-xs text-text-muted mt-1">
-          Generate your first report from the generator tab
-        </p>
-      </GlassCard>
+      <Surface variant="raised" radius="lg" bordered style={{ padding: 'var(--space-4)' }}>
+        <EmptyState
+          size="md"
+          icon={<FileText size={40} />}
+          title="No reports yet"
+          subtitle="Switch to Generate to build your first report."
+        />
+      </Surface>
     )
   }
 
   return (
-    <div className="space-y-2">
+    <Surface variant="raised" radius="lg" bordered style={{ padding: 'var(--space-2)', display: 'flex', flexDirection: 'column', gap: 2 }}>
       {reports.map((report) => (
-        <GlassCard
+        <ListRow
           key={report.id}
-          className="p-3 flex items-center justify-between hover:bg-glass-raised/80 cursor-pointer transition-colors"
-          onClick={() => viewReport(report)}
-        >
-          <div className="flex items-center gap-3 min-w-0">
-            <FileText className="size-4 text-accent shrink-0" />
-            <div className="min-w-0">
-              <p className="text-xs font-medium text-text-primary truncate">
-                {report.title}
-              </p>
-              <p className="text-xs text-text-muted">
-                {new Date(report.createdAt).toLocaleDateString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              deleteReport(report.id)
-            }}
-            className="p-1.5 text-text-muted hover:text-red-400 transition-colors shrink-0"
-          >
-            <Trash2 className="size-3.5" />
-          </button>
-        </GlassCard>
+          density="comfortable"
+          selected={currentReport?.id === report.id}
+          onSelect={() => viewReport(report)}
+          leading={<FileText size={16} color="var(--color-accent)" />}
+          title={report.title}
+          subtitle={new Date(report.createdAt).toLocaleString(undefined, {
+            month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
+          })}
+          trailing={
+            <button
+              aria-label="Delete report"
+              title="Delete"
+              onClick={(e) => { e.stopPropagation(); void deleteReport(report.id) }}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                width: 24,
+                height: 24,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: 4,
+                cursor: 'pointer',
+                color: 'var(--color-fg-tertiary)'
+              }}
+            >
+              <Trash size={13} />
+            </button>
+          }
+        />
       ))}
-    </div>
+    </Surface>
   )
 })
