@@ -1,248 +1,190 @@
 import { useState, useEffect } from 'react'
-import { GlassModal } from '@/components/glass/GlassModal'
 import { useEventsStore } from '@/stores/events.store'
+import { Sheet } from '@/components/ui-native/Sheet'
+import { TextField } from '@/components/ui-native/TextField'
+import { TextArea } from '@/components/ui-native/TextArea'
+import { Select } from '@/components/ui-native/Select'
+import { NumberField } from '@/components/ui-native/NumberField'
+import { Checkbox } from '@/components/ui-native/Checkbox'
+import { Button } from '@/components/ui-native/Button'
+import { FormRow } from '@/components/ui-native/FormRow'
 import type { EventPayload, EventStatus, ReminderConfig, ReminderOffset } from '@shared/events-types'
 import type { Platform } from '@shared/settings-types'
 
-const STATUS_OPTIONS: readonly EventStatus[] = ['draft', 'scheduled', 'active', 'completed', 'cancelled']
-const REMINDER_OPTIONS: readonly { value: ReminderOffset; label: string }[] = [
+const STATUS_OPTIONS = [
+  { value: 'draft',     label: 'Draft'     },
+  { value: 'scheduled', label: 'Scheduled' },
+  { value: 'active',    label: 'Active'    },
+  { value: 'completed', label: 'Completed' },
+  { value: 'cancelled', label: 'Cancelled' }
+] as const satisfies ReadonlyArray<{ value: EventStatus; label: string }>
+
+const PLATFORM_OPTIONS = [
+  { value: 'none',     label: 'None'     },
+  { value: 'discord',  label: 'Discord'  },
+  { value: 'telegram', label: 'Telegram' }
+] as const
+
+const REMINDER_OPTIONS: ReadonlyArray<{ value: ReminderOffset; label: string }> = [
   { value: '1h', label: '1 hour before' },
   { value: '1d', label: '1 day before' }
 ]
 
-export function EventForm(): React.ReactElement | null {
-  const { formOpen, editingEvent, closeForm, createEvent, updateEvent } = useEventsStore()
+export function EventForm(): React.ReactElement {
+  const formOpen      = useEventsStore((s) => s.formOpen)
+  const editingEvent  = useEventsStore((s) => s.editingEvent)
+  const closeForm     = useEventsStore((s) => s.closeForm)
+  const createEvent   = useEventsStore((s) => s.createEvent)
+  const updateEvent   = useEventsStore((s) => s.updateEvent)
 
-  const [title, setTitle] = useState(editingEvent?.title ?? '')
-  const [description, setDescription] = useState(editingEvent?.description ?? '')
-  const [eventDate, setEventDate] = useState(editingEvent?.eventDate?.slice(0, 10) ?? '')
-  const [eventTime, setEventTime] = useState(editingEvent?.eventTime ?? '')
-  const [location, setLocation] = useState(editingEvent?.location ?? '')
-  const [platform, setPlatform] = useState<Platform | ''>(editingEvent?.platform ?? '')
-  const [capacity, setCapacity] = useState(editingEvent?.capacity?.toString() ?? '')
-  const [status, setStatus] = useState<EventStatus>(editingEvent?.status ?? 'scheduled')
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
+  const [eventDate, setEventDate] = useState('')
+  const [eventTime, setEventTime] = useState('')
+  const [location, setLocation] = useState('')
+  const [platform, setPlatform] = useState<'none' | Platform>('none')
+  const [capacity, setCapacity] = useState<number | null>(null)
+  const [status, setStatus] = useState<EventStatus>('scheduled')
   const [announce, setAnnounce] = useState(false)
   const [reminders, setReminders] = useState<ReminderOffset[]>([])
   const [submitting, setSubmitting] = useState(false)
 
-  // Sync form state when editingEvent changes (e.g. opening form with different event)
   useEffect(() => {
     setTitle(editingEvent?.title ?? '')
     setDescription(editingEvent?.description ?? '')
     setEventDate(editingEvent?.eventDate?.slice(0, 10) ?? '')
     setEventTime(editingEvent?.eventTime ?? '')
     setLocation(editingEvent?.location ?? '')
-    setPlatform(editingEvent?.platform ?? '')
-    setCapacity(editingEvent?.capacity?.toString() ?? '')
+    setPlatform(editingEvent?.platform ?? 'none')
+    setCapacity(editingEvent?.capacity ?? null)
     setStatus(editingEvent?.status ?? 'scheduled')
     setAnnounce(false)
     setReminders([])
   }, [editingEvent])
 
-  function resetAndClose(): void {
-    setTitle('')
-    setDescription('')
-    setEventDate('')
-    setEventTime('')
-    setLocation('')
-    setPlatform('')
-    setCapacity('')
-    setStatus('scheduled')
-    setAnnounce(false)
-    setReminders([])
+  function reset(): void {
+    setTitle(''); setDescription(''); setEventDate(''); setEventTime('')
+    setLocation(''); setPlatform('none'); setCapacity(null); setStatus('scheduled')
+    setAnnounce(false); setReminders([])
+  }
+
+  function close(): void {
+    reset()
     closeForm()
   }
 
   async function handleSubmit(): Promise<void> {
     if (!title.trim() || !eventDate) return
     setSubmitting(true)
-
-    const reminderConfigs: ReminderConfig[] = reminders.map((offset) => ({ offset }))
-    const channelIds: Record<Platform, string> = { discord: '', telegram: '' }
-
     const payload: EventPayload = {
       title: title.trim(),
       description: description.trim() || null,
       eventDate: new Date(eventDate + (eventTime ? `T${eventTime}` : 'T00:00')).toISOString(),
       eventTime: eventTime || null,
       location: location.trim() || null,
-      platform: platform || null,
-      capacity: capacity ? parseInt(capacity, 10) : null,
+      platform: platform === 'none' ? null : platform,
+      capacity,
       status,
       announce,
-      channelIds,
-      reminders: reminderConfigs
+      channelIds: { discord: '', telegram: '' },
+      reminders: reminders.map<ReminderConfig>((offset) => ({ offset }))
     }
-
     try {
-      if (editingEvent) {
-        await updateEvent(editingEvent.id, payload)
-      } else {
-        await createEvent(payload)
-      }
-      resetAndClose()
-    } catch { /* error handled in store */ } finally {
+      if (editingEvent) await updateEvent(editingEvent.id, payload)
+      else              await createEvent(payload)
+      close()
+    } catch {
+      // surfaced via store
+    } finally {
       setSubmitting(false)
     }
   }
 
   function toggleReminder(offset: ReminderOffset): void {
-    setReminders((prev) =>
-      prev.includes(offset)
-        ? prev.filter((r) => r !== offset)
-        : [...prev, offset]
-    )
+    setReminders((prev) => (prev.includes(offset) ? prev.filter((r) => r !== offset) : [...prev, offset]))
   }
 
   return (
-    <GlassModal open={formOpen} onClose={resetAndClose} className="max-w-md">
-      <h3 className="text-sm font-semibold text-text-primary mb-4">
-        {editingEvent ? 'Edit Event' : 'Create Event'}
-      </h3>
-
-      <div className="space-y-3">
-        {/* Title */}
-        <input
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Event title"
-          className="w-full px-3 py-2 text-xs bg-glass-surface border border-glass-border rounded text-text-primary placeholder:text-text-muted"
-          autoFocus
-        />
-
-        {/* Description */}
-        <textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Description (optional)"
-          className="w-full px-3 py-2 text-xs bg-glass-surface border border-glass-border rounded text-text-primary placeholder:text-text-muted resize-none"
-          rows={3}
-        />
-
-        {/* Date & Time */}
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <label className="text-xs text-text-muted block mb-1">Date</label>
-            <input
-              type="date"
-              value={eventDate}
-              onChange={(e) => setEventDate(e.target.value)}
-              className="w-full px-2 py-1.5 text-xs bg-glass-surface border border-glass-border rounded text-text-primary"
-            />
-          </div>
-          <div>
-            <label className="text-xs text-text-muted block mb-1">Time</label>
-            <input
-              type="time"
-              value={eventTime}
-              onChange={(e) => setEventTime(e.target.value)}
-              className="w-full px-2 py-1.5 text-xs bg-glass-surface border border-glass-border rounded text-text-primary"
-            />
-          </div>
-        </div>
-
-        {/* Location */}
-        <input
-          type="text"
-          value={location}
-          onChange={(e) => setLocation(e.target.value)}
-          placeholder="Location (optional)"
-          className="w-full px-3 py-2 text-xs bg-glass-surface border border-glass-border rounded text-text-primary placeholder:text-text-muted"
-        />
-
-        {/* Platform & Capacity */}
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <label className="text-xs text-text-muted block mb-1">Platform</label>
-            <select
-              value={platform}
-              onChange={(e) => setPlatform(e.target.value as Platform | '')}
-              className="w-full px-2 py-1.5 text-xs bg-glass-surface border border-glass-border rounded text-text-primary"
-            >
-              <option value="">None</option>
-              <option value="discord">Discord</option>
-              <option value="telegram">Telegram</option>
-            </select>
-          </div>
-          <div>
-            <label className="text-xs text-text-muted block mb-1">Capacity</label>
-            <input
-              type="number"
-              value={capacity}
-              onChange={(e) => setCapacity(e.target.value)}
-              placeholder="Unlimited"
-              min={1}
-              className="w-full px-2 py-1.5 text-xs bg-glass-surface border border-glass-border rounded text-text-primary placeholder:text-text-muted"
-            />
-          </div>
-        </div>
-
-        {/* Status */}
-        <div>
-          <label className="text-xs text-text-muted block mb-1">Status</label>
-          <select
-            value={status}
-            onChange={(e) => setStatus(e.target.value as EventStatus)}
-            className="w-full px-2 py-1.5 text-xs bg-glass-surface border border-glass-border rounded text-text-primary"
+    <Sheet
+      open={formOpen}
+      onOpenChange={(open) => { if (!open) close() }}
+      title={editingEvent ? 'Edit event' : 'New event'}
+      width="md"
+      ariaLabel={editingEvent ? 'Edit event' : 'New event'}
+      footer={
+        <>
+          <Button variant="plain" onClick={close}>Cancel</Button>
+          <Button
+            variant="primary"
+            onClick={() => { void handleSubmit() }}
+            disabled={!title.trim() || !eventDate}
+            isLoading={submitting}
           >
-            {STATUS_OPTIONS.map((s) => (
-              <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
-            ))}
-          </select>
+            {editingEvent ? 'Update' : 'Create'}
+          </Button>
+        </>
+      }
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <FormRow label="Title" required>
+          <TextField value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Event title" autoFocus />
+        </FormRow>
+
+        <FormRow label="Description" optional>
+          <TextArea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What's this event about?" minRows={3} />
+        </FormRow>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <FormRow label="Date" required>
+            <TextField type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} />
+          </FormRow>
+          <FormRow label="Time" optional>
+            <TextField type="time" value={eventTime} onChange={(e) => setEventTime(e.target.value)} />
+          </FormRow>
         </div>
 
-        {/* Reminders */}
-        <div>
-          <label className="text-xs text-text-muted block mb-1">Reminders</label>
-          <div className="flex gap-2">
+        <FormRow label="Location" optional>
+          <TextField value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Where it happens" />
+        </FormRow>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <FormRow label="Platform">
+            <Select value={platform} onChange={(v) => setPlatform(v as 'none' | Platform)} options={PLATFORM_OPTIONS} fullWidth />
+          </FormRow>
+          <FormRow label="Capacity" optional>
+            <NumberField value={capacity ?? null} onChange={(v) => setCapacity(v)} min={1} placeholder="Unlimited" />
+          </FormRow>
+        </div>
+
+        <FormRow label="Status">
+          <Select value={status} onChange={(v) => setStatus(v as EventStatus)} options={STATUS_OPTIONS} fullWidth />
+        </FormRow>
+
+        <FormRow label="Reminders" optional>
+          <div style={{ display: 'flex', gap: 8 }}>
             {REMINDER_OPTIONS.map((opt) => (
-              <button
+              <Button
                 key={opt.value}
-                type="button"
+                variant={reminders.includes(opt.value) ? 'primary' : 'secondary'}
+                size="sm"
                 onClick={() => toggleReminder(opt.value)}
-                className={`px-2 py-1 text-xs rounded border transition-colors ${
-                  reminders.includes(opt.value)
-                    ? 'border-accent text-accent bg-accent/10'
-                    : 'border-glass-border text-text-muted hover:text-text-secondary'
-                }`}
               >
                 {opt.label}
-              </button>
+              </Button>
             ))}
           </div>
-        </div>
+        </FormRow>
 
-        {/* Announce */}
         {!editingEvent && (
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
+          <FormRow>
+            <Checkbox
               checked={announce}
-              onChange={(e) => setAnnounce(e.target.checked)}
-              className="rounded border-glass-border"
+              onChange={setAnnounce}
+              label="Announce on platform when created"
             />
-            <span className="text-xs text-text-secondary">Announce on platform when created</span>
-          </label>
+          </FormRow>
         )}
       </div>
-
-      {/* Footer */}
-      <div className="flex justify-end gap-2 mt-4">
-        <button
-          onClick={resetAndClose}
-          className="px-3 py-1.5 text-xs text-text-muted hover:text-text-secondary transition-colors"
-        >
-          Cancel
-        </button>
-        <button
-          onClick={handleSubmit}
-          disabled={!title.trim() || !eventDate || submitting}
-          className="px-3 py-1.5 text-xs font-medium bg-accent/20 text-accent rounded hover:bg-accent/30 transition-colors disabled:opacity-50"
-        >
-          {submitting ? 'Saving...' : editingEvent ? 'Update' : 'Create'}
-        </button>
-      </div>
-    </GlassModal>
+    </Sheet>
   )
 }

@@ -1,57 +1,76 @@
-import { useEffect } from 'react'
-import { GlassPanel } from '@/components/glass/GlassPanel'
+import { useEffect, type CSSProperties } from 'react'
+import { Plus } from '@phosphor-icons/react'
+import { usePanelToolbar } from '@/hooks/usePanelToolbar'
 import { useEventsStore } from '@/stores/events.store'
-import { PanelHeader } from '@/components/shared/PanelHeader'
-import { SegmentedControl } from '@/components/shared/SegmentedControl'
+import { Button } from '@/components/ui-native/Button'
+import { Tooltip } from '@/components/ui-native/Tooltip'
+import { SegmentedControl } from '@/components/ui-native/SegmentedControl'
+import { HeroTitle } from '@/components/shell/HeroTitle'
 import { EventList } from './EventList'
 import { EventCalendar } from './EventCalendar'
 import { EventDetail } from './EventDetail'
 import { EventForm } from './EventForm'
 
-export function EventsPanel(): React.ReactElement {
-  const { viewMode, setViewMode, selectedEvent, fetchEvents, openForm } = useEventsStore()
+const VIEW_OPTIONS = [
+  { value: 'list',     label: 'List'     },
+  { value: 'calendar', label: 'Calendar' }
+] as const satisfies ReadonlyArray<{ value: 'list' | 'calendar'; label: string }>
 
-  useEffect(() => { fetchEvents() }, [])
+const CONTAINER: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 'var(--space-4)',
+  padding: 'var(--space-6)',
+  paddingTop: 'var(--space-3)',
+  height: '100%',
+  minHeight: 0,
+  maxWidth: 1400,
+  width: '100%',
+  marginInline: 'auto'
+}
+
+export function EventsPanel(): React.ReactElement {
+  const viewMode    = useEventsStore((s) => s.viewMode)
+  const setViewMode = useEventsStore((s) => s.setViewMode)
+  const fetchEvents = useEventsStore((s) => s.fetchEvents)
+  const openForm    = useEventsStore((s) => s.openForm)
+
+  useEffect(() => { void fetchEvents() }, [fetchEvents])
+
+  usePanelToolbar({
+    title: 'Events',
+    inspector: {
+      enabled: true,
+      renderEmpty: () => <EventDetail />
+    },
+    actions: (
+      <>
+        <SegmentedControl
+          size="sm"
+          ariaLabel="Event view"
+          options={VIEW_OPTIONS}
+          value={viewMode}
+          onChange={(v) => setViewMode(v)}
+        />
+        <Tooltip label="New event" shortcut={['⇧', '⌘', 'N']} side="bottom">
+          <Button
+            variant="primary"
+            size="sm"
+            leading={<Plus size={13} weight="bold" />}
+            onClick={() => openForm()}
+          >
+            New event
+          </Button>
+        </Tooltip>
+      </>
+    )
+  })
 
   return (
-    <GlassPanel className="p-4 space-y-4 overflow-y-auto h-full">
-      <PanelHeader
-        title="Events"
-        subtitle="Manage events, RSVPs, and reminders"
-        actions={
-          <>
-            <SegmentedControl
-              options={[
-                { value: 'list', label: 'List' },
-                { value: 'calendar', label: 'Calendar' }
-              ]}
-              value={viewMode}
-              onChange={(v) => setViewMode(v as 'list' | 'calendar')}
-            />
-            <button
-              onClick={() => openForm()}
-              className="px-3 py-1.5 text-xs font-medium bg-accent/20 text-accent rounded hover:bg-accent/30 transition-colors"
-            >
-              New Event
-            </button>
-          </>
-        }
-      />
-
-      {/* Content */}
-      <div className="flex gap-4 h-[calc(100%-5rem)]">
-        <div className={selectedEvent ? 'w-1/2' : 'w-full'}>
-          {viewMode === 'list' ? <EventList /> : <EventCalendar />}
-        </div>
-
-        {selectedEvent && (
-          <div className="w-1/2">
-            <EventDetail />
-          </div>
-        )}
-      </div>
-
+    <div style={CONTAINER}>
+      <HeroTitle title="Events" />
+      {viewMode === 'list' ? <EventList /> : <EventCalendar />}
       <EventForm />
-    </GlassPanel>
+    </div>
   )
 }

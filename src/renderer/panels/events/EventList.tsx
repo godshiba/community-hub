@@ -1,125 +1,133 @@
-import { memo, useState, useEffect } from 'react'
-import { GlassCard } from '@/components/glass/GlassCard'
+import { memo, useEffect, useRef, useState, type CSSProperties } from 'react'
+import { CalendarBlank, MagnifyingGlass } from '@phosphor-icons/react'
 import { useEventsStore } from '@/stores/events.store'
 import { useDebounce } from '@/hooks/useDebounce'
-import { SkeletonCard } from '@/components/Skeleton'
-import { Calendar } from 'lucide-react'
-import type { CommunityEvent, EventStatus } from '@shared/events-types'
+import { TextField } from '@/components/ui-native/TextField'
+import { SegmentedControl } from '@/components/ui-native/SegmentedControl'
+import { ListRow } from '@/components/ui-native/ListRow'
+import { Pill } from '@/components/ui-native/Pill'
+import { Surface } from '@/components/ui-native/Surface'
+import { Skeleton } from '@/components/ui-native/Skeleton'
+import { EmptyState } from '@/components/ui-native/EmptyState'
+import type { EventStatus } from '@shared/events-types'
 
-const STATUS_STYLES: Record<EventStatus, string> = {
-  draft: 'text-text-muted bg-text-muted/10',
-  scheduled: 'text-blue-400 bg-blue-400/10',
-  active: 'text-green-400 bg-green-400/10',
-  completed: 'text-text-secondary bg-text-secondary/10',
-  cancelled: 'text-red-400 bg-red-400/10'
+const STATUS_PILL: Record<EventStatus, { variant: 'neutral' | 'accent' | 'success' | 'warning' | 'error'; label: string }> = {
+  draft:     { variant: 'neutral', label: 'Draft'     },
+  scheduled: { variant: 'accent',  label: 'Scheduled' },
+  active:    { variant: 'success', label: 'Active'    },
+  completed: { variant: 'neutral', label: 'Completed' },
+  cancelled: { variant: 'error',   label: 'Cancelled' }
+}
+
+type ListFilter = 'upcoming' | 'past' | 'cancelled' | 'all'
+
+const FILTER_OPTIONS = [
+  { value: 'upcoming',  label: 'Upcoming'  },
+  { value: 'past',      label: 'Past'      },
+  { value: 'cancelled', label: 'Cancelled' },
+  { value: 'all',       label: 'All'       }
+] as const satisfies ReadonlyArray<{ value: ListFilter; label: string }>
+
+const FILTER_BAR: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 'var(--space-2)',
+  paddingBlock: 'var(--space-2)'
 }
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric'
-  })
-}
-
-function formatTime(time: string | null): string {
-  if (!time) return ''
-  return ` at ${time}`
-}
-
-function EventRow({ event, onSelect }: { event: CommunityEvent; onSelect: (id: number) => void }): React.ReactElement {
-  return (
-    <button
-      onClick={() => onSelect(event.id)}
-      className="w-full text-left px-3 py-2.5 hover:bg-glass-surface rounded transition-colors"
-    >
-      <div className="flex items-center justify-between">
-        <div className="min-w-0 flex-1">
-          <h4 className="text-sm font-medium text-text-primary truncate">{event.title}</h4>
-          <p className="text-xs text-text-muted mt-0.5">
-            {formatDate(event.eventDate)}{formatTime(event.eventTime)}
-            {event.location && ` — ${event.location}`}
-          </p>
-        </div>
-        <div className="flex items-center gap-2 ml-3">
-          {event.platform && (
-            <span className="text-xs text-text-muted capitalize">{event.platform}</span>
-          )}
-          <span className={`px-2 py-0.5 text-xs rounded capitalize ${STATUS_STYLES[event.status]}`}>
-            {event.status}
-          </span>
-        </div>
-      </div>
-    </button>
-  )
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
 export const EventList = memo(function EventList(): React.ReactElement {
-  const { events, loading, listFilter, setListFilter, search, setSearch, fetchEventDetail } = useEventsStore()
+  const events           = useEventsStore((s) => s.events)
+  const loading          = useEventsStore((s) => s.loading)
+  const listFilter       = useEventsStore((s) => s.listFilter)
+  const search           = useEventsStore((s) => s.search)
+  const setListFilter    = useEventsStore((s) => s.setListFilter)
+  const setSearch        = useEventsStore((s) => s.setSearch)
+  const fetchEventDetail = useEventsStore((s) => s.fetchEventDetail)
+  const selectedEvent    = useEventsStore((s) => s.selectedEvent)
 
   const [localSearch, setLocalSearch] = useState(search)
   const debouncedSearch = useDebounce(localSearch, 300)
-
   useEffect(() => {
-    if (debouncedSearch !== search) {
-      setSearch(debouncedSearch)
-    }
-  }, [debouncedSearch])
+    if (debouncedSearch !== search) setSearch(debouncedSearch)
+  }, [debouncedSearch, search, setSearch])
 
-  const filters = [
-    { value: 'upcoming' as const, label: 'Upcoming' },
-    { value: 'past' as const, label: 'Past' },
-    { value: 'cancelled' as const, label: 'Cancelled' },
-    { value: undefined, label: 'All' }
-  ]
+  const searchInputRef = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    const onFocus = (): void => searchInputRef.current?.focus()
+    window.addEventListener('panel:focusSearch', onFocus)
+    return () => window.removeEventListener('panel:focusSearch', onFocus)
+  }, [])
+
+  const segmentedValue: ListFilter = listFilter ?? 'all'
 
   return (
-    <GlassCard className="flex flex-col h-full">
-      {/* Filter bar */}
-      <div className="p-3 border-b border-glass-border space-y-2">
-        <div className="flex items-center gap-1">
-          {filters.map((f) => (
-            <button
-              key={f.label}
-              onClick={() => setListFilter(f.value)}
-              className={`px-2 py-1 text-xs rounded transition-colors ${
-                listFilter === f.value
-                  ? 'bg-accent/20 text-accent font-medium'
-                  : 'text-text-muted hover:text-text-secondary'
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-        <input
-          type="text"
+    <Surface variant="raised" radius="lg" bordered style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+      <div style={{ ...FILTER_BAR, paddingInline: 'var(--space-3)', borderBottom: '1px solid var(--color-divider)' }}>
+        <SegmentedControl
+          size="sm"
+          ariaLabel="Event filter"
+          options={FILTER_OPTIONS}
+          value={segmentedValue}
+          onChange={(v) => setListFilter(v === 'all' ? undefined : (v as Exclude<ListFilter, 'all'>))}
+        />
+        <TextField
+          ref={searchInputRef}
+          inputSize="sm"
+          placeholder="Search events…"
           value={localSearch}
           onChange={(e) => setLocalSearch(e.target.value)}
-          placeholder="Search events..."
-          className="w-full px-2 py-1.5 text-xs bg-glass-surface border border-glass-border rounded text-text-primary placeholder:text-text-muted"
+          prefix={<MagnifyingGlass size={12} />}
+          containerStyle={{ width: 220, marginLeft: 'auto', flex: '0 0 220px' }}
+          fullWidth={false}
         />
       </div>
 
-      {/* Event list */}
-      <div className="flex-1 overflow-y-auto">
+      <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--space-2)' }}>
         {loading ? (
-          <div className="space-y-1">
-            {Array.from({ length: 4 }, (_, i) => <SkeletonCard key={i} />)}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} variant="rect" height={52} />
+            ))}
           </div>
         ) : events.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-text-muted">
-            <Calendar className="size-8 mb-2 opacity-40" />
-            <p className="text-xs">No events found</p>
-          </div>
+          <EmptyState
+            size="md"
+            icon={<CalendarBlank size={40} />}
+            title="No events"
+            subtitle="Create one with the New Event button in the toolbar."
+          />
         ) : (
-          <div className="divide-y divide-glass-border/50">
-            {events.map((event) => (
-              <EventRow key={event.id} event={event} onSelect={fetchEventDetail} />
-            ))}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {events.map((event) => {
+              const status = STATUS_PILL[event.status]
+              return (
+                <ListRow
+                  key={event.id}
+                  density="comfortable"
+                  selected={selectedEvent?.event.id === event.id}
+                  onSelect={() => fetchEventDetail(event.id)}
+                  title={event.title}
+                  subtitle={`${formatDate(event.eventDate)}${event.eventTime ? ` · ${event.eventTime}` : ''}${event.location ? ` · ${event.location}` : ''}`}
+                  trailing={
+                    <>
+                      {event.platform && (
+                        <Pill size="sm" variant={event.platform === 'discord' ? 'discord' : 'telegram'}>
+                          {event.platform === 'discord' ? 'Discord' : 'Telegram'}
+                        </Pill>
+                      )}
+                      <Pill size="sm" variant={status.variant}>{status.label}</Pill>
+                    </>
+                  }
+                />
+              )
+            })}
           </div>
         )}
       </div>
-    </GlassCard>
+    </Surface>
   )
 })
